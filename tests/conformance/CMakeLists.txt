@@ -174,6 +174,33 @@ foreach(lod_suite
   set_tests_properties(conformance.${lod_suite} PROPERTIES LABELS "conformance;m4l;lod")
 endforeach()
 
+# ---- M4y YUV + color-space convert suites (B.9) --------------------------
+# Combiner color-space convert (K0..K5 YUV->RGB) + texel-convert factors,
+# bit-exact vs oracle over [0, 1000). The texture-convert-* family is the
+# full cross product of {1cycle,2cycle} x {YUV,YUV-conv,RGBA,RGBA-conv} x
+# {plain,quad,mid,quad-mid,bilerp,quad-bilerp,bilerp-mid,quad-mid-bilerp}
+# (TEXTURE_TEST_CONVERT expansion in register_rdp_suites(), A.2).
+foreach(conv_name plain quad mid quad-mid bilerp quad-bilerp bilerp-mid quad-mid-bilerp)
+  foreach(conv_cycle 1cycle 2cycle)
+    foreach(conv_fmt YUV YUV-conv RGBA RGBA-conv)
+      set(conv_suite texture-convert-${conv_cycle}-${conv_fmt}${conv_name})
+      add_test(NAME conformance.${conv_suite}
+               COMMAND rdp_suite_runner --suite ${conv_suite} --range 0 1000)
+      set_tests_properties(conformance.${conv_suite} PROPERTIES LABELS "conformance;m4y;convert")
+    endforeach()
+  endforeach()
+endforeach()
+
+foreach(conv_suite
+    interpolation-color-texture-2cycle-convert-bilerp
+    interpolation-color-texture-2cycle-convert-factors
+    interpolation-color-texture-2cycle-implicit-convert-factors
+    interpolation-color-texture-2cycle-implicit-convert-factors-bilerp)
+  add_test(NAME conformance.${conv_suite}
+           COMMAND rdp_suite_runner --suite ${conv_suite} --range 0 1000)
+  set_tests_properties(conformance.${conv_suite} PROPERTIES LABELS "conformance;m4y;convert")
+endforeach()
+
 # ---- LUT memcmp scaffold (gtest) -----------------------------------------
 # Trivially asserting until Stream B fills the LUTs; wired now so the home exists.
 if(TARGET gtest_main)
