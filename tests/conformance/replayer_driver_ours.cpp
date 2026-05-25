@@ -28,6 +28,10 @@ uint8_t *rdpx_get_hidden_rdram(void);
 uint32_t rdpx_get_hidden_rdram_size(void);
 uint8_t *rdpx_get_tmem(void);
 uint32_t rdpx_get_tmem_size(void);
+
+// Real per-command dispatch entry (not in the public header — it is the harness
+// hook). Mirrors the oracle adapter's rdp_cmd(0, words).
+void rdpx_rdp_cmd(uint32_t wid, const uint32_t *args);
 }
 
 namespace RDP
@@ -120,8 +124,10 @@ void OursReplayer::update_hidden_rdram(const void *data, size_t size, size_t off
 
 void OursReplayer::command(Op command_id, uint32_t num_words, const uint32_t *words)
 {
-	// M0 stub: rdpx_video_process_list() is a no-op. Stream B fills this in.
-	rdpx_video_process_list();
+	// Feed the RDP command words straight into our real dispatch, exactly like
+	// the oracle adapter's rdp_cmd(0, words). The harness has already assembled
+	// a complete command; we run it on worker 0 (single host worker).
+	rdpx_rdp_cmd(0, words);
 	iface.notify_command(command_id, num_words, words);
 }
 
