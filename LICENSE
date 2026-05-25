@@ -1,0 +1,38 @@
+                          PicoSystem RDP Port
+                  License and Redistribution Notice
+
+This project ("PicoSystem RDP") is a personal, non-commercial port of the
+Angrylion RDP renderer to the Pimoroni PicoSystem. The renderer core is
+derived from Angrylion RDP Plus, which is itself derived from MESS / MAME
+source code and is distributed under the MAME license.
+
+Because the renderer core is a derivative work of MAME-licensed code, this
+project as a whole inherits the MAME license terms for that derived core.
+The MAME license is RESTRICTIVE with respect to redistribution and
+commercial use. In particular:
+
+  * Redistributions may not be sold, nor used in a commercial product or
+    activity.
+  * Redistributions modified from the original source must include the
+    complete corresponding source code.
+  * Redistributions must reproduce the MAME copyright notice, the list of
+    conditions, and the disclaimer.
+
+The full, verbatim MAME license text governing the Angrylion-derived
+renderer core is reproduced in the NOTICE file in this repository.
+
+This repository also bundles or depends on several third-party components
+under their own (mostly permissive) licenses: ParaLLEl RDP (MIT), SDL
+(zlib), Dear ImGui (MIT), the Raspberry Pi Pico SDK (BSD-3-Clause), the
+PicoSystem SDK (MIT), the Adafruit ST7735/ST7789 library (MIT), and the
+Orthodoxy clang-tidy plugin (GPL-3.0, build-time tooling only). The most
+restrictive of these terms — the Angrylion-derived MAME-licensed core —
+governs the project as a whole for redistribution purposes.
+
+For the complete per-dependency breakdown (name, upstream, license type,
+and how each component is used), see the NOTICE file. For prose discussion
+of what derives from what and the redistribution constraint, see
+docs/licensing.md. For attribution and credits, see CREDITS.md.
+
+This is a personal port and is not endorsed by, affiliated with, or
+licensed from MAME, Nicola Salmoria, or any upstream author.
