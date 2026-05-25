@@ -42,3 +42,25 @@ if(TARGET gtest_main)
   target_link_libraries(rdp_lut_memcmp_test PRIVATE rdp_core gtest_main)
   gtest_discover_tests(rdp_lut_memcmp_test)
 endif()
+
+# ---- A.5 post-init hidden == oracle (gtest) ------------------------------
+# Asserts (not just logs) that our renderer's hidden RDRAM is byte-identical to
+# the Angrylion oracle immediately after init. Links BOTH the oracle and
+# rdp_core, plus our ReplayerDriver adapter; same no-duplicate-symbol contract
+# as rdp_conformance.
+if(TARGET gtest_main)
+  add_executable(rdp_post_init_hidden_oracle_test
+      post_init_hidden_oracle_test.cc
+      replayer_driver_ours.cpp
+  )
+  target_link_libraries(rdp_post_init_hidden_oracle_test PRIVATE
+      rdp::conformance_utils
+      angrylion_oracle
+      rdp_core
+      gtest_main
+  )
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(rdp_post_init_hidden_oracle_test PRIVATE -fno-strict-aliasing)
+  endif()
+  gtest_discover_tests(rdp_post_init_hidden_oracle_test PROPERTIES LABELS "conformance;m0")
+endif()

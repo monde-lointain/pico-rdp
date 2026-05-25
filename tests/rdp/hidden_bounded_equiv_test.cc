@@ -56,8 +56,6 @@ TEST_F(HiddenBoundedEquiv, PairWritesInFbRegionAreByteIdentical) {
     // Confine the access set to the FB region. Use 16-bit word indices in
     // [kHiddenBase, kHiddenBase + kFbWords16). Drive pair16 + pair8 + idx
     // writes — the full set of paths that touch hidden storage.
-    int dhw_full = -1, dhw_bnd = -1;
-
     for (uint32_t k = 0; k < kFbWords16; k += 7) {
         uint32_t word16 = kHiddenBase + k;             // 16-bit word index
         uint32_t byte   = word16 << 1;                 // byte address
@@ -65,17 +63,13 @@ TEST_F(HiddenBoundedEquiv, PairWritesInFbRegionAreByteIdentical) {
         uint16_t rv = (uint16_t)(pat(k) | (pat(k + 1) << 8));
         uint8_t  hv = (uint8_t)(pat(k) & 3);
 
-        rdram_full_write_pair16(word16, rv, hv, (k & 1));
-        rdram_bounded_write_pair16(word16, rv, hv, (k & 1));
+        rdram_full_write_pair16(word16, rv, hv);
+        rdram_bounded_write_pair16(word16, rv, hv);
 
-        rdram_full_write_pair8(byte, pat(k + 2), (k & 1), &dhw_full);
-        rdram_bounded_write_pair8(byte, pat(k + 2), (k & 1), &dhw_bnd);
-
-        ASSERT_EQ(dhw_full, dhw_bnd) << "delayedhbwidx diverged at k=" << k;
-    }
-    if (dhw_full >= 0) {
-        rdram_full_complete_delayed_hbwrites(dhw_full);
-        rdram_bounded_complete_delayed_hbwrites(dhw_bnd);
+        // pair8 at the odd byte exercises the hidden-write branch (in & 1).
+        uint8_t  hv8 = (uint8_t)(pat(k + 1) & 3);
+        rdram_full_write_pair8(byte + 1, pat(k + 2), hv8);
+        rdram_bounded_write_pair8(byte + 1, pat(k + 2), hv8);
     }
 
     // Visible backing must be byte-identical across the whole region.

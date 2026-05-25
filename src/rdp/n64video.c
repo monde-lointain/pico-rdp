@@ -57,7 +57,7 @@ void rdpx_video_init(struct n64video_config* cfg)
 {
     // Take a copy of the caller's config (matches angrylion, which copies into
     // its file-static `config`). rdram_init() wires the aliasing pointers and
-    // clears hidden RDRAM to HB_CLEAN, byte-for-byte as the oracle does.
+    // seeds hidden RDRAM to 3, byte-for-byte as the 31bdb1f oracle does.
     config = *cfg;
     rdram_init();
     memset(rdpx_tmem, 0, sizeof(rdpx_tmem));
