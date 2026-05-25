@@ -307,6 +307,16 @@ foreach(misc_suite
   set_tests_properties(conformance.${misc_suite} PROPERTIES LABELS "conformance;m7;rasterization")
 endforeach()
 
+# rasterization-many-primitives{,-alias} replay 1k..5k primitives per iteration
+# over [0, 1000): bit-exact vs oracle but far heavier than every other suite
+# (minutes each, single-threaded). Raise the per-test ctest timeout well above
+# the 1500s default so a slow host / parallel contention can't spuriously fail
+# them on wall-clock alone (correctness is unaffected).
+set_tests_properties(
+    conformance.rasterization-many-primitives
+    conformance.rasterization-many-primitives-alias
+    PROPERTIES TIMEOUT 7200)
+
 # ---- LUT memcmp scaffold (gtest) -----------------------------------------
 # Trivially asserting until Stream B fills the LUTs; wired now so the home exists.
 if(TARGET gtest_main)
