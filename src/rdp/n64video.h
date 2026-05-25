@@ -1,9 +1,12 @@
 #pragma once
 
-// Adapted from angrylion-rdp-plus src/core/n64video.h.
-// Config struct / enum shapes preserved verbatim; exported entry points
-// renamed to the rdpx_* C ABI (avoids symbol collision with the Angrylion
-// oracle linked alongside in the conformance harness).
+// Adapted from the CANONICAL Angrylion fork parallel-rdp embeds:
+//   parallel-rdp/angrylion-rdp-plus @ 31bdb1f (src/core/n64video.h).
+// Config struct / register + config enums preserved VERBATIM from 31bdb1f so
+// the init path, DP_COMPAT_HIGH / VI_MODE_NORMAL / VI_INTERP_LINEAR, and the
+// buffer sizes match the oracle byte-for-byte. The only deviation: exported
+// entry points are renamed to the rdpx_* C ABI to avoid symbol collision with
+// the Angrylion oracle linked alongside in the conformance harness.
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -57,7 +60,6 @@ enum vi_interp
 {
     VI_INTERP_NEAREST,
     VI_INTERP_LINEAR,
-    VI_INTERP_HYBRID,
     VI_INTERP_NUM
 };
 
@@ -105,13 +107,11 @@ struct n64video_config
         bool hide_overscan;         // crop to visible area if true
         bool vsync;                 // enable vsync if true
         bool exclusive;             // run in exclusive mode when in fullscreen if true
-        bool integer_scaling;       // one native pixel is displayed as a multiple of a screen pixel if true
     } vi;
     struct {
         enum dp_compat_profile compat;  // multithreading compatibility mode
     } dp;
     bool parallel;                  // use multithreaded renderer if true
-    bool busyloop;                  // use a busyloop while waiting for work
     uint32_t num_workers;           // number of rendering workers
 };
 

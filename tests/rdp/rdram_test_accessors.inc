@@ -51,21 +51,17 @@ void P(read_pair16)(uint16_t* rdst, uint8_t* hdst, uint32_t in)
 {
     rdram_read_pair16(rdst, hdst, in);
 }
-void P(write_pair8)(uint32_t in, uint8_t rval, int flip, int* delayedhbwidx)
+void P(write_pair8)(uint32_t in, uint8_t rval, uint8_t hval)
 {
-    rdram_write_pair8(in, rval, flip, delayedhbwidx);
+    rdram_write_pair8(in, rval, hval);
 }
-void P(write_pair16)(uint32_t in, uint16_t rval, uint8_t hval, int iscolor)
+void P(write_pair16)(uint32_t in, uint16_t rval, uint8_t hval)
 {
-    rdram_write_pair16(in, rval, hval, iscolor);
+    rdram_write_pair16(in, rval, hval);
 }
 void P(write_pair32)(uint32_t in, uint32_t rval, uint8_t hval0, uint8_t hval1)
 {
     rdram_write_pair32(in, rval, hval0, hval1);
-}
-void P(complete_delayed_hbwrites)(int delayedhbwidx)
-{
-    rdram_complete_delayed_hbwrites(delayedhbwidx);
 }
 
 // raw byte peek of the visible backing (no XOR applied) for swizzle assertions

@@ -1,10 +1,14 @@
-// Hidden-bit machinery tests.
+// Hidden-bit machinery tests (CANONICAL Angrylion fork 31bdb1f behavior).
 //
-// Drives fixed pair-write sequences (flip=0 and flip=1, including the
-// delayedhbwidx delayed-hidden-write state machine) through the ported
-// rdram.c and compares visible + hidden bytes against an independent
-// reference model of the SAME algorithm (faithfully transcribed from the
-// angrylion source). Goldens are computed by the reference, per spec.
+// The 31bdb1f rdram.c has a SIMPLE hidden model: hidden RDRAM is seeded to 3
+// in rdram_init(); pair writes store the hidden byte directly with no clean-bit
+// (HB_CLEAN) tracking and no delayed-hidden-write state machine. (The newer
+// standalone fork's clean-bit/delayed machinery is a divergent lineage and is
+// intentionally NOT modeled here.)
+//
+// Drives fixed pair-write sequences through the ported rdram.c and compares
+// visible + hidden bytes against an independent reference model of the SAME
+// (31bdb1f) algorithm. Goldens are computed by the reference, per spec.
 
 #include <stdint.h>
 #include <string.h>
@@ -15,97 +19,51 @@
 
 namespace {
 
-constexpr uint32_t kRdramSize = 0x1000;
-constexpr int      HB_CLEAN   = 4;
-constexpr uint32_t BYTE_XOR   = 3;
-constexpr uint32_t WORD_XOR   = 1;
-constexpr uint32_t RDRAM_MASK = 0x00ffffff;
+constexpr uint32_t kRdramSize  = 0x1000;
+constexpr uint8_t  HB_SEED     = 3;   // rdram_init seeds hidden to 3
+constexpr uint32_t BYTE_XOR    = 3;
+constexpr uint32_t WORD_XOR    = 1;
+constexpr uint32_t RDRAM_MASK  = 0x00ffffff;
 
-// ---- Independent reference model (mirrors src/rdp/rdp/rdram.c verbatim) ----
+// ---- Independent reference model (mirrors src/rdp/rdp/rdram.c @ 31bdb1f) ----
 struct RefRdram {
     uint8_t  rdram[kRdramSize];
     uint8_t  hidden[kRdramSize / 2];
-    uint8_t  hidden_old[8];
     uint32_t idxlim8, idxlim16;
 
     void init() {
         memset(rdram, 0, sizeof(rdram));
-        memset(hidden, HB_CLEAN, sizeof(hidden));
-        memset(hidden_old, 0, sizeof(hidden_old));
-        idxlim8 = kRdramSize - 1;
+        memset(hidden, HB_SEED, sizeof(hidden));
+        idxlim8  = kRdramSize - 1;
         idxlim16 = (idxlim8 >> 1) & 0xffffffu;
     }
     bool valid8(uint32_t in)  const { return in <= idxlim8; }
     bool valid16(uint32_t in) const { return in <= idxlim16; }
 
-    uint16_t r16(uint32_t in) const {
-        const uint16_t* p = (const uint16_t*)rdram;
-        return p[in ^ WORD_XOR];
-    }
-
-    void write_pair8(uint32_t in, uint8_t rval, int flip, int* dhw) {
+    void write_pair8(uint32_t in, uint8_t rval, uint8_t hval) {
         in &= RDRAM_MASK;
-        if (!flip) {
-            if (valid8(in)) {
-                int hdst8 = hidden[in >> 1];
-                if (!(in & 1)) {
-                    if (hdst8 & HB_CLEAN)
-                        hidden[in >> 1] = (r16(in >> 1) & 1) != 0;
-                    else
-                        hidden[in >> 1] &= ~2;
-                    hidden[in >> 1] |= hidden_old[(in >> 1) & 7] & 2;
-                } else {
-                    if (hdst8 & HB_CLEAN)
-                        hidden[in >> 1] = (r16(in >> 1) & 1) ? 2 : 0;
-                    else
-                        hidden[in >> 1] &= ~1;
-                    hidden[in >> 1] |= rval & 1;
-                }
-                rdram[in ^ BYTE_XOR] = rval;
-            }
+        if (valid8(in)) {
+            rdram[in ^ BYTE_XOR] = rval;
             if (in & 1)
-                hidden_old[(in >> 1) & 7] = (rval & 1) ? 3 : 0;
-        } else {
-            if (*dhw >= 0 && (uint32_t)*dhw < in) {
-                if (valid8((uint32_t)*dhw)) {
-                    int oldhbidx = *dhw >> 1;
-                    hidden[oldhbidx] &= ~2;
-                    hidden[oldhbidx] |= hidden_old[oldhbidx & 7] & 2;
-                }
-                *dhw = -1;
-            }
-            if (in & 1) {
-                if (valid8(in)) {
-                    if (*dhw >= 0) {
-                        hidden[in >> 1] = (rval & 1) ? 3 : 0;
-                    } else {
-                        int hdst8 = hidden[in >> 1];
-                        if (hdst8 & HB_CLEAN)
-                            hidden[in >> 1] = (r16(in >> 1) & 1) ? 2 : 0;
-                        else
-                            hidden[in >> 1] &= ~1;
-                        hidden[in >> 1] |= rval & 1;
-                    }
-                    rdram[in ^ BYTE_XOR] = rval;
-                }
-                hidden_old[(in >> 1) & 7] = (rval & 1) ? 3 : 0;
-                *dhw = -1;
-            } else {
-                if (valid8(in)) {
-                    int hdst8 = hidden[in >> 1];
-                    if (hdst8 & HB_CLEAN)
-                        hidden[in >> 1] = (r16(in >> 1) & 1) ? 3 : 0;
-                    rdram[in ^ BYTE_XOR] = rval;
-                }
-                *dhw = in + 1;
-            }
+                hidden[in >> 1] = hval;
         }
     }
-    void complete(int dhw) {
-        if (valid8((uint32_t)dhw)) {
-            int oldhbidx = dhw >> 1;
-            hidden[oldhbidx] &= ~2;
-            hidden[oldhbidx] |= hidden_old[oldhbidx & 7] & 2;
+    void write_pair16(uint32_t in, uint16_t rval, uint8_t hval) {
+        in &= RDRAM_MASK >> 1;
+        if (valid16(in)) {
+            uint16_t* p = (uint16_t*)rdram;
+            p[in ^ WORD_XOR] = rval;
+            hidden[in] = hval;
+        }
+    }
+    void read_pair16(uint16_t* rdst, uint8_t* hdst, uint32_t in) const {
+        in &= RDRAM_MASK >> 1;
+        if (valid16(in)) {
+            const uint16_t* p = (const uint16_t*)rdram;
+            *rdst = p[in ^ WORD_XOR];
+            *hdst = hidden[in];
+        } else {
+            *rdst = *hdst = 0;
         }
     }
 };
@@ -130,61 +88,75 @@ protected:
     RefRdram ref_;
 };
 
-// flip == 0 path: even/odd byte writes, hidden clean->dirty transition.
-TEST_F(RdramHidden, Flip0Sequence) {
-    int dhw_real = -1, dhw_ref = -1;
-    const uint8_t vals[] = {0x01, 0x02, 0x03, 0x80, 0x55, 0xAA, 0xFF, 0x10};
+// Hidden RDRAM is seeded to 3 by rdram_init() (the 31bdb1f seed, NOT 4).
+TEST_F(RdramHidden, InitSeedsHiddenToThree) {
+    for (uint32_t h = 0; h < (kRdramSize / 2); ++h)
+        ASSERT_EQ(rdram_full_hidden(h), HB_SEED) << "hidden idx " << h;
+}
+
+// write_pair8: visible byte always stored (XOR-swizzled); hidden updated only
+// on odd byte addresses (in & 1), taking the supplied hidden value verbatim.
+TEST_F(RdramHidden, WritePair8OddUpdatesHidden) {
+    const uint8_t rvals[] = {0x01, 0x02, 0x03, 0x80, 0x55, 0xAA, 0xFF, 0x10};
+    const uint8_t hvals[] = {3, 0, 2, 1, 3, 0, 1, 2};
     for (uint32_t in = 0; in < 16; ++in) {
-        uint8_t v = vals[in & 7];
-        rdram_full_write_pair8(in, v, 0, &dhw_real);
-        ref_.write_pair8(in, v, 0, &dhw_ref);
+        uint8_t rv = rvals[in & 7];
+        uint8_t hv = hvals[in & 7];
+        rdram_full_write_pair8(in, rv, hv);
+        ref_.write_pair8(in, rv, hv);
     }
-    EXPECT_EQ(dhw_real, dhw_ref);
-    ExpectMatch("flip0", 0, 8);
+    ExpectMatch("pair8", 0, 8);
 }
 
-// flip == 1 path: exercises the delayedhbwidx delayed-hidden-write machine.
-TEST_F(RdramHidden, Flip1DelayedSequence) {
-    int dhw_real = -1, dhw_ref = -1;
-    const uint8_t vals[] = {0x01, 0x00, 0x03, 0x01, 0x00, 0x01, 0xFF, 0x00};
-    for (uint32_t in = 0; in < 24; ++in) {
-        uint8_t v = vals[in & 7];
-        rdram_full_write_pair8(in, v, 1, &dhw_real);
-        ref_.write_pair8(in, v, 1, &dhw_ref);
-        ASSERT_EQ(dhw_real, dhw_ref) << "delayedhbwidx diverged at in=" << in;
-    }
-    // flush any pending delayed hidden write
-    if (dhw_real >= 0) {
-        rdram_full_complete_delayed_hbwrites(dhw_real);
-        ref_.complete(dhw_ref);
-    }
-    ExpectMatch("flip1", 0, 12);
+// Even byte addresses leave hidden at its seed; only odd addresses write it.
+TEST_F(RdramHidden, WritePair8EvenLeavesHiddenSeeded) {
+    rdram_full_write_pair8(0, 0xAB, 1); // even -> hidden[0] untouched (==3)
+    rdram_full_write_pair8(2, 0xCD, 2); // even -> hidden[1] untouched (==3)
+    EXPECT_EQ(rdram_full_hidden(0), HB_SEED);
+    EXPECT_EQ(rdram_full_hidden(1), HB_SEED);
+
+    rdram_full_write_pair8(1, 0xEF, 2); // odd  -> hidden[0] = 2
+    EXPECT_EQ(rdram_full_hidden(0), 2);
 }
 
-// read_pair16 reports the visible halfword and a derived hidden bit; on a CLEAN
-// entry the hidden result is synthesized from the visible LSB.
-TEST_F(RdramHidden, ReadPair16CleanSynthesizesHidden) {
-    rdram_full_write_idx16(2, 0x0001); // LSB set at word idx 2
-    rdram_full_write_idx16(3, 0x0000); // LSB clear at word idx 3
-
+// read_pair16 returns the stored visible halfword and the stored hidden byte
+// verbatim (no clean-bit synthesis in the canonical fork).
+TEST_F(RdramHidden, ReadPair16ReturnsStoredHiddenVerbatim) {
+    // Freshly-seeded hidden entry reads back as the seed value 3.
+    rdram_full_write_idx16(2, 0x0001);
     uint16_t rv; uint8_t hv;
     rdram_full_read_pair16(&rv, &hv, 2);
     EXPECT_EQ(rv, 0x0001);
-    EXPECT_EQ(hv, 3); // (rdst & 1) -> 3 since hidden was CLEAN
+    EXPECT_EQ(hv, HB_SEED); // hidden untouched by idx16 write -> seed 3
 
-    rdram_full_read_pair16(&rv, &hv, 3);
-    EXPECT_EQ(rv, 0x0000);
+    // After a pair16 write the hidden byte is exactly what was stored.
+    rdram_full_write_pair16(2, 0xBEEF, 0);
+    rdram_full_read_pair16(&rv, &hv, 2);
+    EXPECT_EQ(rv, 0xBEEF);
     EXPECT_EQ(hv, 0);
 }
 
-// write_pair16 stores both visible and hidden, and updates hidden_old when
-// iscolor; verify via a follow-up read_pair16 (hidden no longer CLEAN).
-TEST_F(RdramHidden, WritePair16StoresHidden) {
-    rdram_full_write_pair16(5, 0xBEEF, 2 /*hval, not CLEAN*/, 1 /*iscolor*/);
+// write_pair16 stores both visible and hidden; verify via read_pair16.
+TEST_F(RdramHidden, WritePair16StoresVisibleAndHidden) {
+    rdram_full_write_pair16(5, 0xBEEF, 2);
+    ref_.write_pair16(5, 0xBEEF, 2);
     uint16_t rv; uint8_t hv;
     rdram_full_read_pair16(&rv, &hv, 5);
     EXPECT_EQ(rv, 0xBEEF);
-    EXPECT_EQ(hv, 2); // returned verbatim (HB_CLEAN bit not set)
+    EXPECT_EQ(hv, 2);
+
+    // cross-check the visible swizzle against the reference model
+    for (uint32_t b = 0; b < 16; ++b)
+        EXPECT_EQ(rdram_full_backing_byte(b), ref_.rdram[b]) << "byte " << b;
+}
+
+// write_pair32: visible 32-bit word stored directly (no XOR on the 32 path);
+// two hidden entries at in<<1 and (in<<1)+1 take hval0 / hval1.
+TEST_F(RdramHidden, WritePair32StoresTwoHiddenEntries) {
+    rdram_full_write_pair32(3, 0xDEADBEEFu, 1, 2);
+    EXPECT_EQ(rdram_full_read_idx32(3), 0xDEADBEEFu);
+    EXPECT_EQ(rdram_full_hidden(6), 1); // in<<1
+    EXPECT_EQ(rdram_full_hidden(7), 2); // (in<<1)+1
 }
 
 } // namespace

@@ -18,13 +18,10 @@ extern "C" {
     void     P##write_idx16(uint32_t in, uint16_t v);                          \
     void     P##write_idx32(uint32_t in, uint32_t v);                          \
     void     P##read_pair16(uint16_t* rdst, uint8_t* hdst, uint32_t in);       \
-    void     P##write_pair8(uint32_t in, uint8_t rval, int flip,               \
-                            int* delayedhbwidx);                               \
-    void     P##write_pair16(uint32_t in, uint16_t rval, uint8_t hval,         \
-                             int iscolor);                                     \
+    void     P##write_pair8(uint32_t in, uint8_t rval, uint8_t hval);          \
+    void     P##write_pair16(uint32_t in, uint16_t rval, uint8_t hval);        \
     void     P##write_pair32(uint32_t in, uint32_t rval, uint8_t hval0,        \
                              uint8_t hval1);                                   \
-    void     P##complete_delayed_hbwrites(int delayedhbwidx);                  \
     uint8_t  P##backing_byte(uint32_t byte_off);                               \
     uint8_t  P##hidden(uint32_t hidx);
 

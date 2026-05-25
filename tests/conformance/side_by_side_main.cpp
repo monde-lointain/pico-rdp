@@ -9,14 +9,13 @@
  *   2. Identically randomize RDRAM + hidden on both, run the empty stream again
  *      -> still EQUAL (proves the compare exercises non-zero buffers).
  *
- * NOTE on the post-init hidden seed: the A.3 oracle is pinned to the OLDER
- * Themaister angrylion fork, which seeds hidden RDRAM to 3 in rdram_init(). Our
- * rdram.c (ported by A.5 from the NEWER fork) seeds it to HB_CLEAN (4). So the
- * raw post-init hidden buffers DIFFER by construction. This is a known A.5-vs-A.3
- * fork divergence (RE-SURFACED to A.5). It does NOT affect the M0 wiring proof:
- * we clear both to a common state first, which is exactly what every real
- * conformance test does before replay (see clear_rdram / randomize_rdram). The
- * post-init values are logged for visibility but not asserted.
+ * NOTE on the post-init hidden seed: both the A.3 oracle and OUR rdram.c are
+ * now ported from the SAME canonical fork (angrylion-rdp-plus @ 31bdb1f), which
+ * seeds hidden RDRAM to 3 in rdram_init(). So the raw post-init hidden buffers
+ * are byte-identical (the A.5 re-port fixed the earlier seed-4 divergence). The
+ * dedicated assertion lives in rdp_post_init_hidden_oracle_test; here we still
+ * clear/randomize to a common state before replay, exactly as every real
+ * conformance test does (see clear_rdram / randomize_rdram).
  *
  * No pixel logic is exercised (Stream B). Exit code 0 on success, nonzero on any
  * mismatch or wiring failure; the ctest `conformance.m0_empty` asserts on it.
@@ -77,17 +76,17 @@ int main()
 		return 1;
 	}
 
-	// Post-init divergence is EXPECTED (A.5 newer-fork seed 4 vs A.3 older-fork
-	// seed 3); log it but do not assert. The wiring proof starts from a common
-	// cleared state, exactly as every real conformance replay does.
+	// Post-init buffers should already be EQUAL now that both renderers seed
+	// hidden RDRAM to 3 (same canonical 31bdb1f fork). Log it; the dedicated
+	// byte-for-byte assertion is rdp_post_init_hidden_oracle_test.
 	{
 		uint32_t fa = 0;
 		bool fh = false;
 		if (compare_rdram(*state.reference, *state.gpu, &fa, &fh))
-			printf("M0 note: post-init buffers already equal.\n");
+			printf("M0 note: post-init buffers already equal (both seed hidden=3).\n");
 		else
-			printf("M0 note: post-init hidden seed differs (expected: A.5 fork=4 "
-			       "vs A.3 fork=3); clearing to common state.\n");
+			printf("M0 note: post-init buffers differ at %s %u; clearing to common state.\n",
+			       fh ? "hidden" : "visible", fa);
 	}
 
 	// Stage 1: clear both, then drive an empty command stream (no commands).
