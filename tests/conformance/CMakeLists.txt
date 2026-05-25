@@ -58,6 +58,41 @@ foreach(fill_suite fill-16 fill-8 fill-32 fill-16-ia fill-16-interlace fill-rect
   set_tests_properties(conformance.${fill_suite} PROPERTIES LABELS "conformance;m1;fill")
 endforeach()
 
+# ---- M2 copy-mode + tex-rect + texture-load suites (B.2) -----------------
+# Same rdp_suite_runner, driving the copy-cycle / TEX_RECT / LOAD_{TILE,BLOCK,
+# TLUT} command paths bit-exact vs the oracle over [0, 1000). Suite names match
+# register_rdp_suites() (A.2). texture-load-block-4 is commented out upstream
+# (not registered), so it is intentionally absent here.
+foreach(copy_suite
+    copy-32bpp-fb8 copy-32bpp-fb16
+    copy-4bpp-fb8 copy-4bpp-fb16
+    copy-4bpp-fb4 copy-8bpp-fb4 copy-16bpp-fb4 copy-32bpp-fb4
+    copy-8bpp-fb8 copy-8bpp-fb16 copy-16bpp-fb8 copy-16bpp-fb16
+    copy-4bpp-fb16-tlut copy-8bpp-fb16-tlut copy-16bpp-fb16-tlut
+    copy-16bpp-fb16-alpha-test
+    copy-8bpp-fb8-perspective copy-8bpp-fb16-perspective
+    copy-16bpp-fb8-perspective copy-16bpp-fb16-perspective)
+  add_test(NAME conformance.${copy_suite}
+           COMMAND rdp_suite_runner --suite ${copy_suite} --range 0 1000)
+  set_tests_properties(conformance.${copy_suite} PROPERTIES LABELS "conformance;m2;copy")
+endforeach()
+
+foreach(texrect_suite tex-rect tex-rect-i8)
+  add_test(NAME conformance.${texrect_suite}
+           COMMAND rdp_suite_runner --suite ${texrect_suite} --range 0 1000)
+  set_tests_properties(conformance.${texrect_suite} PROPERTIES LABELS "conformance;m2;tex-rect")
+endforeach()
+
+foreach(load_suite
+    texture-load-tile-4 texture-load-tile-8 texture-load-tile-16 texture-load-tile-32
+    texture-load-block-8 texture-load-block-16 texture-load-block-32
+    texture-load-tlut-4 texture-load-tlut-8 texture-load-tlut-16
+    texture-load-tile-16-yuv texture-load-block-16-yuv)
+  add_test(NAME conformance.${load_suite}
+           COMMAND rdp_suite_runner --suite ${load_suite} --range 0 1000)
+  set_tests_properties(conformance.${load_suite} PROPERTIES LABELS "conformance;m2;texture-load")
+endforeach()
+
 # ---- LUT memcmp scaffold (gtest) -----------------------------------------
 # Trivially asserting until Stream B fills the LUTs; wired now so the home exists.
 if(TARGET gtest_main)
