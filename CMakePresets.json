@@ -1,0 +1,34 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 28, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "host",
+      "displayName": "PC (SDL3 + ImGui, tests)",
+      "binaryDir": "${sourceDir}/build-host",
+      "cacheVariables": {
+        "PLATFORM": "sdl",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "pico",
+      "displayName": "PicoSystem (RP2040, .uf2)",
+      "binaryDir": "${sourceDir}/build-pico",
+      "cacheVariables": {
+        "PLATFORM": "picosystem",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "host", "configurePreset": "host" },
+    { "name": "pico", "configurePreset": "pico" }
+  ],
+  "testPresets": [
+    { "name": "host", "configurePreset": "host", "output": { "outputOnFailure": true } }
+  ]
+}

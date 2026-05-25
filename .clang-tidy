@@ -1,0 +1,31 @@
+# Loosened for Orthodox C++: cppcoreguidelines-* and modernize-* are dropped
+# wholesale (they demand auto/range-for/named-casts and flag C-casts, malloc,
+# and C-arrays, all of which Orthodox C++ mandates the opposite of). The
+# Orthodoxy clang plugin is the style authority; clang-tidy keeps only the
+# correctness/portability checks that don't conflict.
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  clang-diagnostic-*,
+  misc-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -bugprone-easily-swappable-parameters,
+  -misc-include-cleaner,
+  -misc-use-anonymous-namespace,
+  -performance-enum-size,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length,
+  -readability-implicit-bool-conversion,
+  -readability-magic-numbers
+HeaderFilterRegex: 'src/(game|gfx|app)/'
+WarningsAsErrors: ''
+CheckOptions:
+  - key: readability-identifier-naming.FunctionCase
+    value: lower_case
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
