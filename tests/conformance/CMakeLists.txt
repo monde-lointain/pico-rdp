@@ -160,6 +160,20 @@ foreach(persp_suite
   set_tests_properties(conformance.${persp_suite} PROPERTIES LABELS "conformance;m4p;texture;perspective")
 endforeach()
 
+# ---- M4l LOD / mipmapping suites (B.8) -----------------------------------
+# tcoord LOD level/frac computation + sharpen/detail variants, bit-exact vs
+# oracle over [0, 1000). Names match register_rdp_suites() (A.2).
+foreach(lod_suite
+    interpolation-color-texture-2cycle-lod-frac
+    interpolation-color-texture-perspective-2cycle-lod-frac
+    interpolation-color-texture-perspective-2cycle-lod-frac-sharpen
+    interpolation-color-texture-perspective-2cycle-lod-frac-detail
+    interpolation-color-texture-perspective-2cycle-lod-frac-sharpen-detail)
+  add_test(NAME conformance.${lod_suite}
+           COMMAND rdp_suite_runner --suite ${lod_suite} --range 0 1000)
+  set_tests_properties(conformance.${lod_suite} PROPERTIES LABELS "conformance;m4l;lod")
+endforeach()
+
 # ---- LUT memcmp scaffold (gtest) -----------------------------------------
 # Trivially asserting until Stream B fills the LUTs; wired now so the home exists.
 if(TARGET gtest_main)
