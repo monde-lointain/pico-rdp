@@ -51,6 +51,15 @@ against the Angrylion oracle byte-for-byte — before any hardware constraints e
 Embedded-TDD discipline: build and prove the logic on host first; hardware code stays thin
 behind the template's existing HAL in later sub-projects.
 
+**CANONICAL ANGRYLION SOURCE (decided 2026-05-25, M0 finding):** The bit-exactness target is
+**the fork the conformance oracle embeds — `angrylion-rdp-plus` @ `31bdb1f`, available at
+`~/development/repos/parallel-rdp/angrylion-rdp-plus`**. ALL renderer ports (rdram, every
+pixel/VI stage in Stream B/C) MUST be adapted from THIS fork. The standalone
+`~/development/repos/angrylion-rdp-plus` checkout is a **newer, divergent lineage** (refactored
+C API; `HB_CLEAN=4` hidden-bit semantics vs the oracle's seed-3 machine) and is **NOT**
+bit-exact with the conformance suite — do not port from it. M0 surfaced this when post-init
+hidden buffers differed by construction.
+
 **Key constraints driving the design (from exploration):**
 - Angrylion's core is already near-Orthodox **pure C** (no classes/exceptions/STL/lambdas;
   function-pointer dispatch; `malloc`/`free`). Adapting it is the realistic path to
