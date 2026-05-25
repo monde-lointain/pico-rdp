@@ -249,6 +249,74 @@ foreach(cov_suite
   set_tests_properties(conformance.${cov_suite} PROPERTIES LABELS "conformance;m6;coverage;aa")
 endforeach()
 
+# ---- B.12 / M7 Z-buffer + depth-compare suites ---------------------------
+# FINAL RDP sub-stage of the serialized pixel-pipeline spine. The depth-compare
+# family exercises the z-encode/decode LUTs (z_com_table, z_complete_dec_table,
+# deltaz_comparator_lut) and the four ZMode compares (opaque / interpenetrating
+# / transparent / decal), each with and without prim-depth (SET_PRIM_DEPTH).
+# z_mode/depth_compare/prim_depth all enabled; randomize_rdram + image_read make
+# the hidden-RDRAM 18-bit depth + 3-bit coverage write/read paths load-bearing.
+# Bit-exact vs oracle over [0, 1000). Names match the DEPTH_COMPARE_TEST macro
+# expansion in register_rdp_suites() (A.2).
+foreach(depth_suite
+    depth-compare-opaque depth-compare-interpenetrating
+    depth-compare-transparent depth-compare-decal
+    depth-compare-opaque-prim-depth depth-compare-interpenetrating-prim-depth
+    depth-compare-transparent-prim-depth depth-compare-decal-prim-depth)
+  add_test(NAME conformance.${depth_suite}
+           COMMAND rdp_suite_runner --suite ${depth_suite} --range 0 1000)
+  set_tests_properties(conformance.${depth_suite} PROPERTIES LABELS "conformance;m7;zbuffer;depth")
+endforeach()
+
+# Remaining register_rdp_suites() entries not covered by M1-M6. With Z/depth in
+# place the full RDP suite set is now registered. These exercise: the depth +
+# alpha-test + RGB/alpha dither cross-product (DITHER_TEST, depth path on),
+# fill ym-out-of-range edge clamp, nearest-sample YUV16, and the many-primitive
+# stress suites (the -alias variant aliases the color + depth images and runs
+# depth_compare). texture-load-block-4 stays commented out upstream (NOT
+# registered) so it is intentionally absent. Bit-exact vs oracle over [0, 1000).
+foreach(dither_suite
+    interpolation-color-depth-alpha-test-dither-off
+    interpolation-color-depth-alpha-test-dither-test
+    interpolation-color-depth-alpha-test-dither-all
+    interpolation-color-depth-alpha-test-dither-magic-pattern
+    interpolation-color-depth-alpha-test-dither-magic-flip
+    interpolation-color-depth-alpha-test-dither-magic-noise
+    interpolation-color-depth-alpha-test-dither-bayer-pattern
+    interpolation-color-depth-alpha-test-dither-bayer-flip
+    interpolation-color-depth-alpha-test-dither-bayer-noise
+    interpolation-color-depth-alpha-test-dither-off-pattern
+    interpolation-color-depth-alpha-test-dither-off-flip
+    interpolation-color-depth-alpha-test-dither-off-noise
+    interpolation-color-depth-alpha-test-dither-noise-off
+    interpolation-color-depth-alpha-test-dither-noise-pattern
+    interpolation-color-depth-alpha-test-dither-noise-flip
+    interpolation-color-depth-alpha-test-dither-noise-noise)
+  add_test(NAME conformance.${dither_suite}
+           COMMAND rdp_suite_runner --suite ${dither_suite} --range 0 1000)
+  set_tests_properties(conformance.${dither_suite} PROPERTIES LABELS "conformance;m7;dither;depth")
+endforeach()
+
+foreach(misc_suite
+    fill-ym-out-of-range
+    interpolation-color-texture-yuv16-nearest
+    rasterization-many-primitives
+    rasterization-many-primitives-alias)
+  add_test(NAME conformance.${misc_suite}
+           COMMAND rdp_suite_runner --suite ${misc_suite} --range 0 1000)
+  set_tests_properties(conformance.${misc_suite} PROPERTIES LABELS "conformance;m7;rasterization")
+endforeach()
+
+# rasterization-many-primitives{,-alias} replay 1k..5k primitives per iteration
+# over [0, 1000): bit-exact vs oracle but far heavier than every other suite
+# (minutes each, single-threaded). Raise the per-test ctest timeout well above
+# the 1500s default so a slow host / parallel contention can't spuriously fail
+# them on wall-clock alone (correctness is unaffected).
+set_tests_properties(
+    conformance.rasterization-many-primitives
+    conformance.rasterization-many-primitives-alias
+    PROPERTIES TIMEOUT 7200)
+
 # ---- LUT memcmp scaffold (gtest) -----------------------------------------
 # Trivially asserting until Stream B fills the LUTs; wired now so the home exists.
 if(TARGET gtest_main)
