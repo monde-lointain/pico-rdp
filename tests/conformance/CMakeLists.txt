@@ -214,6 +214,41 @@ foreach(blend_cycle 1cycle 2cycle)
   endforeach()
 endforeach()
 
+# ---- B.11 / M6 coverage + AA suites --------------------------------------
+# Coverage/anti-aliasing: edge-coverage accumulation, the 4 coverage-overflow
+# modes (clamp/wrap/zap/save) x {image-read off/on}, color-on-coverage, and the
+# cvg*alpha / alpha-cvg-select interpolation variants. These are the FIRST
+# suites to make compare_hidden_rdram load-bearing on rendered output
+# (randomize_rdram + image_read_enable exercise the hidden 3-bit coverage
+# write/read paths in rdram.c). Bit-exact vs oracle over [0, 1000). Names match
+# the rasterization-aa / COVERAGE_MEMORY_TEST / color-on-coverage / cvg*alpha
+# expansions in register_rdp_suites() (A.2). DEFER depth-compare/Z and VI.
+foreach(aa_suite rasterization-aa rasterization-interlace-aa)
+  add_test(NAME conformance.${aa_suite}
+           COMMAND rdp_suite_runner --suite ${aa_suite} --range 0 1000)
+  set_tests_properties(conformance.${aa_suite} PROPERTIES LABELS "conformance;m6;coverage;aa")
+endforeach()
+
+foreach(cvg_suite
+    interpolation-color-depth-cvg-times-alpha
+    interpolation-color-depth-aa-cvg-times-alpha
+    interpolation-color-depth-aa-cvg-times-alpha-alpha-cvg-select
+    interpolation-color-depth-aa-alpha-cvg-select)
+  add_test(NAME conformance.${cvg_suite}
+           COMMAND rdp_suite_runner --suite ${cvg_suite} --range 0 1000)
+  set_tests_properties(conformance.${cvg_suite} PROPERTIES LABELS "conformance;m6;coverage;aa")
+endforeach()
+
+foreach(cov_suite
+    coverage-clamp coverage-wrap coverage-zap coverage-save
+    coverage-clamp-image-read coverage-wrap-image-read
+    coverage-zap-image-read coverage-save-image-read
+    color-on-coverage)
+  add_test(NAME conformance.${cov_suite}
+           COMMAND rdp_suite_runner --suite ${cov_suite} --range 0 1000)
+  set_tests_properties(conformance.${cov_suite} PROPERTIES LABELS "conformance;m6;coverage;aa")
+endforeach()
+
 # ---- LUT memcmp scaffold (gtest) -----------------------------------------
 # Trivially asserting until Stream B fills the LUTs; wired now so the home exists.
 if(TARGET gtest_main)
