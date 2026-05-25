@@ -46,11 +46,21 @@ fast ctest sanity run; the ~34.4 Mpix/s `-O2` figure is the one extrapolated.
 
 ---
 
+> **CLOCK CORRECTION (2026-05-25):** §3/§4 below extrapolate at the conservative
+> **133 MHz**. The PicoSystem default is **250 MHz** (~1.9× faster). Re-baselining is
+> NOT a uniform 1.9× speedup: the **ALU-bound** pixel body scales with core clock, but
+> **flash/XIP-miss stalls do NOT** — QSPI latency is ~wall-clock-fixed, so at 250 MHz a
+> `z_com_table`/`tcdiv` miss costs ~1.9× as many *core cycles* (and the flash divider may
+> need bumping to stay in spec). So the clock-ratio FLOOR improves to ~33 ms/frame (~30 fps,
+> at 5 GHz/250 MHz ≈ 20×), but the realistic flash-bound estimate improves much less until
+> the LUT stalls are fixed. Cost: 250 MHz needs the 1.20 V vreg bump → more power (battery
+> handheld). Numbers below are kept at 133 MHz pending an on-target profile at 250 MHz.
+
 ## 2. RP2040 Cortex-M0+ facts (cited)
 
 | Fact | Value | Source |
 |---|---|---|
-| Cores / clock | Dual Cortex-M0+, up to **133 MHz** | `summaries/01-introduction.md:63`, `07-clocks-osc-pll.md:52` |
+| Cores / clock | Dual Cortex-M0+. Datasheet-spec max **133 MHz**, but the **PicoSystem SDK runs at 250 MHz by default** (`set_sys_clock_khz(250000,true)` + `vreg 1.20V`; `NO_OVERCLOCK`→125 MHz). | `summaries/07-clocks-osc-pll.md:52`; `~/development/repos/picosystem/libraries/hardware.cpp:300-306` |
 | **No FPU** | M0+ has no hardware float; floats go through the bootrom **fast-float library** in software | `summaries/05-memory-bootrom.md:315-340` |
 | Float op cost (single) | `_fmul` 58–69, `_fadd` 71, `_fdiv` 71, `_float2int` ~40 **cycles each** | `05-memory-bootrom.md:328-332` |
 | **No hardware divide** | only single-cycle `MULS` (32×32); divide is a software routine | `summaries/03-cortex-m0plus.md:43,75` |
