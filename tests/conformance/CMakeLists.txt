@@ -201,6 +201,19 @@ foreach(conv_suite
   set_tests_properties(conformance.${conv_suite} PROPERTIES LABELS "conformance;m4y;convert")
 endforeach()
 
+# ---- M5 blender / fog suites (B.10) --------------------------------------
+# Blender (2-mux) + fog-color blend, 1-cycle and 2-cycle, across fb formats,
+# bit-exact vs oracle over [0, 1000). Names match the BLENDER_FOG_TEST /
+# BLENDER_FOG_TEST2 macro expansions in register_rdp_suites() (A.2).
+foreach(blend_cycle 1cycle 2cycle)
+  foreach(blend_fb i4 i8 rgba5551 ia88 rgba8888)
+    set(blend_suite blender-fog-color-${blend_cycle}-${blend_fb})
+    add_test(NAME conformance.${blend_suite}
+             COMMAND rdp_suite_runner --suite ${blend_suite} --range 0 1000)
+    set_tests_properties(conformance.${blend_suite} PROPERTIES LABELS "conformance;m5;blender;fog")
+  endforeach()
+endforeach()
+
 # ---- LUT memcmp scaffold (gtest) -----------------------------------------
 # Trivially asserting until Stream B fills the LUTs; wired now so the home exists.
 if(TARGET gtest_main)
