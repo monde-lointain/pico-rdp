@@ -93,6 +93,73 @@ foreach(load_suite
   set_tests_properties(conformance.${load_suite} PROPERTIES LABELS "conformance;m2;texture-load")
 endforeach()
 
+# ---- M3a/M3b interpolation suites (B.3) ----------------------------------
+# Edge-walker (11.2) + RGBA/Z/STW interpolators, bit-exact vs oracle over
+# [0, 1000). Suite names match register_rdp_suites() (A.2).
+foreach(interp_suite
+    rasterization-noaa
+    interpolation-color interpolation-depth interpolation-color-depth)
+  add_test(NAME conformance.${interp_suite}
+           COMMAND rdp_suite_runner --suite ${interp_suite} --range 0 1000)
+  set_tests_properties(conformance.${interp_suite} PROPERTIES LABELS "conformance;m3;interpolation")
+endforeach()
+
+# ---- M4 combiner suites (B.4) --------------------------------------------
+# 1-cycle / 2-cycle combiner (9-bit signed clamp) + 2-cycle alpha-test paths,
+# bit-exact vs oracle over [0, 1000).
+foreach(combiner_suite
+    combiner-1cycle combiner-2cycle
+    combiner-2cycle-alpha-test-color combiner-2cycle-alpha-test-texture)
+  add_test(NAME conformance.${combiner_suite}
+           COMMAND rdp_suite_runner --suite ${combiner_suite} --range 0 1000)
+  set_tests_properties(conformance.${combiner_suite} PROPERTIES LABELS "conformance;m4;combiner")
+endforeach()
+
+# ---- M4t textured-triangle suites (B.6, affine) --------------------------
+# The TEXTURE_TEST set: interpolation-color-texture-<variant> covering every
+# texel format/size/TLUT/sample-quad/mid-texel combination, plus the pipelined
+# texel1 path. Bit-exact vs oracle over [0, 1000). Names match the
+# TEXTURE_TEST / TEXTURE_TEST_MID_TEXEL macro expansions in register_rdp_suites().
+foreach(tex_variant
+    rgba4 rgba8 rgba16 rgba32
+    yuv16
+    rgba16-mid-texel
+    ci4-mid-texel ci8-mid-texel ci16-mid-texel ci32-mid-texel
+    ci4-tlut-mid-texel ci8-tlut-mid-texel ci16-tlut-mid-texel ci32-tlut-mid-texel
+    ci4-tlut-mid-texel-no-quad ci8-tlut-mid-texel-no-quad
+    ci16-tlut-mid-texel-no-quad ci32-tlut-mid-texel-no-quad
+    rgba4-nearest rgba8-nearest rgba16-nearest rgba32-nearest
+    ci4 ci8 ci16 ci32
+    ia4 ia8 ia16 ia32
+    i4 i8 i16 i32
+    ci4-tlut ci8-tlut ci16-tlut ci32-tlut
+    ci4-tlut-no-quad ci8-tlut-no-quad ci16-tlut-no-quad ci32-tlut-no-quad
+    ia4-tlut ia8-tlut ia16-tlut ia32-tlut
+    i4-tlut i8-tlut i16-tlut i32-tlut
+    rgba4-tlut rgba8-tlut rgba16-tlut rgba32-tlut
+    ci4-tlut-ia16 ci8-tlut-ia16 ci16-tlut-ia16 ci32-tlut-ia16)
+  add_test(NAME conformance.interpolation-color-texture-${tex_variant}
+           COMMAND rdp_suite_runner --suite interpolation-color-texture-${tex_variant} --range 0 1000)
+  set_tests_properties(conformance.interpolation-color-texture-${tex_variant}
+                       PROPERTIES LABELS "conformance;m4t;texture")
+endforeach()
+
+foreach(tex_suite interpolation-color-texture-pipelined-texel1)
+  add_test(NAME conformance.${tex_suite}
+           COMMAND rdp_suite_runner --suite ${tex_suite} --range 0 1000)
+  set_tests_properties(conformance.${tex_suite} PROPERTIES LABELS "conformance;m4t;texture")
+endforeach()
+
+# ---- M4p perspective-correct texture suites (B.7) ------------------------
+# Perspective-division reciprocal-LUT tcoord path, bit-exact vs oracle.
+foreach(persp_suite
+    interpolation-color-texture-perspective
+    interpolation-color-texture-pipelined-texel1-perspective)
+  add_test(NAME conformance.${persp_suite}
+           COMMAND rdp_suite_runner --suite ${persp_suite} --range 0 1000)
+  set_tests_properties(conformance.${persp_suite} PROPERTIES LABELS "conformance;m4p;texture;perspective")
+endforeach()
+
 # ---- LUT memcmp scaffold (gtest) -----------------------------------------
 # Trivially asserting until Stream B fills the LUTs; wired now so the home exists.
 if(TARGET gtest_main)
