@@ -15,11 +15,25 @@
 
 add_library(rdp_core STATIC
     rdp_version.cc
+    n64video.c
 )
 add_library(Rdp::rdp ALIAS rdp_core)
 
+# n64video.c is the renderer's single TU. Despite the .c suffix it is compiled
+# as C++ (plan: catch C-vs-C++ init divergence early; the file exposes a pure C
+# ABI via extern "C"). rdp/rdram.c is #included into it, not built standalone.
+set_source_files_properties(n64video.c PROPERTIES LANGUAGE CXX)
+
 target_include_directories(rdp_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(rdp_core PRIVATE project_warnings)
+
+# RDPX_TESTING: when host tests are built, compile the rdpx_* test-accessor block
+# (hidden-RDRAM / TMEM base pointers) into rdp_core so the conformance adapter can
+# reach them. PUBLIC so consumers see the same declarations. The production
+# picosystem build sets BUILD_TESTS OFF, so the accessors are absent there.
+if(BUILD_TESTS)
+  target_compile_definitions(rdp_core PUBLIC RDPX_TESTING)
+endif()
 
 # Bit-exactness: RDRAM is aliased through uint8/16/32* (UB under strict aliasing,
 # required to match Angrylion). Pin -fno-strict-aliasing; never -ffast-math.
