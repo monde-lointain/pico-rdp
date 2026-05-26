@@ -10,6 +10,9 @@
 
 add_executable(rdp_viewer
     main.cc
+    headless.cc
+    windowed.cc
+    viewer_common.cc
     renderer_host.cc
     dock_layout.cc
     cmd_decode.cc
