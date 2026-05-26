@@ -140,17 +140,22 @@ jobs:
         run: python -m pip install --upgrade pip Pillow
 
       # ---- Build --------------------------------------------------------
+      # No target is narrowed, so this builds the full host graph: rdp_core,
+      # demo_core (Orthodoxy-enforced), the rdp_viewer SDL/ImGui exe (link-only;
+      # never run in CI — headless runners have no display), and all tests.
       - name: Build
         run: cmake --build build-host --config Debug --parallel
 
       # ---- Test ---------------------------------------------------------
       # On Linux with the plugin live, the WILL_FAIL canary test proves
-      # enforcement is active. Other OSes run the regular unit suite.
+      # enforcement is active. Other OSes run the regular unit suite. The host
+      # preset's ctest set includes the tests/demo suite (demo_core + oracle).
       - name: Test
         run: ctest --preset host --build-config Debug
 
-  # ---- PicoSystem cross-compile (renderer lib only; no device, no tests) ----
-  # Guards against ARM/ILP32-only C++ build regressions in the renderer TU.
+  # ---- PicoSystem cross-compile (portable libs only; no device, no tests) ----
+  # Guards against ARM/ILP32-only C++ build regressions in the renderer TU and
+  # the demo core (both are int/int32_t-sensitive and only surface on ARM).
   pico-build:
     name: pico-arm-rdp_core
     runs-on: ubuntu-latest
@@ -176,11 +181,12 @@ jobs:
             https://github.com/raspberrypi/pico-sdk.git "${RUNNER_TEMP}/pico-sdk"
           echo "PICO_SDK_PATH=${RUNNER_TEMP}/pico-sdk" >> "$GITHUB_ENV"
 
-      # Configure the pico preset (PLATFORM=picosystem, Release) and build ONLY
-      # the renderer library for ARM. That is the artifact that must not regress;
-      # the demo .uf2 (template scaffold) is out of scope until sub-project 3.
+      # Configure the pico preset (PLATFORM=picosystem, Release) and build the
+      # portable libraries for ARM: the renderer (rdp_core) and the demo core
+      # (demo_core). Those are the artifacts that must not regress on ILP32; the
+      # demo .uf2 (template scaffold) is out of scope until sub-project 3.
       - name: Configure (pico preset)
         run: cmake --preset pico
 
-      - name: Build rdp_core for ARM
-        run: cmake --build build-pico --target rdp_core --parallel
+      - name: Build rdp_core + demo_core for ARM
+        run: cmake --build build-pico --target rdp_core demo_core --parallel
