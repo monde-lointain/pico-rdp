@@ -24,6 +24,7 @@
 // the hardcoded clear only needs the color-FB address + dimensions, which are
 // fixed macros. The future demo source will call demo_init through the seam.
 #include "demo.h"
+#include "rdram_io.h"  // XOR-correct halfword I/O for the demo->staging blit
 
 extern "C" {
 #include "n64video.h"
@@ -195,7 +196,13 @@ int renderer_host_init(void) {
   config.gfx.dp_reg = s_p_dp_regs;
   config.gfx.mi_intr_reg = &s_mi_intr;
   config.gfx.mi_intr_cb = mi_intr_noop;
-  config.vi.mode = VI_MODE_NORMAL;
+  // VI_MODE_COLOR (unfiltered direct read), NOT VI_MODE_NORMAL: the live demo
+  // scene is non-uniform, and NORMAL's AA/resample filter softens edges and can
+  // bleed neighbor texels across the 240-wide window. COLOR reads the FB pixels
+  // straight through for a clean 1:1 scanout. The crop geometry (hres=255 ->
+  // 240 wide, +8 column offset) is identical in both modes, so the existing
+  // 256-wide staging-FB programming and the +8 demo blit still land exactly.
+  config.vi.mode = VI_MODE_COLOR;
   config.vi.interp = VI_INTERP_LINEAR;
   config.vi.hide_overscan = true;  // crop to the active 240x240 window
   config.dp.compat = DP_COMPAT_HIGH;
@@ -289,6 +296,39 @@ void renderer_host_submit_clear(uint16_t rgba5551) {
 
   // SYNC_FULL: flush the pipeline (raises the DP interrupt in real HW).
   emit_cmd2((CMD_SYNC_FULL << 24), 0u);
+}
+
+// ---- demo driving ----------------------------------------------------------
+uint8_t* renderer_host_rdram(uint32_t* out_size) {
+  if (!s_initialized) return NULL;
+  if (out_size) *out_size = RENDERER_HOST_RDRAM_SIZE;
+  return s_rdram;
+}
+
+void renderer_host_present_demo(uint32_t src_fb_addr, uint32_t src_w,
+                                uint32_t src_h) {
+  if (!s_initialized) return;
+
+  // Blit the demo color FB (RGBA5551, src_w-wide rows) into the 256-wide
+  // staging FB the VI scans out, shifting +8 columns so the VI's fixed +8 crop
+  // recovers source columns [0, src_w). Both buffers live in the renderer's
+  // RDRAM under the byte-swizzle, so copy via the XOR-correct halfword helpers.
+  const uint32_t dst_stride_px = CLEAR_FB_DIM;  // 256 (staging row stride)
+  const uint32_t dst_col_off = 8u;              // matches the VI crop offset
+  if (src_w > dst_stride_px - dst_col_off) src_w = dst_stride_px - dst_col_off;
+  if (src_h > CLEAR_FB_DIM) src_h = CLEAR_FB_DIM;
+
+  for (uint32_t y = 0; y < src_h; ++y) {
+    const uint32_t src_row_off = src_fb_addr + (y * src_w) * 2u;
+    const uint32_t dst_row_off =
+        CLEAR_FB_ADDR + (y * dst_stride_px + dst_col_off) * 2u;
+    for (uint32_t x = 0; x < src_w; ++x) {
+      uint16_t px = rdram_read16(s_rdram, src_row_off + x * 2u);
+      rdram_write16(s_rdram, dst_row_off + x * 2u, px);
+    }
+  }
+
+  rdpx_video_update_screen(NULL);  // runs VI over the staging FB -> scanout cb
 }
 
 // ---- accessors -------------------------------------------------------------

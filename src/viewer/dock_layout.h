@@ -15,6 +15,8 @@
 #define VIEWER_DOCK_STATE "State"
 #define VIEWER_DOCK_MEMORY "Memory"
 #define VIEWER_DOCK_PERF "Perf"
+// C.3: playback/stepping controls (docked tabbed with Commands at the bottom).
+#define VIEWER_DOCK_PLAYBACK "Playback"
 
 #include "imgui.h"
 
