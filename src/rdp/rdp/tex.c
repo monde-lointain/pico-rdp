@@ -167,7 +167,7 @@ static STRICTINLINE void texture_pipeline_cycle(uint32_t wid, struct color* TEX,
     int bilerp = cycle ? state[wid].other_modes.bi_lerp1 : state[wid].other_modes.bi_lerp0;
     int convert = state[wid].other_modes.convert_one && cycle;
     struct color t0, t1, t2, t3;
-    int sss1, sst1, sdiff, tdiff;
+    int32_t sss1, sst1, sdiff, tdiff;
 
     sss1 = SSS;
     sst1 = SST;
@@ -498,7 +498,7 @@ static void loading_pipeline(uint32_t wid, int start, int end, int tilenum, int 
     int s, t;
     int ss, st;
     int xstart, xend, xendsc;
-    int sss = 0, sst = 0;
+    int32_t sss = 0, sst = 0;
     int ti_index, length;
 
     uint32_t tmemidx0 = 0, tmemidx1 = 0, tmemidx2 = 0, tmemidx3 = 0;
