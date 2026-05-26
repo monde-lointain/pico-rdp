@@ -135,6 +135,10 @@ jobs:
           -DCMAKE_C_COMPILER=cl
           -DCMAKE_CXX_COMPILER=cl
 
+      # ---- Python deps for asset generation ----------------------------
+      - name: Install Pillow (asset gen)
+        run: python -m pip install --upgrade pip Pillow
+
       # ---- Build --------------------------------------------------------
       - name: Build
         run: cmake --build build-host --config Debug --parallel

@@ -30,6 +30,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 #include <vector>
 
@@ -112,9 +115,16 @@ static void fill_quad_prims(InputPrimitive *a, InputPrimitive *b) {
 }
 
 static double now_seconds(void) {
+#if defined(_WIN32)
+  LARGE_INTEGER freq, count;
+  QueryPerformanceFrequency(&freq);
+  QueryPerformanceCounter(&count);
+  return (double)count.QuadPart / (double)freq.QuadPart;
+#else
   struct timespec ts;
   clock_gettime(CLOCK_MONOTONIC, &ts);
-  return double(ts.tv_sec) + double(ts.tv_nsec) * 1e-9;
+  return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
+#endif
 }
 
 int main(int argc, char **argv) {

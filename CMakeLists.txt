@@ -64,6 +64,9 @@ endif()
 add_subdirectory(src)
 
 if(BUILD_TESTS AND PLATFORM STREQUAL "sdl")
+  # POST_BUILD avoids a CMake path-with-spaces bug on MSVC generators where
+  # the PRE_BUILD cmake -P invocation mis-parses "C:/Program Files/CMake/...".
+  set(CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE POST_BUILD)
   enable_testing()
   add_subdirectory(tests)
 endif()
