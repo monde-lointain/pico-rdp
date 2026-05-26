@@ -6,35 +6,13 @@
 #include <stdint.h>
 
 #include "app/app.h"
+#include "app/cue.h"
 #include "gfx/framebuffer.h"
 #include "platform/platform.h"
 
 /* Static allocation: Framebuffer is ~112 KB — keep off the stack. */
 static App s_app;
 static Framebuffer s_fb;
-
-/* ---- Cue -> (freq_hz, duration_ms) mapping ---- */
-static uint32_t cue_freq(enum Cue c) {
-  switch (c) {
-    case CUE_SELECT:
-      return 660u;
-    case CUE_MOVE:
-      return 330u;
-    default:
-      return 0u;
-  }
-}
-
-static uint32_t cue_dur(enum Cue c) {
-  switch (c) {
-    case CUE_SELECT:
-      return 40u;
-    case CUE_MOVE:
-      return 20u;
-    default:
-      return 0u;
-  }
-}
 
 int main(void) {
   plat_init();
