@@ -80,6 +80,7 @@ static uint32_t* s_p_dp_regs[DP_NUM_REG];
 static struct CmdSink s_sink;
 static int s_initialized;
 static int s_crash_latched;
+static uint32_t s_rdram_size;  // bytes actually allocated for s_rdram
 
 // Captured scanout (RGBA8888). Sized for the full PRESCALE area worst case; we
 // only ever expect 240x240 from our VI programming, but the VI may report a
@@ -173,11 +174,13 @@ static void renderer_host_program_vi(void) {
 }
 
 // ---- lifecycle -------------------------------------------------------------
-int renderer_host_init(void) {
+static int renderer_host_init_sized(uint32_t rdram_size) {
   if (s_initialized) return 0;
+  if (rdram_size == 0) rdram_size = RENDERER_HOST_RDRAM_SIZE;
 
-  s_rdram = (uint8_t*)calloc(1, RENDERER_HOST_RDRAM_SIZE);
+  s_rdram = (uint8_t*)calloc(1, rdram_size);
   if (!s_rdram) return 1;
+  s_rdram_size = rdram_size;
 
   // V1 leaves RDRAM zeroed: the hardcoded clear's FILL_RECTANGLE writes the
   // color FB itself, and no command references the demo asset segments. The
@@ -191,7 +194,7 @@ int renderer_host_init(void) {
   struct n64video_config config;
   memset(&config, 0, sizeof(config));
   config.gfx.rdram = s_rdram;
-  config.gfx.rdram_size = RENDERER_HOST_RDRAM_SIZE;
+  config.gfx.rdram_size = s_rdram_size;
   config.gfx.vi_reg = s_p_vi_regs;
   config.gfx.dp_reg = s_p_dp_regs;
   config.gfx.mi_intr_reg = &s_mi_intr;
@@ -221,12 +224,15 @@ int renderer_host_init(void) {
   return 0;
 }
 
+int renderer_host_init(void) { return renderer_host_init_sized(0); }
+
 void renderer_host_close(void) {
   if (!s_initialized) return;
   rdpx_video_close();  // also resets rdp_core's internal crash latch
   rdpx_vdac_set_scanout_cb(NULL);
   free(s_rdram);
   s_rdram = NULL;
+  s_rdram_size = 0;
   s_initialized = 0;
   s_crash_latched = 0;
   s_scanout_valid = 0;
@@ -235,6 +241,23 @@ void renderer_host_close(void) {
 int renderer_host_reset(void) {
   renderer_host_close();
   return renderer_host_init();
+}
+
+int renderer_host_reset_with_size(uint32_t rdram_size) {
+  renderer_host_close();
+  return renderer_host_init_sized(rdram_size);
+}
+
+const uint32_t* renderer_host_vi_regs(uint32_t* out_count) {
+  if (!s_initialized) return NULL;
+  if (out_count) *out_count = VI_NUM_REG;
+  return s_vi_regs;
+}
+
+void renderer_host_set_vi_register(uint32_t index, uint32_t value) {
+  if (!s_initialized) return;
+  if (index >= VI_NUM_REG) return;
+  s_vi_regs[index] = value;
 }
 
 struct CmdSink* renderer_host_cmd_sink(void) {
@@ -301,7 +324,7 @@ void renderer_host_submit_clear(uint16_t rgba5551) {
 // ---- demo driving ----------------------------------------------------------
 uint8_t* renderer_host_rdram(uint32_t* out_size) {
   if (!s_initialized) return NULL;
-  if (out_size) *out_size = RENDERER_HOST_RDRAM_SIZE;
+  if (out_size) *out_size = s_rdram_size;
   return s_rdram;
 }
 

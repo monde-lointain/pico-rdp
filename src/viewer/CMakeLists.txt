@@ -36,6 +36,9 @@ target_link_libraries(rdp_viewer PRIVATE
     SDL3::SDL3
     imgui
     project_warnings
+    # C.5 .rdp replay source reads dumps through parallel-rdp's canonical
+    # DumpPlayer (rdp_dump.cpp); the capture writer mirrors its byte layout.
+    rdp::conformance_utils
 )
 
 target_include_directories(rdp_viewer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

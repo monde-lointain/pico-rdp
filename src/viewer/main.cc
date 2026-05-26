@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "capture.h"
 #include "dock_layout.h"
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
@@ -26,6 +27,7 @@
 #include "panel_perf.h"
 #include "panels.h"
 #include "renderer_host.h"
+#include "source_dump.h"
 
 extern "C" {
 #include "cmd_decode.h"
@@ -299,6 +301,94 @@ static int headless_perf(uint32_t frame_n) {
   return rc;
 }
 
+// ---- headless capture -> replay round-trip ---------------------------------
+// (a) render demo frame N directly -> scanout A; (b) capture frame N to a temp
+// .rdp (DumpPlayer-compatible); (c) replay that .rdp via the dump source ->
+// scanout B; (d) assert A == B byte-identical. Confirms the capture writer
+// produces a file the canonical reader parses AND that the replay path
+// reproduces the frame exactly. Returns 0 on success.
+static int headless_capture_roundtrip(uint32_t frame_n) {
+  if (renderer_host_init() != 0) {
+    fprintf(stderr, "roundtrip: renderer_host_init failed\n");
+    return 1;
+  }
+  if (seed_demo() != 0) {
+    renderer_host_close();
+    return 1;
+  }
+
+  // Buffer frame N's command stream. RDRAM is now in its pristine seeded state.
+  static struct Playback pb;
+  memset(&pb, 0, sizeof(pb));
+  pb.frame_index = frame_n;
+  playback_init(&pb);
+
+  // Capture BEFORE feeding: the dump carries the seeded (pre-render) RDRAM +
+  // the command stream, so replay regenerates the rendered framebuffer itself.
+  const char* tmp_path = "rdp_viewer_roundtrip.rdp";
+  if (capture_frame_to_rdp(tmp_path, &pb) != 0) {
+    fprintf(stderr, "roundtrip: capture failed\n");
+    renderer_host_close();
+    return 2;
+  }
+
+  // (a) Direct render of frame N -> scanout A.
+  playback_tick(&pb);
+  uint32_t aw = 0, ah = 0, ap = 0;
+  const uint32_t* apx = renderer_host_scanout(&aw, &ah, &ap);
+  if (!apx || aw != RENDERER_HOST_OUT_WIDTH || ah != RENDERER_HOST_OUT_HEIGHT) {
+    fprintf(stderr, "roundtrip: direct scanout invalid (%ux%u)\n", aw, ah);
+    renderer_host_close();
+    return 3;
+  }
+  // Snapshot A (the next replay re-inits the renderer, clobbering s_scanout).
+  static uint32_t snap_a[RENDERER_HOST_OUT_WIDTH * RENDERER_HOST_OUT_HEIGHT];
+  memcpy(snap_a, apx, sizeof(snap_a));
+
+  // (c) Replay the dump through the source -> scanout B. source_dump_replay
+  // re-inits the renderer at the dump's RDRAM size, so no manual reset needed.
+  if (source_dump_replay(tmp_path) != 0) {
+    fprintf(stderr, "roundtrip: replay failed\n");
+    renderer_host_close();
+    return 4;
+  }
+  uint32_t bw = 0, bh = 0, bp = 0;
+  const uint32_t* bpx = renderer_host_scanout(&bw, &bh, &bp);
+  if (!bpx || bw != RENDERER_HOST_OUT_WIDTH || bh != RENDERER_HOST_OUT_HEIGHT) {
+    fprintf(stderr, "roundtrip: replay scanout invalid (%ux%u)\n", bw, bh);
+    renderer_host_close();
+    return 5;
+  }
+
+  // (d) Byte-identical comparison.
+  uint32_t diffs = 0, first_i = 0;
+  for (uint32_t i = 0; i < RENDERER_HOST_OUT_WIDTH * RENDERER_HOST_OUT_HEIGHT;
+       ++i) {
+    if (snap_a[i] != bpx[i]) {
+      if (diffs == 0) first_i = i;
+      ++diffs;
+    }
+  }
+
+  int rc = 0;
+  if (diffs != 0) {
+    fprintf(stderr,
+            "roundtrip: FAIL frame %u — %u/%u px differ (first @%u: A=0x%08x "
+            "B=0x%08x)\n",
+            frame_n, diffs, aw * ah, first_i, snap_a[first_i], bpx[first_i]);
+    rc = 6;
+  } else {
+    printf(
+        "roundtrip: OK frame %u — direct vs .rdp replay byte-identical "
+        "(%ux%u)\n",
+        frame_n, aw, ah);
+  }
+
+  renderer_host_close();
+  remove(tmp_path);
+  return rc;
+}
+
 // ---- interactive (windowed) ------------------------------------------------
 static int run_windowed(void) {
   if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
@@ -347,6 +437,11 @@ static int run_windowed(void) {
   struct PerfSample perf;
   memset(&perf, 0, sizeof(perf));
 
+  // C.5 source switch: when a .rdp dump is loaded, freeze the live-demo driver
+  // (the dump owns the renderer + scanout) until the user switches back.
+  bool source_is_dump = false;
+  static char dump_path[512] = "rdp_viewer_capture.rdp";
+
   bool first_layout = true;
   bool running = true;
   while (running) {
@@ -359,15 +454,19 @@ static int run_windowed(void) {
     // Advance the demo / feed buffered commands, then refresh the scanout.
     // Sample perf only when the tick actually rebuilds+presents a frame (dirty
     // or playing); otherwise keep the last sample so the HUD doesn't read 0.
-    const bool will_present = pb.dirty || pb.playing;
-    if (will_present) rdpx_reset_pixel_count();
-    uint64_t t0 = SDL_GetPerformanceCounter();
-    playback_tick(&pb);
-    if (will_present) {
-      uint64_t t1 = SDL_GetPerformanceCounter();
-      double freq = (double)SDL_GetPerformanceFrequency();
-      perf.build_present_ms = (double)(t1 - t0) / freq * 1000.0;
-      perf.pixel_count = rdpx_get_pixel_count();
+    // While a .rdp dump is the active source, the live-demo driver is frozen —
+    // the dump's last replay owns the renderer scanout.
+    if (!source_is_dump) {
+      const bool will_present = pb.dirty || pb.playing;
+      if (will_present) rdpx_reset_pixel_count();
+      uint64_t t0 = SDL_GetPerformanceCounter();
+      playback_tick(&pb);
+      if (will_present) {
+        uint64_t t1 = SDL_GetPerformanceCounter();
+        double freq = (double)SDL_GetPerformanceFrequency();
+        perf.build_present_ms = (double)(t1 - t0) / freq * 1000.0;
+        perf.pixel_count = rdpx_get_pixel_count();
+      }
     }
 
     // Upload the latest scanout into the SDL texture.
@@ -414,6 +513,49 @@ static int run_windowed(void) {
         if (ImGui::MenuItem("Reset (close -> init)")) {
           renderer_host_reset();
           seed_demo();
+          pb.frame_index = 0;
+          pb.playing = false;
+          source_is_dump = false;
+          playback_init(&pb);
+        }
+        ImGui::EndMenu();
+      }
+      // C.5 Source: capture the current demo frame to a .rdp, or load+replay a
+      // .rdp through the dump source (switching the active source).
+      if (ImGui::BeginMenu("Source")) {
+        ImGui::MenuItem(
+            source_is_dump ? "Active: .rdp dump" : "Active: live demo", nullptr,
+            false, false);
+        ImGui::Separator();
+        ImGui::InputText("path", dump_path, sizeof(dump_path));
+
+        if (ImGui::MenuItem("Capture current frame -> .rdp", nullptr, false,
+                            !source_is_dump)) {
+          // Re-buffer the current frame (pristine seeded RDRAM), capture, then
+          // re-feed so the live view is unchanged.
+          renderer_host_reset();
+          seed_demo();
+          playback_init(&pb);
+          capture_frame_to_rdp(dump_path, &pb);
+          playback_tick(&pb);
+        }
+        if (ImGui::MenuItem("Load + replay .rdp")) {
+          if (source_dump_replay(dump_path) == 0) {
+            source_is_dump = true;
+            pb.playing = false;
+          } else {
+            // Replay re-inits the renderer; restore the demo to a usable state.
+            renderer_host_reset();
+            seed_demo();
+            source_is_dump = false;
+            playback_init(&pb);
+          }
+        }
+        if (ImGui::MenuItem("Switch back to live demo", nullptr, false,
+                            source_is_dump)) {
+          renderer_host_reset();
+          seed_demo();
+          source_is_dump = false;
           pb.frame_index = 0;
           pb.playing = false;
           playback_init(&pb);
@@ -474,6 +616,10 @@ int main(int argc, char** argv) {
     if (strcmp(argv[i], "--headless-perf") == 0 && i + 1 < argc) {
       uint32_t n = (uint32_t)strtoul(argv[i + 1], nullptr, 10);
       return headless_perf(n);
+    }
+    if (strcmp(argv[i], "--headless-capture-roundtrip") == 0 && i + 1 < argc) {
+      uint32_t n = (uint32_t)strtoul(argv[i + 1], nullptr, 10);
+      return headless_capture_roundtrip(n);
     }
   }
   return run_windowed();

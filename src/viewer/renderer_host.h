@@ -44,6 +44,27 @@ int renderer_host_init(void);
 void renderer_host_close(void);
 int renderer_host_reset(void);
 
+// Like renderer_host_init, but allocates an RDRAM arena of exactly rdram_size
+// bytes (instead of the fixed RENDERER_HOST_RDRAM_SIZE). Used by the .rdp
+// replay source, whose dumps carry their own rdram_size (4 or 8 MiB) that can
+// differ from the demo arena. Closes any current instance first. rdram_size
+// must be
+// >= the dump's referenced extents; 0 means "use RENDERER_HOST_RDRAM_SIZE".
+// Returns 0 on success, non-zero on failure.
+int renderer_host_reset_with_size(uint32_t rdram_size);
+
+// Read-only access to the 14 VI registers the renderer currently has programmed
+// (index order matches n64video.h's VI_* enum / parallel-rdp's VIRegister). The
+// capture writer snapshots these into the .rdp; the replay source applies dump
+// values back through renderer_host_set_vi_register(). *out_count receives the
+// register count (VI_NUM_REG). Returns NULL if not initialized.
+const uint32_t* renderer_host_vi_regs(uint32_t* out_count);
+
+// Overwrite one VI register (index in [0, VI_NUM_REG)). Used by the replay
+// source to apply a dump's SetVIRegister records. No-op if not initialized or
+// index out of range.
+void renderer_host_set_vi_register(uint32_t index, uint32_t value);
+
 // The command-submission seam. The returned sink stays valid until close; its
 // emit() forwards to rdpx_rdp_cmd(0, words). Returns NULL if not initialized.
 struct CmdSink* renderer_host_cmd_sink(void);
@@ -66,8 +87,8 @@ void renderer_host_submit_clear(uint16_t rgba5551);
 uint8_t* renderer_host_rdram(uint32_t* out_size);
 
 // Present a demo frame. The VI cannot scan out VI_ORIGIN==0 (the demo color FB
-// sits at RDRAM offset 0), and a 240-wide source does not map pixel-exact to the
-// VI's cropped 240x240 window. So this blits the 240x240 demo color FB
+// sits at RDRAM offset 0), and a 240-wide source does not map pixel-exact to
+// the VI's cropped 240x240 window. So this blits the 240x240 demo color FB
 // (RGBA5551 at src_fb_addr, src stride 240 px) into the renderer's 256-wide
 // staging FB (at a non-zero VI_ORIGIN), offset +8 columns so the VI's fixed +8
 // crop recovers source columns [0,240); then runs the VI. src_w/src_h must be
