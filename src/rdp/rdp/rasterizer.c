@@ -1,5 +1,17 @@
 #ifdef N64VIDEO_C
 
+// RDPX_TESTING-only per-pixel commit counter. Expands to the increment of the
+// file-static rdpx_pixel_count (defined in n64video.c ahead of this include) at
+// each coverage/blend framebuffer commit, and to NOTHING when RDPX_TESTING is
+// undefined — so the production build is bit-identical, zero added codegen.
+// Single-TU build: rdpx_pixel_count is the file-static defined in n64video.c
+// before this file is #included, so it is already in scope here (no extern).
+#ifdef RDPX_TESTING
+#define RDPX_COUNT_PIXEL() (++rdpx_pixel_count)
+#else
+#define RDPX_COUNT_PIXEL() ((void)0)
+#endif
+
 static STRICTINLINE int32_t normalize_dzpix(int32_t sum)
 {
     int count;
@@ -375,6 +387,7 @@ static void render_spans_1cycle_complete(uint32_t wid, int start, int end, int t
                 if (blender_1cycle(wid, &fir, &fig, &fib, cdith, blend_en, prewrap, curpixel_cvg, curpixel_cvbit))
                 {
                     state[wid].fbwrite_ptr(wid, curpixel, fir, fig, fib, blend_en, curpixel_cvg, curpixel_memcvg);
+                    RDPX_COUNT_PIXEL();
                     if (state[wid].other_modes.z_update_en)
                         z_store(zbcur, sz, dzpixenc);
                 }
@@ -549,6 +562,7 @@ static void render_spans_1cycle_notexel1(uint32_t wid, int start, int end, int t
                 if (blender_1cycle(wid, &fir, &fig, &fib, cdith, blend_en, prewrap, curpixel_cvg, curpixel_cvbit))
                 {
                     state[wid].fbwrite_ptr(wid, curpixel, fir, fig, fib, blend_en, curpixel_cvg, curpixel_memcvg);
+                    RDPX_COUNT_PIXEL();
                     if (state[wid].other_modes.z_update_en)
                         z_store(zbcur, sz, dzpixenc);
                 }
@@ -690,6 +704,7 @@ static void render_spans_1cycle_notex(uint32_t wid, int start, int end, int tile
                 if (blender_1cycle(wid, &fir, &fig, &fib, cdith, blend_en, prewrap, curpixel_cvg, curpixel_cvbit))
                 {
                     state[wid].fbwrite_ptr(wid, curpixel, fir, fig, fib, blend_en, curpixel_cvg, curpixel_memcvg);
+                    RDPX_COUNT_PIXEL();
                     if (state[wid].other_modes.z_update_en)
                         z_store(zbcur, sz, dzpixenc);
                 }
@@ -967,6 +982,7 @@ static void render_spans_2cycle_complete(uint32_t wid, int start, int end, int t
                 {
                     blender_2cycle_cycle1(wid, &fir, &fig, &fib, cdith, blend_en, prewrap);
                     state[wid].fbwrite_ptr(wid, curpixel, fir, fig, fib, blend_en, curpixel_cvg, curpixel_memcvg);
+                    RDPX_COUNT_PIXEL();
                     if (state[wid].other_modes.z_update_en)
                         z_store(zbcur, sz, dzpixenc);
                 }
@@ -1197,6 +1213,7 @@ static void render_spans_2cycle_notexelnext(uint32_t wid, int start, int end, in
                 {
                     blender_2cycle_cycle1(wid, &fir, &fig, &fib, cdith, blend_en, prewrap);
                     state[wid].fbwrite_ptr(wid, curpixel, fir, fig, fib, blend_en, curpixel_cvg, curpixel_memcvg);
+                    RDPX_COUNT_PIXEL();
                     if (state[wid].other_modes.z_update_en)
                         z_store(zbcur, sz, dzpixenc);
                 }
@@ -1417,6 +1434,7 @@ static void render_spans_2cycle_notexel1(uint32_t wid, int start, int end, int t
                 {
                     blender_2cycle_cycle1(wid, &fir, &fig, &fib, cdith, blend_en, prewrap);
                     state[wid].fbwrite_ptr(wid, curpixel, fir, fig, fib, blend_en, curpixel_cvg, curpixel_memcvg);
+                    RDPX_COUNT_PIXEL();
                     if (state[wid].other_modes.z_update_en)
                         z_store(zbcur, sz, dzpixenc);
                 }
@@ -1602,6 +1620,7 @@ static void render_spans_2cycle_notex(uint32_t wid, int start, int end, int tile
                 {
                     blender_2cycle_cycle1(wid, &fir, &fig, &fib, cdith, blend_en, prewrap);
                     state[wid].fbwrite_ptr(wid, curpixel, fir, fig, fib, blend_en, curpixel_cvg, curpixel_memcvg);
+                    RDPX_COUNT_PIXEL();
                     if (state[wid].other_modes.z_update_en)
                         z_store(zbcur, sz, dzpixenc);
                 }

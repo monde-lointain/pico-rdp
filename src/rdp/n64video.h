@@ -125,6 +125,16 @@ void rdpx_video_update_screen(struct n64video_frame_buffer* fb);
 void rdpx_video_process_list(void);
 void rdpx_video_close(void);
 
+#ifdef RDPX_TESTING
+// Test-only accessors (compiled into rdp_core only when RDPX_TESTING is defined,
+// i.e. BUILD_TESTS=ON). Behavior-neutral instrumentation reached by the test/
+// conformance/perf harnesses; absent from the production picosystem build.
+// rdpx_get_pixel_count: count of pixels committed by the rasterizer coverage/
+// blend write path since the last reset, for the perf HUD.
+uint64_t rdpx_get_pixel_count(void);
+void rdpx_reset_pixel_count(void);
+#endif  // RDPX_TESTING
+
 #ifdef __cplusplus
 }
 #endif
