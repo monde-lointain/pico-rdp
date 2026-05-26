@@ -31,7 +31,10 @@ Per-dependency breakdown
                (local: ~/development/repos/parallel-rdp)
    License:    MIT (Copyright (c) 2020 Themaister). Read from LICENSE upstream.
    Use:        Reference / conformance harness — consulted for RDP behavior;
-               permissive.
+               permissive. Verbatim helper sources are vendored MIT into
+               tests/conformance/vendor/ (triangle_converter, primitive_setup,
+               rdp_command_builder, rdp_dump) and used test-only as an oracle /
+               capture format; never linked into shipped artifacts.
 
 3. SDL (Simple DirectMedia Layer)
    Upstream:   https://github.com/libsdl-org/SDL
@@ -46,7 +49,9 @@ Per-dependency breakdown
                (local: ~/development/repos/imgui)
    License:    MIT (The MIT License (MIT), Copyright (c) 2014-2026 Omar
                Cornut). Read from LICENSE.txt upstream.
-   Use:        PC app — debug / settings GUI on the desktop build; permissive.
+   Use:        PC app — debug / settings GUI on the desktop build (rdp_viewer);
+               permissive. Built from the docking branch, tag v1.92.8-docking
+               (DockingEnable only; no multi-viewport).
 
 5. Raspberry Pi Pico SDK
    Upstream:   https://github.com/raspberrypi/pico-sdk
@@ -81,15 +86,34 @@ Per-dependency breakdown
                linked into or redistributed with any build artifact, so its
                copyleft terms do not propagate to the project's binaries.
 
+9. Asset-generation tool (tools/gen_n64_assets.py)
+   Upstream:   In-tree; may adapt Fast64 (https://github.com/Fast-64/fast64).
+   License:    GPL-3.0. See tools/LICENSE.gpl3.
+   Use:        Standalone build-time tool that converts N64 assets into data
+               tables. It links no Angrylion code and is merely aggregated in
+               this repo. Angrylion's MAME license is GPL-incompatible
+               (non-commercial), so the project is NOT relicensed GPLv3; only
+               this tool carries GPLv3. Its generated output is unencumbered
+               (like compiler output) and ships under the project's terms.
+
+10. libultra (gbi.h)
+   Upstream:   N64 SDK GBI header (local: ~/development/repos/libultra_modern/
+               include/PR/gbi.h).
+   License:    Used as a format reference only — consulted for GBI display-list
+               bitfield layouts. No libultra source is copied into the project.
+   Use:        Documentation reference; nothing redistributed.
+
 --------------------------------------------------------------------------------
 Governing-license note
 --------------------------------------------------------------------------------
 
-Components 2–7 are permissive (MIT / zlib / BSD-3-Clause) and component 8 is
-GPL-3.0 but used only as a development tool. The Angrylion-derived renderer
-core (component 1) is MAME-licensed and is the most restrictive term; it
-governs redistribution of the project as a whole. This is a personal,
-non-commercial port.
+Components 2–7 are permissive (MIT / zlib / BSD-3-Clause); component 10 is a
+mere format reference. Components 8 (Orthodoxy) and 9 (asset-gen tool) are
+GPL-3.0 but are standalone tools that link no project code, so their copyleft
+does not propagate to any build artifact. The Angrylion-derived renderer core
+(component 1) is MAME-licensed and is the most restrictive term; it governs
+redistribution of the project as a whole, which is NOT relicensed GPLv3. This
+is a personal, non-commercial port.
 
 ================================================================================
 MAME LICENSE (verbatim, reproduced from

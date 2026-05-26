@@ -26,6 +26,9 @@ MESS / MAME source code. From the upstream `CREDITS.txt`:
 ## ParaLLEl RDP
 
 - Themaister (Hans-Kristian Arntzen) — ParaLLEl RDP, Copyright (c) 2020.
+- Vendored (MIT) into `tests/conformance/vendor/`:
+  `triangle_converter`, `primitive_setup`, `rdp_command_builder`, `rdp_dump`
+  — used as test-only oracle / capture helpers.
 
 ## SDL (Simple DirectMedia Layer)
 
@@ -35,7 +38,8 @@ MESS / MAME source code. From the upstream `CREDITS.txt`:
 ## Dear ImGui
 
 - Omar Cornut and the Dear ImGui contributors — Copyright (c) 2014-2026
-  Omar Cornut.
+  Omar Cornut. Used on the docking branch (`v1.92.8-docking`) for the
+  `rdp_viewer` debug GUI.
 
 ## Raspberry Pi Pico SDK
 
@@ -53,3 +57,15 @@ MESS / MAME source code. From the upstream `CREDITS.txt`:
 
 - Orthodoxy clang-tidy plugin authors — used only as a development-time lint
   tool; not linked into or redistributed with the renderer.
+
+## libultra (gbi.h, format reference)
+
+- N64 libultra `gbi.h` — consulted only as a reference for GBI display-list
+  bitfield layouts. No libultra code is copied into the project.
+
+## Asset-generation tool (separate GPLv3 work)
+
+- `tools/gen_n64_assets.py` is a standalone GPLv3 tool (see `tools/LICENSE.gpl3`)
+  that may adapt Fast64 (GPLv3). It links no Angrylion code and is merely
+  aggregated in this repo. Its *generated* data tables are unencumbered output
+  (like compiler output) and ship under the project's normal terms.
