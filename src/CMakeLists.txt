@@ -6,6 +6,10 @@
 # sub-project-2 demo); the template demo exe (rdp_demo) and our renderer coexist.
 add_subdirectory(rdp)
 
+# Demo scene core (Rdp::demo) — built for BOTH platforms (freestanding, no host
+# deps). Shared by the device demo and the host viewer.
+add_subdirectory(demo)
+
 add_subdirectory(game)
 add_subdirectory(gfx)
 add_subdirectory(app)
@@ -31,3 +35,8 @@ else()
 endif()
 
 target_include_directories(rdp_demo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# RDP viewer (rdp_viewer) — host-only developer inspector (SDL3 + ImGui docking).
+if(PLATFORM STREQUAL "sdl")
+  add_subdirectory(viewer)
+endif()
