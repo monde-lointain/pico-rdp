@@ -32,6 +32,7 @@
 #include "rdp/fbuffer_internal.h"
 #include "rdp/rdram_internal.h"
 #include "rdp/tcoord_internal.h"
+#include "rdp/tex_internal.h"
 #include "rdp/tmem_internal.h"
 #include "rdp/zbuffer_internal.h"
 
@@ -59,17 +60,10 @@ static void rdp_sync_load(uint32_t wid, const uint32_t* args);
 static void rdp_sync_pipe(uint32_t wid, const uint32_t* args);
 static void rdp_sync_tile(uint32_t wid, const uint32_t* args);
 static void rdp_sync_full(uint32_t wid, const uint32_t* args);
-static void rdp_set_convert(uint32_t wid, const uint32_t* args);
 static void rdp_set_scissor(uint32_t wid, const uint32_t* args);
 static void rdp_set_prim_depth(uint32_t wid, const uint32_t* args);
 static void rdp_set_other_modes(uint32_t wid, const uint32_t* args);
-static void rdp_set_tile_size(uint32_t wid, const uint32_t* args);
-static void rdp_load_block(uint32_t wid, const uint32_t* args);
-static void rdp_load_tlut(uint32_t wid, const uint32_t* args);
-static void rdp_load_tile(uint32_t wid, const uint32_t* args);
-static void rdp_set_tile(uint32_t wid, const uint32_t* args);
 static void rdp_fill_rect(uint32_t wid, const uint32_t* args);
-static void rdp_set_texture_image(uint32_t wid, const uint32_t* args);
 static void rdp_cmd(uint32_t wid, const uint32_t* args);
 
 // init funcs forward-declared static (internal linkage vs oracle's globals).
@@ -128,16 +122,16 @@ static const struct {
     {rdp_sync_full,           8},
     {rdpxi_rdp_set_key_gb,     8},
     {rdpxi_rdp_set_key_r,     8},
-    {rdp_set_convert,         8},
+    {rdpxi_rdp_set_convert,     8},
     {rdp_set_scissor,         8},
     {rdp_set_prim_depth,      8},
     {rdp_set_other_modes,     8},
-    {rdp_load_tlut,           8},
+    {rdpxi_rdp_load_tlut,     8},
     {rdp_invalid,             8},
-    {rdp_set_tile_size,       8},
-    {rdp_load_block,          8},
-    {rdp_load_tile,           8},
-    {rdp_set_tile,            8},
+    {rdpxi_rdp_set_tile_size,     8},
+    {rdpxi_rdp_load_block,     8},
+    {rdpxi_rdp_load_tile,     8},
+    {rdpxi_rdp_set_tile,     8},
     {rdp_fill_rect,           8},
     {rdpxi_rdp_set_fill_color,     8},
     {rdpxi_rdp_set_fog_color,     8},
@@ -145,7 +139,7 @@ static const struct {
     {rdpxi_rdp_set_prim_color,     8},
     {rdpxi_rdp_set_env_color,     8},
     {rdpxi_rdp_set_combine,     8},
-    {rdp_set_texture_image,   8},
+    {rdpxi_rdp_set_texture_image,     8},
     {rdpxi_rdp_set_mask_image,   8},
     {rdpxi_rdp_set_color_image,     8}
 };
@@ -164,7 +158,7 @@ static void deduce_derivatives(uint32_t wid);
 
 
 
-#include "rdp/tex.c"
+
 #include "rdp/rasterizer.c"
 // clang-format on
 

@@ -1,4 +1,14 @@
-#ifdef N64VIDEO_C
+// tex.cc — texture fetch/filter pipeline + load handlers (standalone TU).
+// Ported VERBATIM from the fork 31bdb1f. The 7 rdp_* load/set handlers collide
+// with the oracle (rdpxi_-prefixed); per-pixel helpers de-inlined. Depends on
+// tcoord + tmem. See tex_internal.h.
+
+#include <string.h>
+
+#include "rdram_internal.h"
+#include "tcoord_internal.h"
+#include "tex_internal.h"
+#include "tmem_internal.h"
 
 static STRICTINLINE void tcmask(uint32_t wid, int32_t* s, int32_t* t,
                                 int32_t num) {
@@ -108,12 +118,9 @@ static INLINE void calculate_tile_derivs(struct Tile* t) {
   }
 }
 
-static STRICTINLINE void get_texel1_1cycle(uint32_t wid, int32_t* s1,
-                                           int32_t* t1, int32_t s, int32_t t,
-                                           int32_t w, int32_t dsinc,
-                                           int32_t dtinc, int32_t dwinc,
-                                           int32_t scanline,
-                                           struct Spansigs* sigs) {
+void get_texel1_1cycle(uint32_t wid, int32_t* s1, int32_t* t1, int32_t s,
+                       int32_t t, int32_t w, int32_t dsinc, int32_t dtinc,
+                       int32_t dwinc, int32_t scanline, struct Spansigs* sigs) {
   int32_t nexts;
   int32_t nextt;
   int32_t nextsw;
@@ -133,10 +140,9 @@ static STRICTINLINE void get_texel1_1cycle(uint32_t wid, int32_t* s1,
   rdpxi_state[wid].tcdiv_ptr(nexts, nextt, nextsw, s1, t1);
 }
 
-static STRICTINLINE void texture_pipeline_cycle(uint32_t wid, struct Color* tex,
-                                                struct Color* prev, int32_t sss,
-                                                int32_t sst, uint32_t tilenum,
-                                                uint32_t cycle) {
+void texture_pipeline_cycle(uint32_t wid, struct Color* tex, struct Color* prev,
+                            int32_t sss, int32_t sst, uint32_t tilenum,
+                            uint32_t cycle) {
   int32_t maxs;
   int32_t maxt;
   int32_t invt3r;
@@ -855,7 +861,7 @@ static void edgewalker_for_loads(uint32_t wid, const int32_t* lewdata) {
   loading_pipeline(wid, yhlimit >> 2, yllimit >> 2, tilenum, coord_quad, ltlut);
 }
 
-void rdp_set_tile_size(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_set_tile_size(uint32_t wid, const uint32_t* args) {
   int const tilenum = (args[1] >> 24) & 0x7;
   rdpxi_state[wid].tile[tilenum].sl = (args[0] >> 12) & 0xfff;
   rdpxi_state[wid].tile[tilenum].tl = (args[0] >> 0) & 0xfff;
@@ -865,7 +871,7 @@ void rdp_set_tile_size(uint32_t wid, const uint32_t* args) {
   calculate_clamp_diffs(&rdpxi_state[wid].tile[tilenum]);
 }
 
-void rdp_load_block(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_load_block(uint32_t wid, const uint32_t* args) {
   int const tilenum = (args[1] >> 24) & 0x7;
   int sl;
   int sh;
@@ -929,15 +935,15 @@ static void tile_tlut_common_cs_decoder(uint32_t wid, const uint32_t* args) {
   edgewalker_for_loads(wid, lewdata);
 }
 
-void rdp_load_tlut(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_load_tlut(uint32_t wid, const uint32_t* args) {
   tile_tlut_common_cs_decoder(wid, args);
 }
 
-void rdp_load_tile(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_load_tile(uint32_t wid, const uint32_t* args) {
   tile_tlut_common_cs_decoder(wid, args);
 }
 
-void rdp_set_tile(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_set_tile(uint32_t wid, const uint32_t* args) {
   int const tilenum = (args[1] >> 24) & 0x7;
 
   rdpxi_state[wid].tile[tilenum].format = (args[0] >> 21) & 0x7;
@@ -957,14 +963,14 @@ void rdp_set_tile(uint32_t wid, const uint32_t* args) {
   calculate_tile_derivs(&rdpxi_state[wid].tile[tilenum]);
 }
 
-void rdp_set_texture_image(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_set_texture_image(uint32_t wid, const uint32_t* args) {
   rdpxi_state[wid].ti_format = (args[0] >> 21) & 0x7;
   rdpxi_state[wid].ti_size = (args[0] >> 19) & 0x3;
   rdpxi_state[wid].ti_width = (args[0] & 0x3ff) + 1;
   rdpxi_state[wid].ti_address = args[1] & 0x0ffffff;
 }
 
-void rdp_set_convert(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_set_convert(uint32_t wid, const uint32_t* args) {
   int32_t const k0 = (args[0] >> 13) & 0x1ff;
   int32_t const k1 = (args[0] >> 4) & 0x1ff;
   int32_t const k2 = ((args[0] & 0xf) << 5) | ((args[1] >> 27) & 0x1f);
@@ -977,12 +983,12 @@ void rdp_set_convert(uint32_t wid, const uint32_t* args) {
   rdpxi_state[wid].k5 = args[1] & 0x1ff;
 }
 
-static void tex_init_lut(void) {
+void tex_init_lut(void) {
   tmem_init_lut();
   tcoord_init_lut();
 }
 
-static void tex_init(uint32_t wid) {
+void tex_init(uint32_t wid) {
   int i;
   tcoord_init(wid);
 
@@ -991,5 +997,3 @@ static void tex_init(uint32_t wid) {
     calculate_clamp_diffs(&rdpxi_state[wid].tile[i]);
   }
 }
-
-#endif  // N64VIDEO_C

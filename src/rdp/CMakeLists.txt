@@ -26,6 +26,7 @@ add_library(rdp_core STATIC
     rdp/fbuffer.cc
     rdp/tmem.cc
     rdp/tcoord.cc
+    rdp/tex.cc
 )
 add_library(Rdp::rdp ALIAS rdp_core)
 
