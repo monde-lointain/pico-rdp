@@ -20,6 +20,7 @@ add_library(rdp_core STATIC
     rdp/rdram.cc
     rdp/dither.cc
     rdp/coverage.cc
+    rdp/zbuffer.cc
 )
 add_library(Rdp::rdp ALIAS rdp_core)
 

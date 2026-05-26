@@ -48,29 +48,20 @@ static struct {
 
 static int rdp_pipeline_crashed = 0;
 
-static STRICTINLINE int32_t clamp(int32_t value, int32_t min, int32_t max) {
-  if (value < min) {
-    return min;
-  }
-  if (value > max) {
-    return max;
-  }
-  return value;
-}
-
-// irand: lifted from common.h (static STRICTINLINE). The stage files call the
-// global `irand(&rdpxi_state[wid].rseed)`; common.h's definition is in scope.
+// clamp lives in rdp_internal.h (header static inline, shared across TUs).
+// irand: from n64video_common.h (static STRICTINLINE). Stage files call
+// irand(&rdpxi_state[wid].rseed); common.h's definition is in scope.
 
 // ---- message sinks --------------------------------------------------------
 // The fork's stage code calls msg_error/msg_warning/msg_debug (variadic). Our
-// renderer routes them to file-static shims so they never collide with the
-// oracle's externally-linked msg_* and incur no host I/O during validation.
-// (The fill paths only emit one-time warnings on the RDP-crash codepaths.)
-static void msg_error(const char* err, ...) { (void)err; }
+// renderer routes them to rdpxi_msg_* shims (external linkage, rdpxi_-prefixed
+// so they never collide with the oracle's externally-linked msg_*) and incur no
+// host I/O during validation. Declared in rdp_internal.h.
+void rdpxi_msg_error(const char* err, ...) { (void)err; }
 
-static void msg_warning(const char* err, ...) { (void)err; }
+void rdpxi_msg_warning(const char* err, ...) { (void)err; }
 
-static void msg_debug(const char* err, ...) { (void)err; }
+void rdpxi_msg_debug(const char* err, ...) { (void)err; }
 
 // include guard to prevent compilation of code modules as translation units
 #define N64VIDEO_C
@@ -188,7 +179,7 @@ static void rdpx_static_init(void) {
   coverage_init_lut();
   combiner_init_lut();
   tex_init_lut();
-  z_init_lut();
+  rdpxi_z_init_lut();
 
   fb_init(0);
   combiner_init(0);

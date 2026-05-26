@@ -435,3 +435,20 @@ struct RdpState {
 // (config, …) linked alongside us in the conformance harness.
 extern struct N64videoConfig rdpxi_config;
 extern struct RdpState rdpxi_state[RDPX_PARALLEL_MAX_WORKERS];
+
+// Message sinks (no-ops) — rdpxi_-prefixed; the oracle exports msg_*.
+void rdpxi_msg_error(const char* err, ...);
+void rdpxi_msg_warning(const char* err, ...);
+void rdpxi_msg_debug(const char* err, ...);
+
+// Tiny hot clamp — header static inline so every TU inlines it (the unity
+// build kept it in n64video.c; here it is shared without a cross-TU call).
+static inline int32_t clamp(int32_t value, int32_t min, int32_t max) {
+  if (value < min) {
+    return min;
+  }
+  if (value > max) {
+    return max;
+  }
+  return value;
+}

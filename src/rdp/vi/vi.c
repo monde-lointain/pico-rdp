@@ -663,7 +663,7 @@ static void vi_set_zbuffer_address(uint32_t address) { zb_address = address; }
 static void vi_update_screen(void) {
   // check for configuration errors
   if (rdpxi_config.vi.mode >= VI_MODE_NUM) {
-    msg_error("Invalid VI mode: %d", rdpxi_config.vi.mode);
+    rdpxi_msg_error("Invalid VI mode: %d", rdpxi_config.vi.mode);
   }
 
   // parse and check some common registers
@@ -713,13 +713,13 @@ static void vi_update_screen(void) {
 
   // check for unexpected VI type bits set
   if (ctrl.type & ~3) {
-    msg_error("Unknown framebuffer format %d", ctrl.type);
+    rdpxi_msg_error("Unknown framebuffer format %d", ctrl.type);
   }
 
   // warn about AA glitches in certain cases
   if (ctrl.aa_mode == VI_AA_REPLICATE && ctrl.type == VI_TYPE_RGBA5551 &&
       h_start < 0x80 && x_add <= 0x200 && !onetimewarnings.nolerp) {
-    msg_warning(
+    rdpxi_msg_warning(
         "vi_update: Disabling VI interpolation in 16-bit color "
         "modes causes glitches on hardware if h_start is less than "
         "128 pixels and x_scale is less or equal to 0x200.");
@@ -730,7 +730,7 @@ static void vi_update_screen(void) {
   // configure Ultra 64 prototypes and enabling it on final hardware will
   // enable two output drivers on the same bus at the same time
   if (ctrl.vbus_clock_enable && !onetimewarnings.vbusclock) {
-    msg_warning(
+    rdpxi_msg_warning(
         "vi_update: vbus_clock_enable bit set in VI_CONTROL_REG "
         "register. Never run this code on your N64! It's rumored "
         "that turning this bit on will result in permanent damage "
@@ -769,14 +769,14 @@ static void vi_update_screen(void) {
 
   if ((vres + v_start) > PRESCALE_HEIGHT) {
     vres = PRESCALE_HEIGHT - v_start;
-    msg_warning("vres = %d v_start = %d v_video_start = %d", vres, v_start,
-                (*vi_reg_ptr[VI_V_START] >> 16) & 0x3ff);
+    rdpxi_msg_warning("vres = %d v_start = %d v_video_start = %d", vres,
+                      v_start, (*vi_reg_ptr[VI_V_START] >> 16) & 0x3ff);
   }
 
   vactivelines = v_sync - vstartoffset;
 
   if (vactivelines > PRESCALE_HEIGHT) {
-    msg_error("VI_V_SYNC_REG too big");
+    rdpxi_msg_error("VI_V_SYNC_REG too big");
   }
 
   bool valid = true;

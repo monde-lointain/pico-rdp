@@ -23,6 +23,12 @@
 // only external symbols this TU exposes stay rdpx_*-prefixed (see n64video.c).
 
 #include "rdp_internal.h"
+// Standalone-TU headers (extracted stages). Included before the command table
+// so the handler decls (rdpxi_rdp_*) and macros they export are in scope.
+#include "rdp/coverage_internal.h"
+#include "rdp/dither_internal.h"
+#include "rdp/rdram_internal.h"
+#include "rdp/zbuffer_internal.h"
 
 struct RdpState rdpxi_state[RDPX_PARALLEL_MAX_WORKERS];
 
@@ -67,13 +73,11 @@ static void rdp_set_prim_color(uint32_t wid, const uint32_t* args);
 static void rdp_set_env_color(uint32_t wid, const uint32_t* args);
 static void rdp_set_combine(uint32_t wid, const uint32_t* args);
 static void rdp_set_texture_image(uint32_t wid, const uint32_t* args);
-static void rdp_set_mask_image(uint32_t wid, const uint32_t* args);
 static void rdp_set_color_image(uint32_t wid, const uint32_t* args);
 static void rdp_cmd(uint32_t wid, const uint32_t* args);
 
 // init funcs forward-declared static (internal linkage vs oracle's globals).
 static uint8_t* get_tmem(void);
-static void z_init_lut(void);
 
 // dither (reseed_noise/noise_get_*/rgb_dither/get_dither_noise) is now a
 // standalone TU — see rdp/dither_internal.h.
@@ -147,7 +151,7 @@ static const struct {
     {rdp_set_env_color,       8},
     {rdp_set_combine,         8},
     {rdp_set_texture_image,   8},
-    {rdp_set_mask_image,      8},
+    {rdpxi_rdp_set_mask_image,   8},
     {rdp_set_color_image,     8}
 };
 // clang-format on
@@ -159,13 +163,9 @@ static void deduce_derivatives(uint32_t wid);
 // macros fbuffer uses; dither defines rgb_dither used by blender; tcoord/tmem
 // define tc_pipeline_copy/read_tmem_copy used by rasterizer. clang-format must
 // NOT alphabetize these (doing so broke the build — undeclared identifiers).
-#include "rdp/dither_internal.h"  // dither is now a standalone TU (dither.cc)
-#include "rdp/rdram_internal.h"   // rdram is now a standalone TU (rdram.cc)
 // clang-format off
 #include "rdp/blender.c"
 #include "rdp/combiner.c"
-#include "rdp/coverage_internal.h"
-#include "rdp/zbuffer.c"
 #include "rdp/fbuffer.c"
 #include "rdp/tmem.c"
 #include "rdp/tcoord.c"

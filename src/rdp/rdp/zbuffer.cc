@@ -1,4 +1,10 @@
-#ifdef N64VIDEO_C
+// zbuffer.cc — Z compare/store + dz (de)compress + z LUT (standalone TU).
+// Ported VERBATIM from the fork 31bdb1f. z_init_lut + the rdp_set_mask_image
+// handler collide with the oracle -> rdpxi_-prefixed; the per-pixel z helpers
+// are de-inlined (LTO recovers inlining). See zbuffer_internal.h.
+
+#include "rdram_internal.h"
+#include "zbuffer_internal.h"
 
 #define ZMODE_OPAQUE 0
 #define ZMODE_INTERPENETRATING 1
@@ -171,7 +177,7 @@ static INLINE void z_build_com_table(void) {
         altmem = ((z << 2) & 0x1ffc) | 0xe000;
         break;
       default:
-        msg_error("z_build_com_table failed");
+        rdpxi_msg_error("z_build_com_table failed");
         break;
     }
 
@@ -179,7 +185,7 @@ static INLINE void z_build_com_table(void) {
   }
 }
 
-static STRICTINLINE void z_store(uint32_t zcurpixel, uint32_t z, int dzpixenc) {
+void z_store(uint32_t zcurpixel, uint32_t z, int dzpixenc) {
   uint16_t const zval = z_com_table[z & 0x3ffff] | (dzpixenc >> 2);
   uint8_t const hval = dzpixenc & 3;
   PAIRWRITE16(zcurpixel, zval, hval);
@@ -189,7 +195,7 @@ static STRICTINLINE uint32_t dz_decompress(uint32_t dz_compressed) {
   return (1 << dz_compressed);
 }
 
-static STRICTINLINE uint32_t dz_compress(uint32_t value) {
+uint32_t dz_compress(uint32_t value) {
   int j = 0;
   if (value & 0xff00) {
     j |= 8;
@@ -206,12 +212,10 @@ static STRICTINLINE uint32_t dz_compress(uint32_t value) {
   return j;
 }
 
-static STRICTINLINE uint32_t z_compare(uint32_t wid, uint32_t zcurpixel,
-                                       uint32_t sz, uint16_t dzpix,
-                                       int dzpixenc, uint32_t* blend_en,
-                                       uint32_t* prewrap,
-                                       uint32_t* curpixel_cvg,
-                                       uint32_t curpixel_memcvg) {
+uint32_t z_compare(uint32_t wid, uint32_t zcurpixel, uint32_t sz,
+                   uint16_t dzpix, int dzpixenc, uint32_t* blend_en,
+                   uint32_t* prewrap, uint32_t* curpixel_cvg,
+                   uint32_t curpixel_memcvg) {
   int force_coplanar = 0;
   sz &= 0x3ffff;
 
@@ -346,11 +350,11 @@ static STRICTINLINE uint32_t z_compare(uint32_t wid, uint32_t zcurpixel,
   return 1;
 }
 
-void rdp_set_mask_image(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_set_mask_image(uint32_t wid, const uint32_t* args) {
   rdpxi_state[wid].zb_address = args[1] & 0x0ffffff;
 }
 
-void z_init_lut(void) {
+void rdpxi_z_init_lut(void) {
   int i;
   z_build_com_table();
 
@@ -375,5 +379,3 @@ void z_init_lut(void) {
     }
   }
 }
-
-#endif  // N64VIDEO_C

@@ -30,7 +30,7 @@ static STRICTINLINE int32_t normalize_dzpix(int32_t sum) {
       return (count << 1);
     }
   }
-  msg_error("normalize_dzpix: invalid codepath taken");
+  rdpxi_msg_error("normalize_dzpix: invalid codepath taken");
   return 0;
 }
 
@@ -1869,7 +1869,7 @@ static void render_spans_fill(uint32_t wid, int start, int end, int flip) {
     if (rdpxi_state[wid].span[i].validline) {
       if (fastkillbits && length >= 0) {
         if (!onetimewarnings.fillmbitcrashes) {
-          msg_warning(
+          rdpxi_msg_warning(
               "render_spans_fill: image_read_en %x z_update_en %x z_compare_en "
               "%x. RDP crashed",
               rdpxi_state[wid].other_modes.image_read_en,
@@ -1904,7 +1904,7 @@ static void render_spans_fill(uint32_t wid, int start, int end, int flip) {
 
       if (slowkillbits && length >= 0) {
         if (!onetimewarnings.fillmbitcrashes) {
-          msg_warning(
+          rdpxi_msg_warning(
               "render_spans_fill: image_read_en %x z_update_en %x z_compare_en "
               "%x z_source_sel %x. RDP crashed",
               rdpxi_state[wid].other_modes.image_read_en,
@@ -2653,7 +2653,7 @@ static void edgewalker_for_prims(uint32_t wid, const int32_t* ewdata) {
       render_spans_fill(wid, yhlimit >> 2, yllimit >> 2, flip);
       break;
     default:
-      msg_error("cycle_type %d", rdpxi_state[wid].other_modes.cycle_type);
+      rdpxi_msg_error("cycle_type %d", rdpxi_state[wid].other_modes.cycle_type);
       break;
   }
 
