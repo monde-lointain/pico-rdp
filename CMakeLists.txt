@@ -64,9 +64,10 @@ endif()
 add_subdirectory(src)
 
 if(BUILD_TESTS AND PLATFORM STREQUAL "sdl")
-  # POST_BUILD avoids a CMake path-with-spaces bug on MSVC generators where
-  # the PRE_BUILD cmake -P invocation mis-parses "C:/Program Files/CMake/...".
-  set(CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE POST_BUILD)
+  # PRE_TEST defers gtest discovery to ctest run-time, avoiding the MSBuild
+  # build-time custom command that mis-splits "C:/Program Files/CMake/..." on
+  # the windows-latest runner. POST_BUILD is CMake's default and does NOT help.
+  set(CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE PRE_TEST)
   enable_testing()
   add_subdirectory(tests)
 endif()
