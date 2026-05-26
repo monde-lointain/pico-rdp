@@ -1,13 +1,18 @@
-#ifdef N64VIDEO_C
+// blender.cc — blender equations + alpha compare + blend LUT (standalone TU).
+// Ported VERBATIM from the fork 31bdb1f. Only the rdp_set_* handlers collide
+// with the oracle (rdpxi_-prefixed); per-pixel helpers de-inlined. See
+// blender_internal.h.
+
+#include "blender_internal.h"
+#include "dither_internal.h"  // rgb_dither, rdpxi_noise_get_blend_threshold
 
 static int32_t blenderone = 0xff;
 
 static uint8_t bldiv_hwaccurate_table[0x8000];
 
-static INLINE void set_blender_input(uint32_t wid, int cycle, int which,
-                                     int32_t** input_r, int32_t** input_g,
-                                     int32_t** input_b, int32_t** input_a,
-                                     int a, int b) {
+void set_blender_input(uint32_t wid, int cycle, int which, int32_t** input_r,
+                       int32_t** input_g, int32_t** input_b, int32_t** input_a,
+                       int a, int b) {
   switch (a & 0x3) {
     case 0: {
       if (cycle == 0) {
@@ -77,7 +82,7 @@ static INLINE void set_blender_input(uint32_t wid, int cycle, int which,
   }
 }
 
-static STRICTINLINE int alpha_compare(uint32_t wid, int32_t comb_alpha) {
+int alpha_compare(uint32_t wid, int32_t comb_alpha) {
   int32_t threshold;
   if (!rdpxi_state[wid].other_modes.alpha_compare_en) {
     return 1;
@@ -197,11 +202,9 @@ static STRICTINLINE void blender_equation_cycle1(uint32_t wid, int* r, int* g,
   }
 }
 
-static STRICTINLINE int blender_1cycle(uint32_t wid, uint32_t* fr, uint32_t* fg,
-                                       uint32_t* fb, int dith,
-                                       uint32_t blend_en, uint32_t prewrap,
-                                       uint32_t curpixel_cvg,
-                                       uint32_t curpixel_cvbit) {
+int blender_1cycle(uint32_t wid, uint32_t* fr, uint32_t* fg, uint32_t* fb,
+                   int dith, uint32_t blend_en, uint32_t prewrap,
+                   uint32_t curpixel_cvg, uint32_t curpixel_cvbit) {
   int r;
   int g;
   int b;
@@ -244,9 +247,8 @@ static STRICTINLINE int blender_1cycle(uint32_t wid, uint32_t* fr, uint32_t* fg,
   return 0;
 }
 
-static STRICTINLINE int blender_2cycle_cycle0(uint32_t wid,
-                                              uint32_t curpixel_cvg,
-                                              uint32_t curpixel_cvbit) {
+int blender_2cycle_cycle0(uint32_t wid, uint32_t curpixel_cvg,
+                          uint32_t curpixel_cvbit) {
   int r;
   int g;
   int b;
@@ -272,10 +274,9 @@ static STRICTINLINE int blender_2cycle_cycle0(uint32_t wid,
   return wen;
 }
 
-static STRICTINLINE void blender_2cycle_cycle1(uint32_t wid, uint32_t* fr,
-                                               uint32_t* fg, uint32_t* fb,
-                                               int dith, uint32_t blend_en,
-                                               uint32_t prewrap) {
+void blender_2cycle_cycle1(uint32_t wid, uint32_t* fr, uint32_t* fg,
+                           uint32_t* fb, int dith, uint32_t blend_en,
+                           uint32_t prewrap) {
   int r;
   int g;
   int b;
@@ -308,7 +309,7 @@ static STRICTINLINE void blender_2cycle_cycle1(uint32_t wid, uint32_t* fr,
   *fb = b;
 }
 
-static void blender_init_lut(void) {
+void blender_init_lut(void) {
   int i;
   int k;
   int d = 0;
@@ -342,18 +343,16 @@ static void blender_init_lut(void) {
   }
 }
 
-void rdp_set_fog_color(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_set_fog_color(uint32_t wid, const uint32_t* args) {
   rdpxi_state[wid].fog_color.r = RGBA32_R(args[1]);
   rdpxi_state[wid].fog_color.g = RGBA32_G(args[1]);
   rdpxi_state[wid].fog_color.b = RGBA32_B(args[1]);
   rdpxi_state[wid].fog_color.a = RGBA32_A(args[1]);
 }
 
-void rdp_set_blend_color(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_set_blend_color(uint32_t wid, const uint32_t* args) {
   rdpxi_state[wid].blend_color.r = RGBA32_R(args[1]);
   rdpxi_state[wid].blend_color.g = RGBA32_G(args[1]);
   rdpxi_state[wid].blend_color.b = RGBA32_B(args[1]);
   rdpxi_state[wid].blend_color.a = RGBA32_A(args[1]);
 }
-
-#endif  // N64VIDEO_C

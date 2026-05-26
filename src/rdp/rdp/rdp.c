@@ -25,6 +25,7 @@
 #include "rdp_internal.h"
 // Standalone-TU headers (extracted stages). Included before the command table
 // so the handler decls (rdpxi_rdp_*) and macros they export are in scope.
+#include "rdp/blender_internal.h"
 #include "rdp/coverage_internal.h"
 #include "rdp/dither_internal.h"
 #include "rdp/rdram_internal.h"
@@ -32,8 +33,8 @@
 
 struct RdpState rdpxi_state[RDPX_PARALLEL_MAX_WORKERS];
 
-static int32_t one_color = 0x100;
-static int32_t zero_color = 0x00;
+int32_t one_color = 0x100;
+int32_t zero_color = 0x00;
 
 // Forward declarations — all `static` so the stage-file definitions inherit
 // internal linkage (symbol hygiene vs the oracle's identically-named globals).
@@ -67,8 +68,6 @@ static void rdp_load_tile(uint32_t wid, const uint32_t* args);
 static void rdp_set_tile(uint32_t wid, const uint32_t* args);
 static void rdp_fill_rect(uint32_t wid, const uint32_t* args);
 static void rdp_set_fill_color(uint32_t wid, const uint32_t* args);
-static void rdp_set_fog_color(uint32_t wid, const uint32_t* args);
-static void rdp_set_blend_color(uint32_t wid, const uint32_t* args);
 static void rdp_set_prim_color(uint32_t wid, const uint32_t* args);
 static void rdp_set_env_color(uint32_t wid, const uint32_t* args);
 static void rdp_set_combine(uint32_t wid, const uint32_t* args);
@@ -145,8 +144,8 @@ static const struct {
     {rdp_set_tile,            8},
     {rdp_fill_rect,           8},
     {rdp_set_fill_color,      8},
-    {rdp_set_fog_color,       8},
-    {rdp_set_blend_color,     8},
+    {rdpxi_rdp_set_fog_color,     8},
+    {rdpxi_rdp_set_blend_color,     8},
     {rdp_set_prim_color,      8},
     {rdp_set_env_color,       8},
     {rdp_set_combine,         8},
@@ -164,7 +163,7 @@ static void deduce_derivatives(uint32_t wid);
 // define tc_pipeline_copy/read_tmem_copy used by rasterizer. clang-format must
 // NOT alphabetize these (doing so broke the build — undeclared identifiers).
 // clang-format off
-#include "rdp/blender.c"
+
 #include "rdp/combiner.c"
 #include "rdp/fbuffer.c"
 #include "rdp/tmem.c"

@@ -435,6 +435,8 @@ struct RdpState {
 // (config, …) linked alongside us in the conformance harness.
 extern struct N64videoConfig rdpxi_config;
 extern struct RdpState rdpxi_state[RDPX_PARALLEL_MAX_WORKERS];
+extern int32_t one_color;
+extern int32_t zero_color;
 
 // Message sinks (no-ops) — rdpxi_-prefixed; the oracle exports msg_*.
 void rdpxi_msg_error(const char* err, ...);
