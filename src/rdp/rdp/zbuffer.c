@@ -221,23 +221,25 @@ static STRICTINLINE uint32_t z_compare(uint32_t wid, uint32_t zcurpixel,
   uint32_t dzmem;
   int32_t rawdzmem;
 
-  if (state[wid].other_modes.z_compare_en) {
+  if (rdpxi_state[wid].other_modes.z_compare_en) {
     PAIRREAD16(zval, hval, zcurpixel);
     oz = z_decompress(zval);
     rawdzmem = ((zval & 3) << 2) | hval;
     dzmem = dz_decompress(rawdzmem);
 
-    if (state[wid].other_modes.f.realblendershiftersneeded) {
-      state[wid].blshifta = clamp(dzpixenc - rawdzmem, 0, 4);
-      state[wid].blshiftb = clamp(rawdzmem - dzpixenc, 0, 4);
+    if (rdpxi_state[wid].other_modes.f.realblendershiftersneeded) {
+      rdpxi_state[wid].blshifta = clamp(dzpixenc - rawdzmem, 0, 4);
+      rdpxi_state[wid].blshiftb = clamp(rawdzmem - dzpixenc, 0, 4);
     }
 
-    if (state[wid].other_modes.f.interpixelblendershiftersneeded) {
-      state[wid].pastblshifta = clamp(dzpixenc - state[wid].pastrawdzmem, 0, 4);
-      state[wid].pastblshiftb = clamp(state[wid].pastrawdzmem - dzpixenc, 0, 4);
+    if (rdpxi_state[wid].other_modes.f.interpixelblendershiftersneeded) {
+      rdpxi_state[wid].pastblshifta =
+          clamp(dzpixenc - rdpxi_state[wid].pastrawdzmem, 0, 4);
+      rdpxi_state[wid].pastblshiftb =
+          clamp(rdpxi_state[wid].pastrawdzmem - dzpixenc, 0, 4);
     }
 
-    state[wid].pastrawdzmem = rawdzmem;
+    rdpxi_state[wid].pastrawdzmem = rawdzmem;
 
     int const precision_factor = (zval >> 13) & 0xf;
 
@@ -264,8 +266,9 @@ static STRICTINLINE uint32_t z_compare(uint32_t wid, uint32_t zcurpixel,
     uint32_t const farther = force_coplanar || ((sz + dznew) >= oz);
 
     int const overflow = (curpixel_memcvg + *curpixel_cvg) & 8;
-    *blend_en = state[wid].other_modes.force_blend ||
-                (!overflow && state[wid].other_modes.antialias_en && farther);
+    *blend_en =
+        rdpxi_state[wid].other_modes.force_blend ||
+        (!overflow && rdpxi_state[wid].other_modes.antialias_en && farther);
 
     *prewrap = overflow;
 
@@ -277,7 +280,7 @@ static STRICTINLINE uint32_t z_compare(uint32_t wid, uint32_t zcurpixel,
     uint32_t max;
     uint32_t infront;
 
-    switch (state[wid].other_modes.z_mode) {
+    switch (rdpxi_state[wid].other_modes.z_mode) {
       case ZMODE_OPAQUE:
         infront = sz < oz;
         diff = (int32_t)sz - (int32_t)dznew;
@@ -315,36 +318,36 @@ static STRICTINLINE uint32_t z_compare(uint32_t wid, uint32_t zcurpixel,
     return 0;
   }
 
-  if (state[wid].other_modes.f.realblendershiftersneeded) {
-    state[wid].blshifta = 0;
+  if (rdpxi_state[wid].other_modes.f.realblendershiftersneeded) {
+    rdpxi_state[wid].blshifta = 0;
     if (dzpixenc < 0xb) {
-      state[wid].blshiftb = 4;
+      rdpxi_state[wid].blshiftb = 4;
     } else {
-      state[wid].blshiftb = 0xf - dzpixenc;
+      rdpxi_state[wid].blshiftb = 0xf - dzpixenc;
     }
   }
 
-  if (state[wid].other_modes.f.interpixelblendershiftersneeded) {
-    state[wid].pastblshifta = 0;
+  if (rdpxi_state[wid].other_modes.f.interpixelblendershiftersneeded) {
+    rdpxi_state[wid].pastblshifta = 0;
     if (dzpixenc < 0xb) {
-      state[wid].pastblshiftb = 4;
+      rdpxi_state[wid].pastblshiftb = 4;
     } else {
-      state[wid].pastblshiftb = 0xf - dzpixenc;
+      rdpxi_state[wid].pastblshiftb = 0xf - dzpixenc;
     }
   }
 
-  state[wid].pastrawdzmem = 0xf;
+  rdpxi_state[wid].pastrawdzmem = 0xf;
 
   int const overflow = (curpixel_memcvg + *curpixel_cvg) & 8;
-  *blend_en = state[wid].other_modes.force_blend ||
-              (!overflow && state[wid].other_modes.antialias_en);
+  *blend_en = rdpxi_state[wid].other_modes.force_blend ||
+              (!overflow && rdpxi_state[wid].other_modes.antialias_en);
   *prewrap = overflow;
 
   return 1;
 }
 
 void rdp_set_mask_image(uint32_t wid, const uint32_t* args) {
-  state[wid].zb_address = args[1] & 0x0ffffff;
+  rdpxi_state[wid].zb_address = args[1] & 0x0ffffff;
 }
 
 void z_init_lut(void) {

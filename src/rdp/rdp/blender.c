@@ -11,35 +11,35 @@ static INLINE void set_blender_input(uint32_t wid, int cycle, int which,
   switch (a & 0x3) {
     case 0: {
       if (cycle == 0) {
-        *input_r = &state[wid].pixel_color.r;
-        *input_g = &state[wid].pixel_color.g;
-        *input_b = &state[wid].pixel_color.b;
+        *input_r = &rdpxi_state[wid].pixel_color.r;
+        *input_g = &rdpxi_state[wid].pixel_color.g;
+        *input_b = &rdpxi_state[wid].pixel_color.b;
       } else {
-        *input_r = &state[wid].blended_pixel_color.r;
-        *input_g = &state[wid].blended_pixel_color.g;
-        *input_b = &state[wid].blended_pixel_color.b;
+        *input_r = &rdpxi_state[wid].blended_pixel_color.r;
+        *input_g = &rdpxi_state[wid].blended_pixel_color.g;
+        *input_b = &rdpxi_state[wid].blended_pixel_color.b;
       }
       break;
     }
 
     case 1: {
-      *input_r = &state[wid].memory_color.r;
-      *input_g = &state[wid].memory_color.g;
-      *input_b = &state[wid].memory_color.b;
+      *input_r = &rdpxi_state[wid].memory_color.r;
+      *input_g = &rdpxi_state[wid].memory_color.g;
+      *input_b = &rdpxi_state[wid].memory_color.b;
       break;
     }
 
     case 2: {
-      *input_r = &state[wid].blend_color.r;
-      *input_g = &state[wid].blend_color.g;
-      *input_b = &state[wid].blend_color.b;
+      *input_r = &rdpxi_state[wid].blend_color.r;
+      *input_g = &rdpxi_state[wid].blend_color.g;
+      *input_b = &rdpxi_state[wid].blend_color.b;
       break;
     }
 
     case 3: {
-      *input_r = &state[wid].fog_color.r;
-      *input_g = &state[wid].fog_color.g;
-      *input_b = &state[wid].fog_color.b;
+      *input_r = &rdpxi_state[wid].fog_color.r;
+      *input_g = &rdpxi_state[wid].fog_color.g;
+      *input_b = &rdpxi_state[wid].fog_color.b;
       break;
     }
   }
@@ -47,13 +47,13 @@ static INLINE void set_blender_input(uint32_t wid, int cycle, int which,
   if (which == 0) {
     switch (b & 0x3) {
       case 0:
-        *input_a = &state[wid].pixel_color.a;
+        *input_a = &rdpxi_state[wid].pixel_color.a;
         break;
       case 1:
-        *input_a = &state[wid].fog_color.a;
+        *input_a = &rdpxi_state[wid].fog_color.a;
         break;
       case 2:
-        *input_a = &state[wid].blender_shade_alpha;
+        *input_a = &rdpxi_state[wid].blender_shade_alpha;
         break;
       case 3:
         *input_a = &zero_color;
@@ -62,10 +62,10 @@ static INLINE void set_blender_input(uint32_t wid, int cycle, int which,
   } else {
     switch (b & 0x3) {
       case 0:
-        *input_a = &state[wid].inv_pixel_color.a;
+        *input_a = &rdpxi_state[wid].inv_pixel_color.a;
         break;
       case 1:
-        *input_a = &state[wid].memory_color.a;
+        *input_a = &rdpxi_state[wid].memory_color.a;
         break;
       case 2:
         *input_a = &blenderone;
@@ -79,13 +79,13 @@ static INLINE void set_blender_input(uint32_t wid, int cycle, int which,
 
 static STRICTINLINE int alpha_compare(uint32_t wid, int32_t comb_alpha) {
   int32_t threshold;
-  if (!state[wid].other_modes.alpha_compare_en) {
+  if (!rdpxi_state[wid].other_modes.alpha_compare_en) {
     return 1;
   }
-  if (!state[wid].other_modes.dither_alpha_en) {
-    threshold = state[wid].blend_color.a;
+  if (!rdpxi_state[wid].other_modes.dither_alpha_en) {
+    threshold = rdpxi_state[wid].blend_color.a;
   } else {
-    threshold = noise_get_blend_threshold(state[wid].noise_seed);
+    threshold = noise_get_blend_threshold(rdpxi_state[wid].noise_seed);
   }
 
   if (comb_alpha >= threshold) {
@@ -102,26 +102,26 @@ static STRICTINLINE void blender_equation_cycle0(uint32_t wid, int* r, int* g,
   int blg;
   int blb;
   int sum;
-  blend1a = *state[wid].blender1b_a[0] >> 3;
-  blend2a = *state[wid].blender2b_a[0] >> 3;
+  blend1a = *rdpxi_state[wid].blender1b_a[0] >> 3;
+  blend2a = *rdpxi_state[wid].blender2b_a[0] >> 3;
 
   int mulb;
 
-  if (state[wid].blender2b_a[0] == &state[wid].memory_color.a) {
-    blend1a = (blend1a >> state[wid].blshifta) & 0x3C;
-    blend2a = (blend2a >> state[wid].blshiftb) | 3;
+  if (rdpxi_state[wid].blender2b_a[0] == &rdpxi_state[wid].memory_color.a) {
+    blend1a = (blend1a >> rdpxi_state[wid].blshifta) & 0x3C;
+    blend2a = (blend2a >> rdpxi_state[wid].blshiftb) | 3;
   }
 
   mulb = blend2a + 1;
 
-  blr = (*state[wid].blender1a_r[0]) * blend1a +
-        (*state[wid].blender2a_r[0]) * mulb;
-  blg = (*state[wid].blender1a_g[0]) * blend1a +
-        (*state[wid].blender2a_g[0]) * mulb;
-  blb = (*state[wid].blender1a_b[0]) * blend1a +
-        (*state[wid].blender2a_b[0]) * mulb;
+  blr = (*rdpxi_state[wid].blender1a_r[0]) * blend1a +
+        (*rdpxi_state[wid].blender2a_r[0]) * mulb;
+  blg = (*rdpxi_state[wid].blender1a_g[0]) * blend1a +
+        (*rdpxi_state[wid].blender2a_g[0]) * mulb;
+  blb = (*rdpxi_state[wid].blender1a_b[0]) * blend1a +
+        (*rdpxi_state[wid].blender2a_b[0]) * mulb;
 
-  if (!state[wid].other_modes.force_blend) {
+  if (!rdpxi_state[wid].other_modes.force_blend) {
     sum = ((blend1a & ~3) + (blend2a & ~3) + 4) << 9;
     *r = bldiv_hwaccurate_table[sum | ((blr >> 2) & 0x7ff)];
     *g = bldiv_hwaccurate_table[sum | ((blg >> 2) & 0x7ff)];
@@ -137,25 +137,25 @@ static STRICTINLINE void blender_equation_cycle0_2(uint32_t wid, int* r, int* g,
                                                    int* b) {
   int blend1a;
   int blend2a;
-  blend1a = *state[wid].blender1b_a[0] >> 3;
-  blend2a = *state[wid].blender2b_a[0] >> 3;
+  blend1a = *rdpxi_state[wid].blender1b_a[0] >> 3;
+  blend2a = *rdpxi_state[wid].blender2b_a[0] >> 3;
 
-  if (state[wid].blender2b_a[0] == &state[wid].memory_color.a) {
-    blend1a = (blend1a >> state[wid].pastblshifta) & 0x3C;
-    blend2a = (blend2a >> state[wid].pastblshiftb) | 3;
+  if (rdpxi_state[wid].blender2b_a[0] == &rdpxi_state[wid].memory_color.a) {
+    blend1a = (blend1a >> rdpxi_state[wid].pastblshifta) & 0x3C;
+    blend2a = (blend2a >> rdpxi_state[wid].pastblshiftb) | 3;
   }
 
   blend2a += 1;
-  *r = (((*state[wid].blender1a_r[0]) * blend1a +
-         (*state[wid].blender2a_r[0]) * blend2a) >>
+  *r = (((*rdpxi_state[wid].blender1a_r[0]) * blend1a +
+         (*rdpxi_state[wid].blender2a_r[0]) * blend2a) >>
         5) &
        0xff;
-  *g = (((*state[wid].blender1a_g[0]) * blend1a +
-         (*state[wid].blender2a_g[0]) * blend2a) >>
+  *g = (((*rdpxi_state[wid].blender1a_g[0]) * blend1a +
+         (*rdpxi_state[wid].blender2a_g[0]) * blend2a) >>
         5) &
        0xff;
-  *b = (((*state[wid].blender1a_b[0]) * blend1a +
-         (*state[wid].blender2a_b[0]) * blend2a) >>
+  *b = (((*rdpxi_state[wid].blender1a_b[0]) * blend1a +
+         (*rdpxi_state[wid].blender2a_b[0]) * blend2a) >>
         5) &
        0xff;
 }
@@ -168,24 +168,24 @@ static STRICTINLINE void blender_equation_cycle1(uint32_t wid, int* r, int* g,
   int blg;
   int blb;
   int sum;
-  blend1a = *state[wid].blender1b_a[1] >> 3;
-  blend2a = *state[wid].blender2b_a[1] >> 3;
+  blend1a = *rdpxi_state[wid].blender1b_a[1] >> 3;
+  blend2a = *rdpxi_state[wid].blender2b_a[1] >> 3;
 
   int mulb;
-  if (state[wid].blender2b_a[1] == &state[wid].memory_color.a) {
-    blend1a = (blend1a >> state[wid].blshifta) & 0x3C;
-    blend2a = (blend2a >> state[wid].blshiftb) | 3;
+  if (rdpxi_state[wid].blender2b_a[1] == &rdpxi_state[wid].memory_color.a) {
+    blend1a = (blend1a >> rdpxi_state[wid].blshifta) & 0x3C;
+    blend2a = (blend2a >> rdpxi_state[wid].blshiftb) | 3;
   }
 
   mulb = blend2a + 1;
-  blr = (*state[wid].blender1a_r[1]) * blend1a +
-        (*state[wid].blender2a_r[1]) * mulb;
-  blg = (*state[wid].blender1a_g[1]) * blend1a +
-        (*state[wid].blender2a_g[1]) * mulb;
-  blb = (*state[wid].blender1a_b[1]) * blend1a +
-        (*state[wid].blender2a_b[1]) * mulb;
+  blr = (*rdpxi_state[wid].blender1a_r[1]) * blend1a +
+        (*rdpxi_state[wid].blender2a_r[1]) * mulb;
+  blg = (*rdpxi_state[wid].blender1a_g[1]) * blend1a +
+        (*rdpxi_state[wid].blender2a_g[1]) * mulb;
+  blb = (*rdpxi_state[wid].blender1a_b[1]) * blend1a +
+        (*rdpxi_state[wid].blender2a_b[1]) * mulb;
 
-  if (!state[wid].other_modes.force_blend) {
+  if (!rdpxi_state[wid].other_modes.force_blend) {
     sum = ((blend1a & ~3) + (blend2a & ~3) + 4) << 9;
     *r = bldiv_hwaccurate_table[sum | ((blr >> 2) & 0x7ff)];
     *g = bldiv_hwaccurate_table[sum | ((blg >> 2) & 0x7ff)];
@@ -207,28 +207,31 @@ static STRICTINLINE int blender_1cycle(uint32_t wid, uint32_t* fr, uint32_t* fg,
   int b;
   int dontblend;
 
-  if (alpha_compare(wid, state[wid].pixel_color.a)) {
-    if (state[wid].other_modes.antialias_en ? curpixel_cvg : curpixel_cvbit) {
-      if (!state[wid].other_modes.color_on_cvg || prewrap) {
-        dontblend = (state[wid].other_modes.f.partialreject_1cycle &&
-                     state[wid].pixel_color.a >= 0xff);
+  if (alpha_compare(wid, rdpxi_state[wid].pixel_color.a)) {
+    if (rdpxi_state[wid].other_modes.antialias_en ? curpixel_cvg
+                                                  : curpixel_cvbit) {
+      if (!rdpxi_state[wid].other_modes.color_on_cvg || prewrap) {
+        dontblend = (rdpxi_state[wid].other_modes.f.partialreject_1cycle &&
+                     rdpxi_state[wid].pixel_color.a >= 0xff);
         if (!blend_en || dontblend) {
-          r = *state[wid].blender1a_r[0];
-          g = *state[wid].blender1a_g[0];
-          b = *state[wid].blender1a_b[0];
+          r = *rdpxi_state[wid].blender1a_r[0];
+          g = *rdpxi_state[wid].blender1a_g[0];
+          b = *rdpxi_state[wid].blender1a_b[0];
         } else {
-          state[wid].inv_pixel_color.a = (~(*state[wid].blender1b_a[0])) & 0xff;
+          rdpxi_state[wid].inv_pixel_color.a =
+              (~(*rdpxi_state[wid].blender1b_a[0])) & 0xff;
 
           blender_equation_cycle0(wid, &r, &g, &b);
         }
       } else {
-        r = *state[wid].blender2a_r[0];
-        g = *state[wid].blender2a_g[0];
-        b = *state[wid].blender2a_b[0];
+        r = *rdpxi_state[wid].blender2a_r[0];
+        g = *rdpxi_state[wid].blender2a_g[0];
+        b = *rdpxi_state[wid].blender2a_b[0];
       }
 
-      if (state[wid].other_modes.rgb_dither_sel != 3) {
-        rgb_dither(state[wid].other_modes.rgb_dither_sel, &r, &g, &b, dith);
+      if (rdpxi_state[wid].other_modes.rgb_dither_sel != 3) {
+        rgb_dither(rdpxi_state[wid].other_modes.rgb_dither_sel, &r, &g, &b,
+                   dith);
       }
 
       *fr = r;
@@ -248,21 +251,23 @@ static STRICTINLINE int blender_2cycle_cycle0(uint32_t wid,
   int g;
   int b;
   int const wen =
-      (state[wid].other_modes.antialias_en ? curpixel_cvg : curpixel_cvbit) > 0
+      (rdpxi_state[wid].other_modes.antialias_en ? curpixel_cvg
+                                                 : curpixel_cvbit) > 0
           ? 1
           : 0;
 
   if (wen) {
-    state[wid].inv_pixel_color.a = (~(*state[wid].blender1b_a[0])) & 0xff;
+    rdpxi_state[wid].inv_pixel_color.a =
+        (~(*rdpxi_state[wid].blender1b_a[0])) & 0xff;
 
     blender_equation_cycle0_2(wid, &r, &g, &b);
 
-    state[wid].blended_pixel_color.r = r;
-    state[wid].blended_pixel_color.g = g;
-    state[wid].blended_pixel_color.b = b;
+    rdpxi_state[wid].blended_pixel_color.r = r;
+    rdpxi_state[wid].blended_pixel_color.g = g;
+    rdpxi_state[wid].blended_pixel_color.b = b;
   }
 
-  state[wid].memory_color = state[wid].pre_memory_color;
+  rdpxi_state[wid].memory_color = rdpxi_state[wid].pre_memory_color;
 
   return wen;
 }
@@ -276,25 +281,26 @@ static STRICTINLINE void blender_2cycle_cycle1(uint32_t wid, uint32_t* fr,
   int b;
   int dontblend;
 
-  if (!state[wid].other_modes.color_on_cvg || prewrap) {
-    dontblend = (state[wid].other_modes.f.partialreject_2cycle &&
-                 state[wid].pixel_color.a >= 0xff);
+  if (!rdpxi_state[wid].other_modes.color_on_cvg || prewrap) {
+    dontblend = (rdpxi_state[wid].other_modes.f.partialreject_2cycle &&
+                 rdpxi_state[wid].pixel_color.a >= 0xff);
     if (!blend_en || dontblend) {
-      r = *state[wid].blender1a_r[1];
-      g = *state[wid].blender1a_g[1];
-      b = *state[wid].blender1a_b[1];
+      r = *rdpxi_state[wid].blender1a_r[1];
+      g = *rdpxi_state[wid].blender1a_g[1];
+      b = *rdpxi_state[wid].blender1a_b[1];
     } else {
-      state[wid].inv_pixel_color.a = (~(*state[wid].blender1b_a[1])) & 0xff;
+      rdpxi_state[wid].inv_pixel_color.a =
+          (~(*rdpxi_state[wid].blender1b_a[1])) & 0xff;
       blender_equation_cycle1(wid, &r, &g, &b);
     }
   } else {
-    r = *state[wid].blender2a_r[1];
-    g = *state[wid].blender2a_g[1];
-    b = *state[wid].blender2a_b[1];
+    r = *rdpxi_state[wid].blender2a_r[1];
+    g = *rdpxi_state[wid].blender2a_g[1];
+    b = *rdpxi_state[wid].blender2a_b[1];
   }
 
-  if (state[wid].other_modes.rgb_dither_sel != 3) {
-    rgb_dither(state[wid].other_modes.rgb_dither_sel, &r, &g, &b, dith);
+  if (rdpxi_state[wid].other_modes.rgb_dither_sel != 3) {
+    rgb_dither(rdpxi_state[wid].other_modes.rgb_dither_sel, &r, &g, &b, dith);
   }
 
   *fr = r;
@@ -337,17 +343,17 @@ static void blender_init_lut(void) {
 }
 
 void rdp_set_fog_color(uint32_t wid, const uint32_t* args) {
-  state[wid].fog_color.r = RGBA32_R(args[1]);
-  state[wid].fog_color.g = RGBA32_G(args[1]);
-  state[wid].fog_color.b = RGBA32_B(args[1]);
-  state[wid].fog_color.a = RGBA32_A(args[1]);
+  rdpxi_state[wid].fog_color.r = RGBA32_R(args[1]);
+  rdpxi_state[wid].fog_color.g = RGBA32_G(args[1]);
+  rdpxi_state[wid].fog_color.b = RGBA32_B(args[1]);
+  rdpxi_state[wid].fog_color.a = RGBA32_A(args[1]);
 }
 
 void rdp_set_blend_color(uint32_t wid, const uint32_t* args) {
-  state[wid].blend_color.r = RGBA32_R(args[1]);
-  state[wid].blend_color.g = RGBA32_G(args[1]);
-  state[wid].blend_color.b = RGBA32_B(args[1]);
-  state[wid].blend_color.a = RGBA32_A(args[1]);
+  rdpxi_state[wid].blend_color.r = RGBA32_R(args[1]);
+  rdpxi_state[wid].blend_color.g = RGBA32_G(args[1]);
+  rdpxi_state[wid].blend_color.b = RGBA32_B(args[1]);
+  rdpxi_state[wid].blend_color.a = RGBA32_A(args[1]);
 }
 
 #endif  // N64VIDEO_C

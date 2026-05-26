@@ -39,44 +39,44 @@ static STRICTINLINE void compute_cvg_flip(uint32_t wid, int32_t scanline) {
   int32_t majorcurint;
   int32_t samecvg;
 
-  purgestart = state[wid].span[scanline].rx;
-  purgeend = state[wid].span[scanline].lx;
+  purgestart = rdpxi_state[wid].span[scanline].rx;
+  purgeend = rdpxi_state[wid].span[scanline].lx;
   length = purgeend - purgestart;
   if (length >= 0) {
-    memset(&state[wid].cvgbuf[purgestart], 0xff, length + 1);
+    memset(&rdpxi_state[wid].cvgbuf[purgestart], 0xff, length + 1);
     for (i = 0; i < 4; i++) {
       fmask = 0xa >> (i & 1);
 
       maskshift = (i - 2) & 4;
       fmaskshifted = fmask << maskshift;
 
-      if (!state[wid].span[scanline].invalyscan[i]) {
+      if (!rdpxi_state[wid].span[scanline].invalyscan[i]) {
         int k;
-        minorcur = state[wid].span[scanline].minorx[i];
-        majorcur = state[wid].span[scanline].majorx[i];
+        minorcur = rdpxi_state[wid].span[scanline].minorx[i];
+        majorcur = rdpxi_state[wid].span[scanline].majorx[i];
         minorcurint = minorcur >> 3;
         majorcurint = majorcur >> 3;
 
         for (k = purgestart; k <= majorcurint; k++) {
-          state[wid].cvgbuf[k] &= ~fmaskshifted;
+          rdpxi_state[wid].cvgbuf[k] &= ~fmaskshifted;
         }
         for (k = minorcurint; k <= purgeend; k++) {
-          state[wid].cvgbuf[k] &= ~fmaskshifted;
+          rdpxi_state[wid].cvgbuf[k] &= ~fmaskshifted;
         }
 
         if (minorcurint > majorcurint) {
-          state[wid].cvgbuf[minorcurint] |=
+          rdpxi_state[wid].cvgbuf[minorcurint] |=
               (rightcvghex(minorcur, fmask) << maskshift);
-          state[wid].cvgbuf[majorcurint] |=
+          rdpxi_state[wid].cvgbuf[majorcurint] |=
               (leftcvghex(majorcur, fmask) << maskshift);
         } else if (minorcurint == majorcurint) {
           samecvg = rightcvghex(minorcur, fmask) & leftcvghex(majorcur, fmask);
-          state[wid].cvgbuf[majorcurint] |= (samecvg << maskshift);
+          rdpxi_state[wid].cvgbuf[majorcurint] |= (samecvg << maskshift);
         }
       } else {
         int k;
         for (k = purgestart; k <= purgeend; k++) {
-          state[wid].cvgbuf[k] &= ~fmaskshifted;
+          rdpxi_state[wid].cvgbuf[k] &= ~fmaskshifted;
         }
       }
     }
@@ -97,45 +97,45 @@ static STRICTINLINE void compute_cvg_noflip(uint32_t wid, int32_t scanline) {
   int32_t majorcurint;
   int32_t samecvg;
 
-  purgestart = state[wid].span[scanline].lx;
-  purgeend = state[wid].span[scanline].rx;
+  purgestart = rdpxi_state[wid].span[scanline].lx;
+  purgeend = rdpxi_state[wid].span[scanline].rx;
   length = purgeend - purgestart;
 
   if (length >= 0) {
-    memset(&state[wid].cvgbuf[purgestart], 0xff, length + 1);
+    memset(&rdpxi_state[wid].cvgbuf[purgestart], 0xff, length + 1);
 
     for (i = 0; i < 4; i++) {
       fmask = 0xa >> (i & 1);
       maskshift = (i - 2) & 4;
       fmaskshifted = fmask << maskshift;
 
-      if (!state[wid].span[scanline].invalyscan[i]) {
+      if (!rdpxi_state[wid].span[scanline].invalyscan[i]) {
         int k;
-        minorcur = state[wid].span[scanline].minorx[i];
-        majorcur = state[wid].span[scanline].majorx[i];
+        minorcur = rdpxi_state[wid].span[scanline].minorx[i];
+        majorcur = rdpxi_state[wid].span[scanline].majorx[i];
         minorcurint = minorcur >> 3;
         majorcurint = majorcur >> 3;
 
         for (k = purgestart; k <= minorcurint; k++) {
-          state[wid].cvgbuf[k] &= ~fmaskshifted;
+          rdpxi_state[wid].cvgbuf[k] &= ~fmaskshifted;
         }
         for (k = majorcurint; k <= purgeend; k++) {
-          state[wid].cvgbuf[k] &= ~fmaskshifted;
+          rdpxi_state[wid].cvgbuf[k] &= ~fmaskshifted;
         }
 
         if (majorcurint > minorcurint) {
-          state[wid].cvgbuf[minorcurint] |=
+          rdpxi_state[wid].cvgbuf[minorcurint] |=
               (leftcvghex(minorcur, fmask) << maskshift);
-          state[wid].cvgbuf[majorcurint] |=
+          rdpxi_state[wid].cvgbuf[majorcurint] |=
               (rightcvghex(majorcur, fmask) << maskshift);
         } else if (minorcurint == majorcurint) {
           samecvg = leftcvghex(minorcur, fmask) & rightcvghex(majorcur, fmask);
-          state[wid].cvgbuf[majorcurint] |= (samecvg << maskshift);
+          rdpxi_state[wid].cvgbuf[majorcurint] |= (samecvg << maskshift);
         }
       } else {
         int k;
         for (k = purgestart; k <= purgeend; k++) {
-          state[wid].cvgbuf[k] &= ~fmaskshifted;
+          rdpxi_state[wid].cvgbuf[k] &= ~fmaskshifted;
         }
       }
     }

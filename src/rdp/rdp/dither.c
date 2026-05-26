@@ -93,8 +93,8 @@ static STRICTINLINE void rgb_dither(int rgb_dither_sel, int* r, int* g, int* b,
 /* For validation purposes, update combiner noise state separately after
  * reseeding. Pipelined noise isn't exactly meaningful to try to emulate. */
 static STRICTINLINE void update_combiner_noise(uint32_t wid) {
-  if (!state[wid].other_modes.f.getditherlevel) {
-    state[wid].noise = noise_get_combiner(state[wid].noise_seed);
+  if (!rdpxi_state[wid].other_modes.f.getditherlevel) {
+    rdpxi_state[wid].noise = noise_get_combiner(rdpxi_state[wid].noise_seed);
   }
 }
 
@@ -102,10 +102,10 @@ static STRICTINLINE void get_dither_noise(uint32_t wid, int x, int y,
                                           int* cdith, int* adith) {
   update_combiner_noise(wid);
 
-  y >>= state[wid].scfield;
+  y >>= rdpxi_state[wid].scfield;
 
   int dithindex;
-  switch (state[wid].other_modes.f.rgb_alpha_dither) {
+  switch (rdpxi_state[wid].other_modes.f.rgb_alpha_dither) {
     case 0:
       dithindex = ((y & 3) << 2) | (x & 3);
       *adith = *cdith = MAGIC_MATRIX[dithindex];
@@ -118,7 +118,7 @@ static STRICTINLINE void get_dither_noise(uint32_t wid, int x, int y,
     case 2:
       dithindex = ((y & 3) << 2) | (x & 3);
       *cdith = MAGIC_MATRIX[dithindex];
-      *adith = noise_get_dither_alpha(state[wid].noise_seed);
+      *adith = noise_get_dither_alpha(rdpxi_state[wid].noise_seed);
       break;
     case 3:
       dithindex = ((y & 3) << 2) | (x & 3);
@@ -137,7 +137,7 @@ static STRICTINLINE void get_dither_noise(uint32_t wid, int x, int y,
     case 6:
       dithindex = ((y & 3) << 2) | (x & 3);
       *cdith = BAYER_MATRIX[dithindex];
-      *adith = noise_get_dither_alpha(state[wid].noise_seed);
+      *adith = noise_get_dither_alpha(rdpxi_state[wid].noise_seed);
       break;
     case 7:
       dithindex = ((y & 3) << 2) | (x & 3);
@@ -146,20 +146,20 @@ static STRICTINLINE void get_dither_noise(uint32_t wid, int x, int y,
       break;
     case 8:
       dithindex = ((y & 3) << 2) | (x & 3);
-      *cdith = noise_get_dither_color(state[wid].noise_seed);
+      *cdith = noise_get_dither_color(rdpxi_state[wid].noise_seed);
       *adith = MAGIC_MATRIX[dithindex];
       break;
     case 9:
       dithindex = ((y & 3) << 2) | (x & 3);
-      *cdith = noise_get_dither_color(state[wid].noise_seed);
+      *cdith = noise_get_dither_color(rdpxi_state[wid].noise_seed);
       *adith = (~MAGIC_MATRIX[dithindex]) & 7;
       break;
     case 10:
-      *cdith = noise_get_dither_color(state[wid].noise_seed);
-      *adith = noise_get_dither_alpha(state[wid].noise_seed);
+      *cdith = noise_get_dither_color(rdpxi_state[wid].noise_seed);
+      *adith = noise_get_dither_alpha(rdpxi_state[wid].noise_seed);
       break;
     case 11:
-      *cdith = noise_get_dither_color(state[wid].noise_seed);
+      *cdith = noise_get_dither_color(rdpxi_state[wid].noise_seed);
       *adith = 0;
       break;
     case 12:
@@ -174,7 +174,7 @@ static STRICTINLINE void get_dither_noise(uint32_t wid, int x, int y,
       break;
     case 14:
       *cdith = 7;
-      *adith = noise_get_dither_alpha(state[wid].noise_seed);
+      *adith = noise_get_dither_alpha(rdpxi_state[wid].noise_seed);
       break;
     case 15:
       *cdith = 7;

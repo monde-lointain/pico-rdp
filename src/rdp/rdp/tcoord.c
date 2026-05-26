@@ -37,9 +37,9 @@ static STRICTINLINE void tcmask_copy(uint32_t wid, int32_t* s, int32_t* s1,
   int32_t maskbits_s;
   int32_t swrapthreshold;
 
-  if (state[wid].tile[num].mask_s) {
-    if (state[wid].tile[num].ms) {
-      swrapthreshold = state[wid].tile[num].f.masksclamped;
+  if (rdpxi_state[wid].tile[num].mask_s) {
+    if (rdpxi_state[wid].tile[num].ms) {
+      swrapthreshold = rdpxi_state[wid].tile[num].f.masksclamped;
 
       wrap = (*s >> swrapthreshold) & 1;
       *s ^= (-wrap);
@@ -54,21 +54,21 @@ static STRICTINLINE void tcmask_copy(uint32_t wid, int32_t* s, int32_t* s1,
       *s3 ^= (-wrap);
     }
 
-    maskbits_s = maskbits_table[state[wid].tile[num].mask_s];
+    maskbits_s = maskbits_table[rdpxi_state[wid].tile[num].mask_s];
     *s &= maskbits_s;
     *s1 &= maskbits_s;
     *s2 &= maskbits_s;
     *s3 &= maskbits_s;
   }
 
-  if (state[wid].tile[num].mask_t) {
-    if (state[wid].tile[num].mt) {
-      wrap = *t >> state[wid].tile[num].f.masktclamped;
+  if (rdpxi_state[wid].tile[num].mask_t) {
+    if (rdpxi_state[wid].tile[num].mt) {
+      wrap = *t >> rdpxi_state[wid].tile[num].f.masktclamped;
       wrap &= 1;
       *t ^= (-wrap);
     }
 
-    *t &= maskbits_table[state[wid].tile[num].mask_t];
+    *t &= maskbits_table[rdpxi_state[wid].tile[num].mask_t];
   }
 }
 
@@ -76,7 +76,7 @@ static STRICTINLINE void tcshift_cycle(uint32_t wid, int32_t* s, int32_t* t,
                                        int32_t* maxs, int32_t* maxt,
                                        uint32_t num) {
   int32_t coord = *s;
-  int32_t shifter = state[wid].tile[num].shift_s;
+  int32_t shifter = rdpxi_state[wid].tile[num].shift_s;
 
   if (shifter < 11) {
     coord = SIGN16(coord);
@@ -87,10 +87,10 @@ static STRICTINLINE void tcshift_cycle(uint32_t wid, int32_t* s, int32_t* t,
   }
   *s = coord;
 
-  *maxs = ((coord >> 3) >= state[wid].tile[num].sh);
+  *maxs = ((coord >> 3) >= rdpxi_state[wid].tile[num].sh);
 
   coord = *t;
-  shifter = state[wid].tile[num].shift_t;
+  shifter = rdpxi_state[wid].tile[num].shift_t;
 
   if (shifter < 11) {
     coord = SIGN16(coord);
@@ -100,7 +100,7 @@ static STRICTINLINE void tcshift_cycle(uint32_t wid, int32_t* s, int32_t* t,
     coord = SIGN16(coord);
   }
   *t = coord;
-  *maxt = ((coord >> 3) >= state[wid].tile[num].th);
+  *maxt = ((coord >> 3) >= rdpxi_state[wid].tile[num].th);
 }
 
 static STRICTINLINE void tcclamp_cycle(uint32_t wid, int32_t* s, int32_t* t,
@@ -109,9 +109,9 @@ static STRICTINLINE void tcclamp_cycle(uint32_t wid, int32_t* s, int32_t* t,
                                        int32_t num) {
   int32_t const locs = *s;
   int32_t const loct = *t;
-  if (state[wid].tile[num].f.clampens) {
+  if (rdpxi_state[wid].tile[num].f.clampens) {
     if (maxs) {
-      *s = state[wid].tile[num].f.clampdiffs;
+      *s = rdpxi_state[wid].tile[num].f.clampdiffs;
       *sfrac = 0;
     } else if (!(locs & 0x10000)) {
       *s = locs >> 5;
@@ -123,9 +123,9 @@ static STRICTINLINE void tcclamp_cycle(uint32_t wid, int32_t* s, int32_t* t,
     *s = (locs >> 5);
   }
 
-  if (state[wid].tile[num].f.clampent) {
+  if (rdpxi_state[wid].tile[num].f.clampent) {
     if (maxt) {
-      *t = state[wid].tile[num].f.clampdifft;
+      *t = rdpxi_state[wid].tile[num].f.clampdifft;
       *tfrac = 0;
     } else if (!(loct & 0x10000)) {
       *t = loct >> 5;
@@ -143,9 +143,9 @@ static STRICTINLINE void tcclamp_cycle_light(uint32_t wid, int32_t* s,
                                              int32_t maxt, int32_t num) {
   int32_t const locs = *s;
   int32_t const loct = *t;
-  if (state[wid].tile[num].f.clampens) {
+  if (rdpxi_state[wid].tile[num].f.clampens) {
     if (maxs) {
-      *s = state[wid].tile[num].f.clampdiffs;
+      *s = rdpxi_state[wid].tile[num].f.clampdiffs;
     } else if (!(locs & 0x10000)) {
       *s = locs >> 5;
     } else {
@@ -155,9 +155,9 @@ static STRICTINLINE void tcclamp_cycle_light(uint32_t wid, int32_t* s,
     *s = (locs >> 5);
   }
 
-  if (state[wid].tile[num].f.clampent) {
+  if (rdpxi_state[wid].tile[num].f.clampent) {
     if (maxt) {
-      *t = state[wid].tile[num].f.clampdifft;
+      *t = rdpxi_state[wid].tile[num].f.clampdifft;
     } else if (!(loct & 0x10000)) {
       *t = loct >> 5;
     } else {
@@ -171,7 +171,7 @@ static STRICTINLINE void tcclamp_cycle_light(uint32_t wid, int32_t* s,
 static STRICTINLINE void tcshift_copy(uint32_t wid, int32_t* s, int32_t* t,
                                       uint32_t num) {
   int32_t coord = *s;
-  int32_t shifter = state[wid].tile[num].shift_s;
+  int32_t shifter = rdpxi_state[wid].tile[num].shift_s;
 
   if (shifter < 11) {
     coord = SIGN16(coord);
@@ -183,7 +183,7 @@ static STRICTINLINE void tcshift_copy(uint32_t wid, int32_t* s, int32_t* t,
   *s = coord;
 
   coord = *t;
-  shifter = state[wid].tile[num].shift_t;
+  shifter = rdpxi_state[wid].tile[num].shift_t;
 
   if (shifter < 11) {
     coord = SIGN16(coord);
@@ -274,31 +274,31 @@ static STRICTINLINE void lodfrac_lodtile_signals(uint32_t wid, int lodclamp,
     ltil = 0;
     dis = 1;
     lf = 0xff;
-  } else if (lod < state[wid].min_level) {
+  } else if (lod < rdpxi_state[wid].min_level) {
     mag = 1;
     ltil = 0;
-    dis = state[wid].max_level == 0;
+    dis = rdpxi_state[wid].max_level == 0;
 
-    if (!state[wid].other_modes.sharpen_tex_en &&
-        !state[wid].other_modes.detail_tex_en) {
+    if (!rdpxi_state[wid].other_modes.sharpen_tex_en &&
+        !rdpxi_state[wid].other_modes.detail_tex_en) {
       if (dis) {
         lf = 0xff;
       } else {
         lf = 0;
       }
     } else {
-      lf = state[wid].min_level << 3;
-      if (state[wid].other_modes.sharpen_tex_en) {
+      lf = rdpxi_state[wid].min_level << 3;
+      if (rdpxi_state[wid].other_modes.sharpen_tex_en) {
         lf |= 0x100;
       }
     }
   } else if (lod < 32) {
     mag = 1;
     ltil = 0;
-    dis = state[wid].max_level == 0;
+    dis = rdpxi_state[wid].max_level == 0;
 
-    if (!state[wid].other_modes.sharpen_tex_en &&
-        !state[wid].other_modes.detail_tex_en) {
+    if (!rdpxi_state[wid].other_modes.sharpen_tex_en &&
+        !rdpxi_state[wid].other_modes.detail_tex_en) {
       if (dis) {
         lf = 0xff;
       } else {
@@ -306,7 +306,7 @@ static STRICTINLINE void lodfrac_lodtile_signals(uint32_t wid, int lodclamp,
       }
     } else {
       lf = lod << 3;
-      if (state[wid].other_modes.sharpen_tex_en) {
+      if (rdpxi_state[wid].other_modes.sharpen_tex_en) {
         lf |= 0x100;
       }
     }
@@ -314,14 +314,14 @@ static STRICTINLINE void lodfrac_lodtile_signals(uint32_t wid, int lodclamp,
     mag = 0;
     ltil = log2table[(lod >> 5) & 0xff];
 
-    if (state[wid].max_level) {
-      dis = ((lod & 0x6000) || (ltil >= state[wid].max_level)) != 0;
+    if (rdpxi_state[wid].max_level) {
+      dis = ((lod & 0x6000) || (ltil >= rdpxi_state[wid].max_level)) != 0;
     } else {
       dis = 1;
     }
 
-    if (!state[wid].other_modes.sharpen_tex_en &&
-        !state[wid].other_modes.detail_tex_en && dis) {
+    if (!rdpxi_state[wid].other_modes.sharpen_tex_en &&
+        !rdpxi_state[wid].other_modes.detail_tex_en && dis) {
       lf = 0xff;
     } else {
       lf = ((lod << 3) >> ltil) & 0xff;
@@ -355,16 +355,16 @@ static STRICTINLINE void tclod_2cycle(uint32_t wid, int32_t* sss, int32_t* sst,
 
   tclod_tcclamp(sss, sst);
 
-  if (state[wid].other_modes.f.dolod) {
+  if (rdpxi_state[wid].other_modes.f.dolod) {
     nextsw = (w + dwinc) >> 16;
     nexts = (s + dsinc) >> 16;
     nextt = (t + dtinc) >> 16;
-    nextys = (s + state[wid].spans_dsdy) >> 16;
-    nextyt = (t + state[wid].spans_dtdy) >> 16;
-    nextysw = (w + state[wid].spans_dwdy) >> 16;
+    nextys = (s + rdpxi_state[wid].spans_dsdy) >> 16;
+    nextyt = (t + rdpxi_state[wid].spans_dtdy) >> 16;
+    nextysw = (w + rdpxi_state[wid].spans_dwdy) >> 16;
 
-    state[wid].tcdiv_ptr(nexts, nextt, nextsw, &nexts, &nextt);
-    state[wid].tcdiv_ptr(nextys, nextyt, nextysw, &nextys, &nextyt);
+    rdpxi_state[wid].tcdiv_ptr(nexts, nextt, nextsw, &nexts, &nextt);
+    rdpxi_state[wid].tcdiv_ptr(nextys, nextyt, nextysw, &nextys, &nextyt);
 
     lodclamp = (initt & 0x60000) || (nextt & 0x60000) || (inits & 0x60000) ||
                (nexts & 0x60000) || (nextys & 0x60000) || (nextyt & 0x60000);
@@ -377,13 +377,14 @@ static STRICTINLINE void tclod_2cycle(uint32_t wid, int32_t* sss, int32_t* sst,
     lodfrac_lodtile_signals(wid, lodclamp, lod, &l_tile, &magnify, &distant,
                             lf);
 
-    if (state[wid].other_modes.tex_lod_en) {
+    if (rdpxi_state[wid].other_modes.tex_lod_en) {
       if (distant) {
-        l_tile = state[wid].max_level;
+        l_tile = rdpxi_state[wid].max_level;
       }
-      if (!state[wid].other_modes.detail_tex_en) {
+      if (!rdpxi_state[wid].other_modes.detail_tex_en) {
         *t1 = (prim_tile + l_tile) & 7;
-        if (!distant && (state[wid].other_modes.sharpen_tex_en || !magnify)) {
+        if (!distant &&
+            (rdpxi_state[wid].other_modes.sharpen_tex_en || !magnify)) {
           *t2 = (*t1 + 1) & 7;
         } else {
           *t2 = *t1;
@@ -429,14 +430,17 @@ static STRICTINLINE void tclod_2cycle_next(
   tclod_tcclamp(sss, sst);
   tclod_tcclamp(sss2, sst2);
 
-  if (state[wid].other_modes.f.dolod) {
+  if (rdpxi_state[wid].other_modes.f.dolod) {
     int const nextscan = scanline + 1;
 
-    nextys = (state[wid].span[nextscan].s + state[wid].spans_dsdy) >> 16;
-    nextyt = (state[wid].span[nextscan].t + state[wid].spans_dtdy) >> 16;
-    nextysw = (state[wid].span[nextscan].w + state[wid].spans_dwdy) >> 16;
+    nextys =
+        (rdpxi_state[wid].span[nextscan].s + rdpxi_state[wid].spans_dsdy) >> 16;
+    nextyt =
+        (rdpxi_state[wid].span[nextscan].t + rdpxi_state[wid].spans_dtdy) >> 16;
+    nextysw =
+        (rdpxi_state[wid].span[nextscan].w + rdpxi_state[wid].spans_dwdy) >> 16;
 
-    state[wid].tcdiv_ptr(nextys, nextyt, nextysw, &nextys, &nextyt);
+    rdpxi_state[wid].tcdiv_ptr(nextys, nextyt, nextysw, &nextys, &nextyt);
 
     lodclamp = ((initt2 & 0x60000) || (inits2 & 0x60000) ||
                 (nextys & 0x60000) || (nextyt & 0x60000));
@@ -448,11 +452,11 @@ static STRICTINLINE void tclod_2cycle_next(
     lodfrac_lodtile_signals(wid, lodclamp, lod, &l_tile, &magnify, &distant,
                             lf);
 
-    if (state[wid].other_modes.tex_lod_en) {
+    if (rdpxi_state[wid].other_modes.tex_lod_en) {
       if (distant) {
-        l_tile = state[wid].max_level;
+        l_tile = rdpxi_state[wid].max_level;
       }
-      if (!state[wid].other_modes.detail_tex_en) {
+      if (!rdpxi_state[wid].other_modes.detail_tex_en) {
         *t1 = (prim_tile + l_tile) & 7;
       } else {
         if (!magnify) {
@@ -463,11 +467,11 @@ static STRICTINLINE void tclod_2cycle_next(
         *t1 &= 7;
       }
 
-      nexts = (state[wid].span[nextscan].s + dsinc) >> 16;
-      nextt = (state[wid].span[nextscan].t + dtinc) >> 16;
-      nextsw = (state[wid].span[nextscan].w + dwinc) >> 16;
+      nexts = (rdpxi_state[wid].span[nextscan].s + dsinc) >> 16;
+      nextt = (rdpxi_state[wid].span[nextscan].t + dtinc) >> 16;
+      nextsw = (rdpxi_state[wid].span[nextscan].w + dwinc) >> 16;
 
-      state[wid].tcdiv_ptr(nexts, nextt, nextsw, &nexts, &nextt);
+      rdpxi_state[wid].tcdiv_ptr(nexts, nextt, nextsw, &nexts, &nextt);
 
       lodclamp = (lodclamp || (nextt & 0x60000) || (nexts & 0x60000));
 
@@ -479,9 +483,9 @@ static STRICTINLINE void tclod_2cycle_next(
                               &dummy_lf);
 
       if (distant) {
-        l_tile = state[wid].max_level;
+        l_tile = rdpxi_state[wid].max_level;
       }
-      if (!state[wid].other_modes.detail_tex_en) {
+      if (!rdpxi_state[wid].other_modes.detail_tex_en) {
         *t2 = (prim_tile + l_tile) & 7;
       } else {
         if (!magnify) {
@@ -517,16 +521,16 @@ static STRICTINLINE void tclod_2cycle_notexel1(uint32_t wid, int32_t* sss,
 
   tclod_tcclamp(sss, sst);
 
-  if (state[wid].other_modes.f.dolod) {
+  if (rdpxi_state[wid].other_modes.f.dolod) {
     nextsw = (w + dwinc) >> 16;
     nexts = (s + dsinc) >> 16;
     nextt = (t + dtinc) >> 16;
-    nextys = (s + state[wid].spans_dsdy) >> 16;
-    nextyt = (t + state[wid].spans_dtdy) >> 16;
-    nextysw = (w + state[wid].spans_dwdy) >> 16;
+    nextys = (s + rdpxi_state[wid].spans_dsdy) >> 16;
+    nextyt = (t + rdpxi_state[wid].spans_dtdy) >> 16;
+    nextysw = (w + rdpxi_state[wid].spans_dwdy) >> 16;
 
-    state[wid].tcdiv_ptr(nexts, nextt, nextsw, &nexts, &nextt);
-    state[wid].tcdiv_ptr(nextys, nextyt, nextysw, &nextys, &nextyt);
+    rdpxi_state[wid].tcdiv_ptr(nexts, nextt, nextsw, &nexts, &nextt);
+    rdpxi_state[wid].tcdiv_ptr(nextys, nextyt, nextysw, &nextys, &nextyt);
 
     lodclamp = (initt & 0x60000) || (nextt & 0x60000) || (inits & 0x60000) ||
                (nexts & 0x60000) || (nextys & 0x60000) || (nextyt & 0x60000);
@@ -537,13 +541,13 @@ static STRICTINLINE void tclod_2cycle_notexel1(uint32_t wid, int32_t* sss,
     }
 
     lodfrac_lodtile_signals(wid, lodclamp, lod, &l_tile, &magnify, &distant,
-                            &state[wid].lod_frac);
+                            &rdpxi_state[wid].lod_frac);
 
-    if (state[wid].other_modes.tex_lod_en) {
+    if (rdpxi_state[wid].other_modes.tex_lod_en) {
       if (distant) {
-        l_tile = state[wid].max_level;
+        l_tile = rdpxi_state[wid].max_level;
       }
-      if (!state[wid].other_modes.detail_tex_en || magnify) {
+      if (!rdpxi_state[wid].other_modes.detail_tex_en || magnify) {
         *t1 = (prim_tile + l_tile) & 7;
       } else {
         *t1 = (prim_tile + l_tile + 1) & 7;
@@ -568,10 +572,10 @@ static STRICTINLINE void tclod_1cycle_current(
 
   tclod_tcclamp(sss, sst);
 
-  if (state[wid].other_modes.f.dolod) {
+  if (rdpxi_state[wid].other_modes.f.dolod) {
     int const nextscan = scanline + 1;
 
-    if (state[wid].span[nextscan].validline) {
+    if (rdpxi_state[wid].span[nextscan].validline) {
       if (!sigs->endspan || !sigs->longspan) {
         if (!(sigs->preendspan && sigs->longspan) &&
             !(sigs->endspan && sigs->midspan)) {
@@ -584,9 +588,9 @@ static STRICTINLINE void tclod_1cycle_current(
           fart = (t - dtinc) >> 16;
         }
       } else {
-        fart = (state[wid].span[nextscan].t + dtinc) >> 16;
-        fars = (state[wid].span[nextscan].s + dsinc) >> 16;
-        farsw = (state[wid].span[nextscan].w + dwinc) >> 16;
+        fart = (rdpxi_state[wid].span[nextscan].t + dtinc) >> 16;
+        fars = (rdpxi_state[wid].span[nextscan].s + dsinc) >> 16;
+        farsw = (rdpxi_state[wid].span[nextscan].w + dwinc) >> 16;
       }
     } else {
       farsw = (w + (dwinc << 1)) >> 16;
@@ -594,7 +598,7 @@ static STRICTINLINE void tclod_1cycle_current(
       fart = (t + (dtinc << 1)) >> 16;
     }
 
-    state[wid].tcdiv_ptr(fars, fart, farsw, &fars, &fart);
+    rdpxi_state[wid].tcdiv_ptr(fars, fart, farsw, &fars, &fart);
 
     lodclamp = (fart & 0x60000) || (nextt & 0x60000) || (fars & 0x60000) ||
                (nexts & 0x60000);
@@ -604,14 +608,14 @@ static STRICTINLINE void tclod_1cycle_current(
     }
 
     lodfrac_lodtile_signals(wid, lodclamp, lod, &l_tile, &magnify, &distant,
-                            &state[wid].lod_frac);
+                            &rdpxi_state[wid].lod_frac);
 
-    if (state[wid].other_modes.tex_lod_en) {
+    if (rdpxi_state[wid].other_modes.tex_lod_en) {
       if (distant) {
-        l_tile = state[wid].max_level;
+        l_tile = rdpxi_state[wid].max_level;
       }
 
-      if (!state[wid].other_modes.detail_tex_en || magnify) {
+      if (!rdpxi_state[wid].other_modes.detail_tex_en || magnify) {
         *t1 = (prim_tile + l_tile) & 7;
       } else {
         *t1 = (prim_tile + l_tile + 1) & 7;
@@ -638,9 +642,9 @@ static STRICTINLINE void tclod_1cycle_current_simple(
 
   tclod_tcclamp(sss, sst);
 
-  if (state[wid].other_modes.f.dolod) {
+  if (rdpxi_state[wid].other_modes.f.dolod) {
     int const nextscan = scanline + 1;
-    if (state[wid].span[nextscan].validline) {
+    if (rdpxi_state[wid].span[nextscan].validline) {
       if (!sigs->endspan || !sigs->longspan) {
         nextsw = (w + dwinc) >> 16;
         nexts = (s + dsinc) >> 16;
@@ -657,12 +661,12 @@ static STRICTINLINE void tclod_1cycle_current_simple(
           fart = (t - dtinc) >> 16;
         }
       } else {
-        nextt = state[wid].span[nextscan].t >> 16;
-        nexts = state[wid].span[nextscan].s >> 16;
-        nextsw = state[wid].span[nextscan].w >> 16;
-        fart = (state[wid].span[nextscan].t + dtinc) >> 16;
-        fars = (state[wid].span[nextscan].s + dsinc) >> 16;
-        farsw = (state[wid].span[nextscan].w + dwinc) >> 16;
+        nextt = rdpxi_state[wid].span[nextscan].t >> 16;
+        nexts = rdpxi_state[wid].span[nextscan].s >> 16;
+        nextsw = rdpxi_state[wid].span[nextscan].w >> 16;
+        fart = (rdpxi_state[wid].span[nextscan].t + dtinc) >> 16;
+        fars = (rdpxi_state[wid].span[nextscan].s + dsinc) >> 16;
+        farsw = (rdpxi_state[wid].span[nextscan].w + dwinc) >> 16;
       }
     } else {
       nextsw = (w + dwinc) >> 16;
@@ -673,8 +677,8 @@ static STRICTINLINE void tclod_1cycle_current_simple(
       fart = (t + (dtinc << 1)) >> 16;
     }
 
-    state[wid].tcdiv_ptr(nexts, nextt, nextsw, &nexts, &nextt);
-    state[wid].tcdiv_ptr(fars, fart, farsw, &fars, &fart);
+    rdpxi_state[wid].tcdiv_ptr(nexts, nextt, nextsw, &nexts, &nextt);
+    rdpxi_state[wid].tcdiv_ptr(fars, fart, farsw, &fars, &fart);
 
     lodclamp = (fart & 0x60000) || (nextt & 0x60000) || (fars & 0x60000) ||
                (nexts & 0x60000);
@@ -684,13 +688,13 @@ static STRICTINLINE void tclod_1cycle_current_simple(
     }
 
     lodfrac_lodtile_signals(wid, lodclamp, lod, &l_tile, &magnify, &distant,
-                            &state[wid].lod_frac);
+                            &rdpxi_state[wid].lod_frac);
 
-    if (state[wid].other_modes.tex_lod_en) {
+    if (rdpxi_state[wid].other_modes.tex_lod_en) {
       if (distant) {
-        l_tile = state[wid].max_level;
+        l_tile = rdpxi_state[wid].max_level;
       }
-      if (!state[wid].other_modes.detail_tex_en || magnify) {
+      if (!rdpxi_state[wid].other_modes.detail_tex_en || magnify) {
         *t1 = (prim_tile + l_tile) & 7;
       } else {
         *t1 = (prim_tile + l_tile + 1) & 7;
@@ -720,10 +724,10 @@ static STRICTINLINE void tclod_1cycle_next(uint32_t wid, int32_t* sss,
 
   tclod_tcclamp(sss, sst);
 
-  if (state[wid].other_modes.f.dolod) {
+  if (rdpxi_state[wid].other_modes.f.dolod) {
     int const nextscan = scanline + 1;
 
-    if (state[wid].span[nextscan].validline) {
+    if (rdpxi_state[wid].span[nextscan].validline) {
       if (!sigs->nextspan) {
         if (!sigs->endspan || !sigs->longspan) {
           nextsw = (w + dwinc) >> 16;
@@ -741,9 +745,9 @@ static STRICTINLINE void tclod_1cycle_next(uint32_t wid, int32_t* sss,
             fart = (t - dtinc) >> 16;
           }
         } else {
-          nextt = state[wid].span[nextscan].t;
-          nexts = state[wid].span[nextscan].s;
-          nextsw = state[wid].span[nextscan].w;
+          nextt = rdpxi_state[wid].span[nextscan].t;
+          nexts = rdpxi_state[wid].span[nextscan].s;
+          nextsw = rdpxi_state[wid].span[nextscan].w;
           fart = (nextt + dtinc) >> 16;
           fars = (nexts + dsinc) >> 16;
           farsw = (nextsw + dwinc) >> 16;
@@ -753,19 +757,19 @@ static STRICTINLINE void tclod_1cycle_next(uint32_t wid, int32_t* sss,
         }
       } else {
         if (sigs->longspan) {
-          nextt = (state[wid].span[nextscan].t + dtinc) >> 16;
-          nexts = (state[wid].span[nextscan].s + dsinc) >> 16;
-          nextsw = (state[wid].span[nextscan].w + dwinc) >> 16;
-          fart = (state[wid].span[nextscan].t + (dtinc << 1)) >> 16;
-          fars = (state[wid].span[nextscan].s + (dsinc << 1)) >> 16;
-          farsw = (state[wid].span[nextscan].w + (dwinc << 1)) >> 16;
+          nextt = (rdpxi_state[wid].span[nextscan].t + dtinc) >> 16;
+          nexts = (rdpxi_state[wid].span[nextscan].s + dsinc) >> 16;
+          nextsw = (rdpxi_state[wid].span[nextscan].w + dwinc) >> 16;
+          fart = (rdpxi_state[wid].span[nextscan].t + (dtinc << 1)) >> 16;
+          fars = (rdpxi_state[wid].span[nextscan].s + (dsinc << 1)) >> 16;
+          farsw = (rdpxi_state[wid].span[nextscan].w + (dwinc << 1)) >> 16;
         } else if (sigs->midspan) {
-          nextt = state[wid].span[nextscan].t >> 16;
-          nexts = state[wid].span[nextscan].s >> 16;
-          nextsw = state[wid].span[nextscan].w >> 16;
-          fart = (state[wid].span[nextscan].t + dtinc) >> 16;
-          fars = (state[wid].span[nextscan].s + dsinc) >> 16;
-          farsw = (state[wid].span[nextscan].w + dwinc) >> 16;
+          nextt = rdpxi_state[wid].span[nextscan].t >> 16;
+          nexts = rdpxi_state[wid].span[nextscan].s >> 16;
+          nextsw = rdpxi_state[wid].span[nextscan].w >> 16;
+          fart = (rdpxi_state[wid].span[nextscan].t + dtinc) >> 16;
+          fars = (rdpxi_state[wid].span[nextscan].s + dsinc) >> 16;
+          farsw = (rdpxi_state[wid].span[nextscan].w + dwinc) >> 16;
         } else if (sigs->onelessthanmid) {
           nextsw = (w + dwinc) >> 16;
           nexts = (s + dsinc) >> 16;
@@ -791,8 +795,8 @@ static STRICTINLINE void tclod_1cycle_next(uint32_t wid, int32_t* sss,
       fart = (t + (dtinc << 1)) >> 16;
     }
 
-    state[wid].tcdiv_ptr(nexts, nextt, nextsw, &nexts, &nextt);
-    state[wid].tcdiv_ptr(fars, fart, farsw, &fars, &fart);
+    rdpxi_state[wid].tcdiv_ptr(nexts, nextt, nextsw, &nexts, &nextt);
+    rdpxi_state[wid].tcdiv_ptr(fars, fart, farsw, &fars, &fart);
 
     lodclamp = (fart & 0x60000) || (nextt & 0x60000) || (fars & 0x60000) ||
                (nexts & 0x60000);
@@ -804,11 +808,11 @@ static STRICTINLINE void tclod_1cycle_next(uint32_t wid, int32_t* sss,
     lodfrac_lodtile_signals(wid, lodclamp, lod, &l_tile, &magnify, &distant,
                             prelodfrac);
 
-    if (state[wid].other_modes.tex_lod_en) {
+    if (rdpxi_state[wid].other_modes.tex_lod_en) {
       if (distant) {
-        l_tile = state[wid].max_level;
+        l_tile = rdpxi_state[wid].max_level;
       }
-      if (!state[wid].other_modes.detail_tex_en || magnify) {
+      if (!rdpxi_state[wid].other_modes.detail_tex_en || magnify) {
         *t1 = (prim_tile + l_tile) & 7;
       } else {
         *t1 = (prim_tile + l_tile + 1) & 7;
@@ -835,7 +839,7 @@ static STRICTINLINE void tclod_copy(uint32_t wid, int32_t* sss, int32_t* sst,
 
   tclod_tcclamp(sss, sst);
 
-  if (state[wid].other_modes.tex_lod_en) {
+  if (rdpxi_state[wid].other_modes.tex_lod_en) {
     nextsw = (w + dwinc) >> 16;
     nexts = (s + dsinc) >> 16;
     nextt = (t + dtinc) >> 16;
@@ -843,8 +847,8 @@ static STRICTINLINE void tclod_copy(uint32_t wid, int32_t* sss, int32_t* sst,
     fars = (s + (dsinc << 1)) >> 16;
     fart = (t + (dtinc << 1)) >> 16;
 
-    state[wid].tcdiv_ptr(nexts, nextt, nextsw, &nexts, &nextt);
-    state[wid].tcdiv_ptr(fars, fart, farsw, &fars, &fart);
+    rdpxi_state[wid].tcdiv_ptr(nexts, nextt, nextsw, &nexts, &nextt);
+    rdpxi_state[wid].tcdiv_ptr(fars, fart, farsw, &fars, &fart);
 
     lodclamp = (fart & 0x60000) || (nextt & 0x60000) || (fars & 0x60000) ||
                (nexts & 0x60000);
@@ -855,7 +859,7 @@ static STRICTINLINE void tclod_copy(uint32_t wid, int32_t* sss, int32_t* sst,
 
     if ((lod & 0x4000) || lodclamp) {
       magnify = 0;
-      l_tile = state[wid].max_level;
+      l_tile = rdpxi_state[wid].max_level;
     } else if (lod < 32) {
       magnify = 1;
       l_tile = 0;
@@ -863,18 +867,19 @@ static STRICTINLINE void tclod_copy(uint32_t wid, int32_t* sss, int32_t* sst,
       magnify = 0;
       l_tile = log2table[(lod >> 5) & 0xff];
 
-      if (state[wid].max_level) {
-        distant = ((lod & 0x6000) || (l_tile >= state[wid].max_level)) != 0;
+      if (rdpxi_state[wid].max_level) {
+        distant =
+            ((lod & 0x6000) || (l_tile >= rdpxi_state[wid].max_level)) != 0;
       } else {
         distant = 1;
       }
 
       if (distant) {
-        l_tile = state[wid].max_level;
+        l_tile = rdpxi_state[wid].max_level;
       }
     }
 
-    if (!state[wid].other_modes.detail_tex_en || magnify) {
+    if (!rdpxi_state[wid].other_modes.detail_tex_en || magnify) {
       *t1 = (prim_tile + l_tile) & 7;
     } else {
       *t1 = (prim_tile + l_tile + 1) & 7;
@@ -894,8 +899,8 @@ static STRICTINLINE void tc_pipeline_copy(uint32_t wid, int32_t* sss0,
 
   tcshift_copy(wid, &ss0, &st, tilenum);
 
-  ss0 = TRELATIVE(ss0, state[wid].tile[tilenum].sl);
-  st = TRELATIVE(st, state[wid].tile[tilenum].tl);
+  ss0 = TRELATIVE(ss0, rdpxi_state[wid].tile[tilenum].sl);
+  st = TRELATIVE(st, rdpxi_state[wid].tile[tilenum].tl);
   ss0 = (ss0 >> 5);
   st = (st >> 5);
 
@@ -920,8 +925,8 @@ static STRICTINLINE void tc_pipeline_load(uint32_t wid, int32_t* sss,
   sss1 = SIGN16(sss1);
   sst1 = SIGN16(sst1);
 
-  sss1 = TRELATIVE(sss1, state[wid].tile[tilenum].sl);
-  sst1 = TRELATIVE(sst1, state[wid].tile[tilenum].tl);
+  sss1 = TRELATIVE(sss1, rdpxi_state[wid].tile[tilenum].sl);
+  sst1 = TRELATIVE(sst1, rdpxi_state[wid].tile[tilenum].tl);
 
   if (!coord_quad) {
     sss1 = (sss1 >> 5);
@@ -1056,6 +1061,8 @@ static void tcoord_init_lut(void) {
   }
 }
 
-static void tcoord_init(uint32_t wid) { state[wid].tcdiv_ptr = tcdiv_func[0]; }
+static void tcoord_init(uint32_t wid) {
+  rdpxi_state[wid].tcdiv_ptr = tcdiv_func[0];
+}
 
 #endif  // N64VIDEO_C

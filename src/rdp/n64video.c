@@ -59,7 +59,7 @@ static STRICTINLINE int32_t clamp(int32_t value, int32_t min, int32_t max) {
 }
 
 // irand: lifted from common.h (static STRICTINLINE). The stage files call the
-// global `irand(&state[wid].rseed)`; common.h's definition is in scope.
+// global `irand(&rdpxi_state[wid].rseed)`; common.h's definition is in scope.
 
 // ---- message sinks --------------------------------------------------------
 // The fork's stage code calls msg_error/msg_warning/msg_debug (variadic). Our
@@ -307,7 +307,7 @@ int rdpx_pipeline_crashed(void) { return rdp_pipeline_crashed; }
 // ---- RDPX_TESTING accessor block ------------------------------------------
 // Exposes file-static base pointers so the conformance adapter can hand the
 // harness our hidden-RDRAM and TMEM buffers (RDRAM itself is caller-owned via
-// rdpxi_config.gfx.rdram). TMEM lives inside state[0] (per-worker
+// rdpxi_config.gfx.rdram). TMEM lives inside rdpxi_state[0] (per-worker
 // tmem[0x1000]).
 #ifdef RDPX_TESTING
 
@@ -319,7 +319,9 @@ uint32_t rdpx_get_hidden_rdram_size(void) {
 
 uint8_t* rdpx_get_tmem(void) { return get_tmem(); }
 
-uint32_t rdpx_get_tmem_size(void) { return (uint32_t)sizeof(state[0].tmem); }
+uint32_t rdpx_get_tmem_size(void) {
+  return (uint32_t)sizeof(rdpxi_state[0].tmem);
+}
 
 uint64_t rdpx_get_pixel_count(void) { return rdpx_pixel_count; }
 

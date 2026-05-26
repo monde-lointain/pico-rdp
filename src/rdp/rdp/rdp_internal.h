@@ -434,3 +434,4 @@ struct RdpState {
 // avoid colliding with the Angrylion oracle's identically-named C symbols
 // (config, …) linked alongside us in the conformance harness.
 extern struct N64videoConfig rdpxi_config;
+extern struct RdpState rdpxi_state[RDPX_PARALLEL_MAX_WORKERS];
