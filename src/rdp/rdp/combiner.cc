@@ -1,6 +1,11 @@
-#ifdef N64VIDEO_C
+// combiner.cc — color/alpha combiner equations + LUTs (standalone TU).
+// Ported VERBATIM from the fork 31bdb1f. rdp_set_* handlers collide with the
+// oracle (rdpxi_-prefixed); per-pixel helpers de-inlined. See
+// combiner_internal.h.
 
-static uint32_t special_9bit_clamptable[512];
+#include "combiner_internal.h"
+
+uint32_t special_9bit_clamptable[512];
 static int32_t special_9bit_exttable[512];
 
 static INLINE void set_suba_rgb_input(uint32_t wid, int32_t **input_r,
@@ -391,8 +396,7 @@ static STRICTINLINE int32_t chroma_key_min(uint32_t wid, struct Color *col) {
   return keyalpha;
 }
 
-static STRICTINLINE void combiner_1cycle(uint32_t wid, int adseed,
-                                         uint32_t *curpixel_cvg) {
+void combiner_1cycle(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
   int32_t keyalpha;
   int32_t temp;
   struct Color chromabypass;
@@ -505,9 +509,8 @@ static STRICTINLINE void combiner_1cycle(uint32_t wid, int adseed,
   }
 }
 
-static STRICTINLINE void combiner_2cycle_cycle0(uint32_t wid, int adseed,
-                                                uint32_t cvg,
-                                                uint32_t *acalpha) {
+void combiner_2cycle_cycle0(uint32_t wid, int adseed, uint32_t cvg,
+                            uint32_t *acalpha) {
   if (rdpxi_state[wid].combiner_rgbmul_r[0] != &zero_color) {
     rdpxi_state[wid].combined_color.r =
         color_combiner_equation(*rdpxi_state[wid].combiner_rgbsub_a_r[0],
@@ -588,8 +591,7 @@ static STRICTINLINE void combiner_2cycle_cycle0(uint32_t wid, int adseed,
   }
 }
 
-static STRICTINLINE void combiner_2cycle_cycle1(uint32_t wid, int adseed,
-                                                uint32_t *curpixel_cvg) {
+void combiner_2cycle_cycle1(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
   int32_t keyalpha;
   int32_t temp;
   struct Color chromabypass;
@@ -710,7 +712,7 @@ static STRICTINLINE void combiner_2cycle_cycle1(uint32_t wid, int adseed,
   rdpxi_state[wid].texel1_color = rdpxi_state[wid].nexttexel_color;
 }
 
-static void combiner_init_lut(void) {
+void combiner_init_lut(void) {
   int i;
   for (i = 0; i < 0x200; i++) {
     switch ((i >> 7) & 3) {
@@ -733,7 +735,7 @@ static void combiner_init_lut(void) {
   }
 }
 
-static void combiner_init(uint32_t wid) {
+void combiner_init(uint32_t wid) {
   rdpxi_state[wid].combiner_rgbsub_a_r[0] =
       rdpxi_state[wid].combiner_rgbsub_a_r[1] = &one_color;
   rdpxi_state[wid].combiner_rgbsub_a_g[0] =
@@ -769,7 +771,7 @@ static void combiner_init(uint32_t wid) {
       rdpxi_state[wid].combiner_alphaadd[1] = &one_color;
 }
 
-void rdp_set_prim_color(uint32_t wid, const uint32_t *args) {
+void rdpxi_rdp_set_prim_color(uint32_t wid, const uint32_t *args) {
   rdpxi_state[wid].min_level = (args[0] >> 8) & 0x1f;
   rdpxi_state[wid].primitive_lod_frac = args[0] & 0xff;
   rdpxi_state[wid].prim_color.r = RGBA32_R(args[1]);
@@ -778,14 +780,14 @@ void rdp_set_prim_color(uint32_t wid, const uint32_t *args) {
   rdpxi_state[wid].prim_color.a = RGBA32_A(args[1]);
 }
 
-void rdp_set_env_color(uint32_t wid, const uint32_t *args) {
+void rdpxi_rdp_set_env_color(uint32_t wid, const uint32_t *args) {
   rdpxi_state[wid].env_color.r = RGBA32_R(args[1]);
   rdpxi_state[wid].env_color.g = RGBA32_G(args[1]);
   rdpxi_state[wid].env_color.b = RGBA32_B(args[1]);
   rdpxi_state[wid].env_color.a = RGBA32_A(args[1]);
 }
 
-void rdp_set_combine(uint32_t wid, const uint32_t *args) {
+void rdpxi_rdp_set_combine(uint32_t wid, const uint32_t *args) {
   rdpxi_state[wid].combine.sub_a_rgb0 = (args[0] >> 20) & 0xf;
   rdpxi_state[wid].combine.mul_rgb0 = (args[0] >> 15) & 0x1f;
   rdpxi_state[wid].combine.sub_a_a0 = (args[0] >> 12) & 0x7;
@@ -857,7 +859,7 @@ void rdp_set_combine(uint32_t wid, const uint32_t *args) {
   rdpxi_state[wid].other_modes.f.stalederivs = 1;
 }
 
-void rdp_set_key_gb(uint32_t wid, const uint32_t *args) {
+void rdpxi_rdp_set_key_gb(uint32_t wid, const uint32_t *args) {
   rdpxi_state[wid].key_width.g = (args[0] >> 12) & 0xfff;
   rdpxi_state[wid].key_width.b = args[0] & 0xfff;
   rdpxi_state[wid].key_center.g = (args[1] >> 24) & 0xff;
@@ -866,10 +868,8 @@ void rdp_set_key_gb(uint32_t wid, const uint32_t *args) {
   rdpxi_state[wid].key_scale.b = args[1] & 0xff;
 }
 
-void rdp_set_key_r(uint32_t wid, const uint32_t *args) {
+void rdpxi_rdp_set_key_r(uint32_t wid, const uint32_t *args) {
   rdpxi_state[wid].key_width.r = (args[1] >> 16) & 0xfff;
   rdpxi_state[wid].key_center.r = (args[1] >> 8) & 0xff;
   rdpxi_state[wid].key_scale.r = args[1] & 0xff;
 }
-
-#endif  // N64VIDEO_C

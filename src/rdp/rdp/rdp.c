@@ -26,6 +26,7 @@
 // Standalone-TU headers (extracted stages). Included before the command table
 // so the handler decls (rdpxi_rdp_*) and macros they export are in scope.
 #include "rdp/blender_internal.h"
+#include "rdp/combiner_internal.h"
 #include "rdp/coverage_internal.h"
 #include "rdp/dither_internal.h"
 #include "rdp/rdram_internal.h"
@@ -55,8 +56,6 @@ static void rdp_sync_load(uint32_t wid, const uint32_t* args);
 static void rdp_sync_pipe(uint32_t wid, const uint32_t* args);
 static void rdp_sync_tile(uint32_t wid, const uint32_t* args);
 static void rdp_sync_full(uint32_t wid, const uint32_t* args);
-static void rdp_set_key_gb(uint32_t wid, const uint32_t* args);
-static void rdp_set_key_r(uint32_t wid, const uint32_t* args);
 static void rdp_set_convert(uint32_t wid, const uint32_t* args);
 static void rdp_set_scissor(uint32_t wid, const uint32_t* args);
 static void rdp_set_prim_depth(uint32_t wid, const uint32_t* args);
@@ -68,9 +67,6 @@ static void rdp_load_tile(uint32_t wid, const uint32_t* args);
 static void rdp_set_tile(uint32_t wid, const uint32_t* args);
 static void rdp_fill_rect(uint32_t wid, const uint32_t* args);
 static void rdp_set_fill_color(uint32_t wid, const uint32_t* args);
-static void rdp_set_prim_color(uint32_t wid, const uint32_t* args);
-static void rdp_set_env_color(uint32_t wid, const uint32_t* args);
-static void rdp_set_combine(uint32_t wid, const uint32_t* args);
 static void rdp_set_texture_image(uint32_t wid, const uint32_t* args);
 static void rdp_set_color_image(uint32_t wid, const uint32_t* args);
 static void rdp_cmd(uint32_t wid, const uint32_t* args);
@@ -130,8 +126,8 @@ static const struct {
     {rdp_sync_pipe,           8},
     {rdp_sync_tile,           8},
     {rdp_sync_full,           8},
-    {rdp_set_key_gb,          8},
-    {rdp_set_key_r,           8},
+    {rdpxi_rdp_set_key_gb,     8},
+    {rdpxi_rdp_set_key_r,     8},
     {rdp_set_convert,         8},
     {rdp_set_scissor,         8},
     {rdp_set_prim_depth,      8},
@@ -146,9 +142,9 @@ static const struct {
     {rdp_set_fill_color,      8},
     {rdpxi_rdp_set_fog_color,     8},
     {rdpxi_rdp_set_blend_color,     8},
-    {rdp_set_prim_color,      8},
-    {rdp_set_env_color,       8},
-    {rdp_set_combine,         8},
+    {rdpxi_rdp_set_prim_color,     8},
+    {rdpxi_rdp_set_env_color,     8},
+    {rdpxi_rdp_set_combine,     8},
     {rdp_set_texture_image,   8},
     {rdpxi_rdp_set_mask_image,   8},
     {rdp_set_color_image,     8}
@@ -164,7 +160,7 @@ static void deduce_derivatives(uint32_t wid);
 // NOT alphabetize these (doing so broke the build — undeclared identifiers).
 // clang-format off
 
-#include "rdp/combiner.c"
+
 #include "rdp/fbuffer.c"
 #include "rdp/tmem.c"
 #include "rdp/tcoord.c"

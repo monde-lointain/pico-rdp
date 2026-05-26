@@ -22,6 +22,7 @@ add_library(rdp_core STATIC
     rdp/coverage.cc
     rdp/zbuffer.cc
     rdp/blender.cc
+    rdp/combiner.cc
 )
 add_library(Rdp::rdp ALIAS rdp_core)
 
