@@ -1,7 +1,4 @@
-/build/
-/build-host/
-/build-pico/
-/build-orthodoxy/
+/build*/
 .superpowers/
 *.uf2
 *.elf
@@ -31,3 +28,6 @@ tags
 
 # Claude superpowers
 .superpowers/
+
+# Claude tasks
+scheduled_tasks.lock
