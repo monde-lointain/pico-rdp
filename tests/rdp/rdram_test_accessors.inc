@@ -13,13 +13,16 @@
 #include "n64video.h"
 #include "n64video_common.h"
 
-// Minimal stand-in for the renderer's static `config` global. rdram.c reads
-// config.gfx.rdram / config.gfx.rdram_size in rdram_init().
-static struct N64videoConfig config;
+// Private per-TU config + rdram instance. rdram.cc is #included with
+// RDRAM_STANDALONE so every rdram symbol is file-static — the full and bounded
+// builds therefore link into one executable without colliding. rdram_init()
+// reads rdpxi_config.gfx.rdram / .rdram_size (this static stand-in, supplied
+// before the include so rdram.cc sees it).
+static struct N64videoConfig rdpxi_config;
 
-#define N64VIDEO_C
-#include "rdp/rdram.c"
-#undef N64VIDEO_C
+#define RDRAM_STANDALONE
+#include "rdp/rdram.cc"
+#undef RDRAM_STANDALONE
 
 #define P(name) RDRAM_TEST_PREFIX(name)
 
@@ -27,9 +30,9 @@ extern "C" {
 
 void P(init)(uint8_t* backing, uint32_t size_bytes)
 {
-    memset(&config, 0, sizeof(config));
-    config.gfx.rdram = backing;
-    config.gfx.rdram_size = size_bytes;
+    memset(&rdpxi_config, 0, sizeof(rdpxi_config));
+    rdpxi_config.gfx.rdram = backing;
+    rdpxi_config.gfx.rdram_size = size_bytes;
     rdram_init();
 }
 

@@ -428,3 +428,9 @@ struct RdpState {
 #ifndef RDPX_PARALLEL_MAX_WORKERS
 #define RDPX_PARALLEL_MAX_WORKERS 1u
 #endif
+
+// ---- cross-TU shared state ------------------------------------------------
+// External-linkage symbols the split-out stage TUs share. rdpxi_-prefixed to
+// avoid colliding with the Angrylion oracle's identically-named C symbols
+// (config, …) linked alongside us in the conformance harness.
+extern struct N64videoConfig rdpxi_config;

@@ -166,8 +166,8 @@ static void deduce_derivatives(uint32_t wid);
 // macros fbuffer uses; dither defines rgb_dither used by blender; tcoord/tmem
 // define tc_pipeline_copy/read_tmem_copy used by rasterizer. clang-format must
 // NOT alphabetize these (doing so broke the build — undeclared identifiers).
+#include "rdp/rdram_internal.h"  // rdram is now a standalone TU (rdram.cc)
 // clang-format off
-#include "rdp/rdram.c"
 #include "rdp/dither.c"
 #include "rdp/blender.c"
 #include "rdp/combiner.c"
@@ -350,8 +350,8 @@ static void rdp_sync_tile(uint32_t wid, const uint32_t* args) {}
 
 static void rdp_sync_full(uint32_t /*wid*/, const uint32_t* /*args*/) {
   // signal DP interrupt
-  *config.gfx.mi_intr_reg |= DP_INTERRUPT;
-  config.gfx.mi_intr_cb();
+  *rdpxi_config.gfx.mi_intr_reg |= DP_INTERRUPT;
+  rdpxi_config.gfx.mi_intr_cb();
 }
 
 static void rdp_set_other_modes(uint32_t wid, const uint32_t* args) {

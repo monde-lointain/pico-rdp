@@ -34,10 +34,13 @@
 
 #include "n64video_common.h"
 #include "rdp/rdp_internal.h"
+#include "rdp/rdram_internal.h"  // rdram_init() + rdpxi_rdram_hidden accessor
 
-// The renderer's single config global. rdram.c reads config.gfx.rdram /
-// config.gfx.rdram_size in rdram_init(). Read by handlers via config.gfx.*.
-static struct N64videoConfig config;
+// The renderer config global. External linkage (rdpxi_-prefixed to avoid
+// colliding with the Angrylion oracle's `config`) so split-out stage TUs
+// (rdram.cc, …) can read it. Declared in rdp_internal.h. rdram_init() reads
+// rdpxi_config.gfx.rdram / .rdram_size; handlers read rdpxi_config.gfx.*.
+struct N64videoConfig rdpxi_config;
 
 static struct {
   bool fillmbitcrashes, vbusclock, nolerp;
@@ -102,7 +105,8 @@ static uint64_t rdpx_pixel_count = 0;
 //   * vdac_* — static shims. vdac_write/sync route the finished prescale buffer
 //     to the rdpx_vdac_write / rdpx_vdac_sync sink (which forwards to the test
 //     adapter), exactly as the oracle's vdac_write calls update_screen().
-//   * parallel_* — single-host-worker stubs. config.parallel is always false in
+//   * parallel_* — single-host-worker stubs. rdpxi_config.parallel is always
+//   false in
 //     the conformance adapter, so the parallel branches in vi.c are dead; the
 //     stubs exist only so the dead branches link.
 //
@@ -159,7 +163,7 @@ static void vdac_sync(bool invalid) { rdpx_vdac_sync_internal(invalid); }
 
 static void vdac_close(void) {}
 
-// parallel_* stubs — single host worker. config.parallel is false in the
+// parallel_* stubs — single host worker. rdpxi_config.parallel is false in the
 // adapter, so vi.c's parallel_run / parallel_num_workers branches never
 // execute; these only satisfy the linker for the dead code path.
 static uint32_t parallel_num_workers(void) { return 1; }
@@ -208,7 +212,7 @@ void rdpx_video_init(struct N64videoConfig* cfg) {
   // Take a copy of the caller's config (matches angrylion, which copies into
   // its file-static `config`). rdram_init() wires the aliasing pointers and
   // seeds hidden RDRAM to 3, byte-for-byte as the 31bdb1f oracle does.
-  config = *cfg;
+  rdpxi_config = *cfg;
 
   rdpx_static_init();
 
@@ -238,7 +242,7 @@ void rdpx_rdp_cmd(uint32_t wid, const uint32_t* args) {
 }
 
 void rdpx_video_update_screen(struct N64videoFrameBuffer* fb) {
-  // M8: run the VI. Reads VI registers from config.gfx.vi_reg, fetches +
+  // M8: run the VI. Reads VI registers from rdpxi_config.gfx.vi_reg, fetches +
   // filters the framebuffer into the prescale buffer, and emits the finished
   // frame through the vdac sink (vdac_write -> rdpx_vdac_write callback ->
   // adapter -> iface.update_screen). The argument is unused: the harness reads
@@ -303,13 +307,14 @@ int rdpx_pipeline_crashed(void) { return rdp_pipeline_crashed; }
 // ---- RDPX_TESTING accessor block ------------------------------------------
 // Exposes file-static base pointers so the conformance adapter can hand the
 // harness our hidden-RDRAM and TMEM buffers (RDRAM itself is caller-owned via
-// config.gfx.rdram). TMEM lives inside state[0] (per-worker tmem[0x1000]).
+// rdpxi_config.gfx.rdram). TMEM lives inside state[0] (per-worker
+// tmem[0x1000]).
 #ifdef RDPX_TESTING
 
-uint8_t* rdpx_get_hidden_rdram(void) { return rdram_hidden; }
+uint8_t* rdpx_get_hidden_rdram(void) { return rdpxi_rdram_hidden; }
 
 uint32_t rdpx_get_hidden_rdram_size(void) {
-  return (uint32_t)sizeof(rdram_hidden);
+  return (uint32_t)sizeof(rdpxi_rdram_hidden);
 }
 
 uint8_t* rdpx_get_tmem(void) { return get_tmem(); }

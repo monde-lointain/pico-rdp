@@ -97,7 +97,7 @@ static int32_t v_current_line;
 static uint32_t vi_frame_count;
 
 static void vi_init(void) {
-  vdac_init(&config);
+  vdac_init(&rdpxi_config);
 
   vi_gamma_init();
   vi_restore_init();
@@ -166,7 +166,7 @@ static void vi_process_full_parallel(uint32_t worker_id) {
   int32_t y_end = vres;
   int32_t y_inc = 1;
 
-  if (config.parallel) {
+  if (rdpxi_config.parallel) {
     y_begin = worker_id;
     y_inc = parallel_num_workers();
   }
@@ -487,7 +487,7 @@ static bool vi_process_full(void) {
   }
 
   // run filter update in parallel if enabled
-  if (config.parallel) {
+  if (rdpxi_config.parallel) {
     parallel_run(vi_process_full_parallel);
   } else {
     vi_process_full_parallel(0);
@@ -498,7 +498,7 @@ static bool vi_process_full(void) {
   fb.pixels = prescale;
   fb.pitch = PRESCALE_WIDTH;
 
-  if (config.vi.hide_overscan) {
+  if (rdpxi_config.vi.hide_overscan) {
     // crop away overscan area from prescale
     fb.width = maxhpass - minhpass;
     fb.height = vres << ctrl.serrate;
@@ -515,7 +515,7 @@ static bool vi_process_full(void) {
   }
 
   // convert to 16:9 if enabled
-  if (config.vi.widescreen) {
+  if (rdpxi_config.vi.widescreen) {
     fb.height_out = fb.height_out * 3 / 4;
   }
 
@@ -539,7 +539,7 @@ static void vi_process_fast_parallel(uint32_t worker_id) {
     return;
   }
 
-  if (config.parallel) {
+  if (rdpxi_config.parallel) {
     y_begin = worker_id;
     y_inc = parallel_num_workers();
   }
@@ -553,7 +553,7 @@ static void vi_process_fast_parallel(uint32_t worker_id) {
     for (x = 0; x < hres_raw; x++) {
       struct Rgba* pixel = &pixel_row[x];
 
-      switch (config.vi.mode) {
+      switch (rdpxi_config.vi.mode) {
         case VI_MODE_COLOR:
           switch (ctrl.type) {
             case VI_TYPE_RGBA5551: {
@@ -623,7 +623,7 @@ static bool vi_process_fast(void) {
   }
 
   // run filter update in parallel if enabled
-  if (config.parallel) {
+  if (rdpxi_config.parallel) {
     parallel_run(vi_process_fast_parallel);
   } else {
     vi_process_fast_parallel(0);
@@ -649,7 +649,7 @@ static bool vi_process_fast(void) {
   fb.height_out = fb.width * filtered_height / filtered_width;
 
   // convert to 16:9 if enabled
-  if (config.vi.widescreen) {
+  if (rdpxi_config.vi.widescreen) {
     fb.height_out = fb.height_out * 3 / 4;
   }
 
@@ -662,12 +662,12 @@ static void vi_set_zbuffer_address(uint32_t address) { zb_address = address; }
 
 static void vi_update_screen(void) {
   // check for configuration errors
-  if (config.vi.mode >= VI_MODE_NUM) {
-    msg_error("Invalid VI mode: %d", config.vi.mode);
+  if (rdpxi_config.vi.mode >= VI_MODE_NUM) {
+    msg_error("Invalid VI mode: %d", rdpxi_config.vi.mode);
   }
 
   // parse and check some common registers
-  vi_reg_ptr = config.gfx.vi_reg;
+  vi_reg_ptr = rdpxi_config.gfx.vi_reg;
 
   v_start = (*vi_reg_ptr[VI_V_START] >> 16) & 0x3ff;
   h_start = (*vi_reg_ptr[VI_H_START] >> 16) & 0x3ff;
@@ -789,7 +789,7 @@ static void vi_update_screen(void) {
     maxhpass = hres_clamped ? hres : (hres - 7);
 
     // run filter update in parallel if enabled
-    if (config.vi.mode == VI_MODE_NORMAL) {
+    if (rdpxi_config.vi.mode == VI_MODE_NORMAL) {
       valid = vi_process_full();
     } else {
       valid = vi_process_fast();
