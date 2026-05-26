@@ -22,11 +22,24 @@
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
+#include "panel_memory.h"
+#include "panel_perf.h"
 #include "panels.h"
 #include "renderer_host.h"
 
 extern "C" {
+#include "cmd_decode.h"
 #include "demo.h"
+}
+
+// RDPX_TESTING pixel-counter accessors (compiled into rdp_core;
+// forward-declared at the use site as the conformance adapter / perf probe do —
+// not in the public n64video.h surface).
+extern "C" {
+uint64_t rdpx_get_pixel_count(void);
+void rdpx_reset_pixel_count(void);
+uint8_t* rdpx_get_tmem(void);
+uint32_t rdpx_get_tmem_size(void);
 }
 
 // RGBA5551 fill for the hardcoded clear: R=12, G=20, B=6, A=1 -> a distinct
@@ -113,8 +126,8 @@ static int seed_demo(void) {
   uint32_t size = 0;
   uint8_t* rdram = renderer_host_rdram(&size);
   if (!rdram || size < DEMO_RDRAM_USED_END) {
-    fprintf(stderr, "seed_demo: RDRAM unavailable / too small (%u < %u)\n", size,
-            (unsigned)DEMO_RDRAM_USED_END);
+    fprintf(stderr, "seed_demo: RDRAM unavailable / too small (%u < %u)\n",
+            size, (unsigned)DEMO_RDRAM_USED_END);
     return 1;
   }
   demo_init(rdram, size);
@@ -140,8 +153,8 @@ static int headless_demo_frame(uint32_t frame_n, const char* path) {
   static struct Playback pb;
   memset(&pb, 0, sizeof(pb));
   pb.frame_index = frame_n;
-  playback_init(&pb);   // buffers frame_n's commands, marks dirty (full frame)
-  playback_tick(&pb);   // feeds the whole frame + present_demo
+  playback_init(&pb);  // buffers frame_n's commands, marks dirty (full frame)
+  playback_tick(&pb);  // feeds the whole frame + present_demo
 
   uint32_t w = 0, h = 0, pitch = 0;
   const uint32_t* px = renderer_host_scanout(&w, &h, &pitch);
@@ -169,9 +182,10 @@ static int headless_demo_frame(uint32_t frame_n, const char* path) {
     if (j == nuniq) uniq[nuniq++] = rgb;
   }
   if (nuniq <= 1) {
-    fprintf(stderr,
-            "headless-demo: scanout uniform (%u colors) — demo did not render\n",
-            nuniq);
+    fprintf(
+        stderr,
+        "headless-demo: scanout uniform (%u colors) — demo did not render\n",
+        nuniq);
     renderer_host_close();
     return 4;
   }
@@ -196,6 +210,93 @@ static int headless_demo_frame(uint32_t frame_n, const char* path) {
          frame_n, path, w, h, nuniq);
   renderer_host_close();
   return 0;
+}
+
+// ---- headless perf check ---------------------------------------------------
+// Drives demo frame N through the viewer path, resetting the pixel counter
+// before the build and reading it after; times the build+present wall clock;
+// prints the pixel count, per-command-type counts, the extrapolated M0+
+// ms/frame (perf model), and confirms TMEM is non-zero in the loaded CI4 region
+// after the cube's texture load. Asserts pixel_count > 0 and TMEM non-zero.
+// Returns 0 on success.
+static int headless_perf(uint32_t frame_n) {
+  if (renderer_host_init() != 0) {
+    fprintf(stderr, "headless-perf: renderer_host_init failed\n");
+    return 1;
+  }
+  if (seed_demo() != 0) {
+    renderer_host_close();
+    return 1;
+  }
+
+  static struct Playback pb;
+  memset(&pb, 0, sizeof(pb));
+  pb.frame_index = frame_n;
+  playback_init(&pb);  // buffers frame N's commands, marks dirty (full frame)
+
+  rdpx_reset_pixel_count();
+  uint64_t t0 = SDL_GetPerformanceCounter();
+  playback_tick(&pb);  // feeds the whole frame + present_demo
+  uint64_t t1 = SDL_GetPerformanceCounter();
+  double ms =
+      (double)(t1 - t0) / (double)SDL_GetPerformanceFrequency() * 1000.0;
+  uint64_t px = rdpx_get_pixel_count();
+
+  // Per-command-type histogram (C.2 decoder over the buffered stream).
+  uint32_t by_id[64];
+  for (uint32_t i = 0; i < 64; ++i) by_id[i] = 0u;
+  uint32_t tri = 0u;
+  for (uint32_t i = 0; i < pb.cmd_total; ++i) {
+    const struct PlaybackCmd* c = &pb.cmds[i];
+    struct CmdRecord rec;
+    cmd_decode(&pb.words[c->word_off], c->word_count, &rec);
+    by_id[rec.id & 0x3f] += 1u;
+    if (rec.is_triangle) tri += 1u;
+  }
+
+  // TMEM non-zero check over the loaded CI4 region (low 2 KB).
+  const uint8_t* tmem = rdpx_get_tmem();
+  uint32_t tmem_sz = rdpx_get_tmem_size();
+  uint32_t nz = 0u;
+  uint32_t scan = tmem_sz < 2048u ? tmem_sz : 2048u;
+  if (tmem) {
+    for (uint32_t i = 0; i < scan; ++i)
+      if (tmem[i] != 0) ++nz;
+  }
+
+  // Extrapolation model (perf-extrapolation.md): 250..700 cyc/px @250 MHz.
+  double opt = perf_extrapolate_m0_ms(px, 250.0, 250000000.0);
+  double pes = perf_extrapolate_m0_ms(px, 700.0, 250000000.0);
+
+  printf("headless-perf: frame %u\n", frame_n);
+  printf("  commands=%u triangles=%u\n", pb.cmd_total, tri);
+  printf("  pixels=%llu  host_build_present=%.3f ms", (unsigned long long)px,
+         ms);
+  if (ms > 0.0)
+    printf("  (%.2f Mpix/s)\n", ((double)px / 1.0e6) / (ms / 1000.0));
+  else
+    printf("\n");
+  printf(
+      "  extrapolated M0+ @250MHz: %.1f .. %.1f ms/frame (~%.0f..%.0f fps)\n",
+      opt, pes, pes > 0 ? 1000.0 / pes : 0.0, opt > 0 ? 1000.0 / opt : 0.0);
+  printf("  TMEM non-zero bytes in CI4 region: %u / %u\n", nz, scan);
+  printf("  command types:");
+  for (uint32_t id = 0; id < 64; ++id)
+    if (by_id[id]) printf(" %s=%u", rdp_cmd_name((uint8_t)id), by_id[id]);
+  printf("\n");
+
+  int rc = 0;
+  if (px == 0) {
+    fprintf(stderr, "headless-perf: FAIL pixel count is 0\n");
+    rc = 4;
+  }
+  if (nz == 0) {
+    fprintf(stderr, "headless-perf: FAIL TMEM CI4 region all zero\n");
+    rc = rc ? rc : 5;
+  }
+
+  renderer_host_close();
+  return rc;
 }
 
 // ---- interactive (windowed) ------------------------------------------------
@@ -232,12 +333,19 @@ static int run_windowed(void) {
   }
   if (seed_demo() != 0) return 1;
 
+  // C.4 memory viewers own SDL textures against this renderer.
+  panel_memory_init(renderer);
+
   // Live-demo driver: buffer frame 0 and present it (paused).
   static struct Playback pb;
   memset(&pb, 0, sizeof(pb));
   pb.frame_index = 0;
   pb.playing = true;
   playback_init(&pb);
+
+  // C.4 perf HUD: sampled around each frame's build+present.
+  struct PerfSample perf;
+  memset(&perf, 0, sizeof(perf));
 
   bool first_layout = true;
   bool running = true;
@@ -249,7 +357,18 @@ static int run_windowed(void) {
     }
 
     // Advance the demo / feed buffered commands, then refresh the scanout.
+    // Sample perf only when the tick actually rebuilds+presents a frame (dirty
+    // or playing); otherwise keep the last sample so the HUD doesn't read 0.
+    const bool will_present = pb.dirty || pb.playing;
+    if (will_present) rdpx_reset_pixel_count();
+    uint64_t t0 = SDL_GetPerformanceCounter();
     playback_tick(&pb);
+    if (will_present) {
+      uint64_t t1 = SDL_GetPerformanceCounter();
+      double freq = (double)SDL_GetPerformanceFrequency();
+      perf.build_present_ms = (double)(t1 - t0) / freq * 1000.0;
+      perf.pixel_count = rdpx_get_pixel_count();
+    }
 
     // Upload the latest scanout into the SDL texture.
     {
@@ -320,6 +439,10 @@ static int run_windowed(void) {
     panel_log_draw(&pb);    // decoded command log (bottom, tabbed)
     panel_state_draw(&pb);  // shadow-state inspector (right column)
 
+    // C.4 panels: memory viewers (right-bottom) + perf HUD (bottom, tabbed).
+    panel_memory_draw(&pb);
+    panel_perf_draw(&pb, &perf);
+
     ImGui::Render();
     SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
     SDL_RenderClear(renderer);
@@ -327,6 +450,7 @@ static int run_windowed(void) {
     SDL_RenderPresent(renderer);
   }
 
+  panel_memory_shutdown();
   renderer_host_close();
   ImGui_ImplSDLRenderer3_Shutdown();
   ImGui_ImplSDL3_Shutdown();
@@ -346,6 +470,10 @@ int main(int argc, char** argv) {
     if (strcmp(argv[i], "--headless-demo-frame") == 0 && i + 2 < argc) {
       uint32_t n = (uint32_t)strtoul(argv[i + 1], nullptr, 10);
       return headless_demo_frame(n, argv[i + 2]);
+    }
+    if (strcmp(argv[i], "--headless-perf") == 0 && i + 1 < argc) {
+      uint32_t n = (uint32_t)strtoul(argv[i + 1], nullptr, 10);
+      return headless_perf(n);
     }
   }
   return run_windowed();
