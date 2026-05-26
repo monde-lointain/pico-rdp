@@ -48,6 +48,8 @@ void viewer_build_default_dock_layout(ImGuiID dockspace_id) {
   ImGui::DockBuilderDockWindow(VIEWER_DOCK_COMMANDS, dock_bottom);
   ImGui::DockBuilderDockWindow(VIEWER_DOCK_PERF,
                                dock_bottom);  // tabbed with Commands
+  ImGui::DockBuilderDockWindow(VIEWER_DOCK_PLAYBACK,
+                               dock_bottom);  // tabbed with Commands (C.3)
   ImGui::DockBuilderDockWindow(VIEWER_DOCK_STATE, dock_right);
   ImGui::DockBuilderDockWindow(VIEWER_DOCK_MEMORY, dock_right_bottom);
 
