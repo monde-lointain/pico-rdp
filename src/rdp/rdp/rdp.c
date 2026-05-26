@@ -425,7 +425,7 @@ static const struct {
   void (*handler)(uint32_t wid, const uint32_t*);
   // command data length in bytes
   uint32_t length;
-} rdp_commands[] = {
+} RDP_COMMANDS[] = {
     {rdp_noop,                8},
     {rdp_invalid,             8},
     {rdp_invalid,             8},
@@ -495,17 +495,24 @@ static const struct {
 
 static void deduce_derivatives(uint32_t wid);
 
+// Stage files are #included in DEPENDENCY order (matches the canonical fork
+// 31bdb1f). The unity build is order-sensitive: rdram defines the RWRITE*/PAIR*
+// macros fbuffer uses; dither defines rgb_dither used by blender; tcoord/tmem
+// define tc_pipeline_copy/read_tmem_copy used by rasterizer. clang-format must
+// NOT alphabetize these (doing so broke the build — undeclared identifiers).
+// clang-format off
+#include "rdp/rdram.c"
+#include "rdp/dither.c"
 #include "rdp/blender.c"
 #include "rdp/combiner.c"
 #include "rdp/coverage.c"
-#include "rdp/dither.c"
+#include "rdp/zbuffer.c"
 #include "rdp/fbuffer.c"
-#include "rdp/rasterizer.c"
-#include "rdp/rdram.c"
+#include "rdp/tmem.c"
 #include "rdp/tcoord.c"
 #include "rdp/tex.c"
-#include "rdp/tmem.c"
-#include "rdp/zbuffer.c"
+#include "rdp/rasterizer.c"
+// clang-format on
 
 static void deduce_derivatives(uint32_t wid) {
   int special_bsel0;

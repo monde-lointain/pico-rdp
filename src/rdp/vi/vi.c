@@ -48,12 +48,16 @@ struct ViRegCtrl {
 typedef void (*vi_fetch_filter_func)(struct Rgba*, uint32_t, uint32_t,
                                      struct ViRegCtrl, uint32_t, uint32_t);
 
-#include "vi/divot.c"
-#include "vi/fetch.c"
+// Dependency order (matches the canonical fork 31bdb1f): fetch uses
+// restore_filter*/video_filter* from restore.c/video.c. Do NOT alphabetize.
+// clang-format off
 #include "vi/gamma.c"
 #include "vi/lerp.c"
-#include "vi/restore.c"
+#include "vi/divot.c"
 #include "vi/video.c"
+#include "vi/restore.c"
+#include "vi/fetch.c"
+// clang-format on
 
 // states
 static uint32_t prevvicurrent;
