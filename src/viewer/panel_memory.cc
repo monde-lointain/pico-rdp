@@ -35,6 +35,7 @@
 
 #include "dock_layout.h"
 #include "imgui.h"
+#include "minmax.h"
 #include "renderer_host.h"
 
 extern "C" {
@@ -157,7 +158,7 @@ static void refresh_tmem(void) {
   }
   const uint16_t* tlut = (const uint16_t*)(tmem + 0x800);  // tmem.c base
   for (int y = 0; y < TEX_TMEM_H; ++y) {
-    const uint8_t* row = tmem + (size_t)y * 32U;  // 32 bytes / CI4 row
+    const uint8_t* row = tmem + ((size_t)y * 32U);  // 32 bytes / CI4 row
     for (int x = 0; x < TEX_TMEM_W; ++x) {
       uint8_t const byte = row[x >> 1];
       uint8_t const idx =
@@ -166,7 +167,7 @@ static void refresh_tmem(void) {
       // renderer's tmem holds them in native order after LOAD_TLUT, so read
       // directly. Index 0..15 (CI4); the demo's TLUT is 16 entries.
       uint16_t const entry = tlut[idx & 0x0f];
-      s_stage[(size_t)y * TEX_TMEM_W + x] = rgba5551_to_rgba8(entry);
+      s_stage[((size_t)y * TEX_TMEM_W) + x] = rgba5551_to_rgba8(entry);
     }
   }
   SDL_UpdateTexture(s_tex_tmem, NULL, s_stage,
@@ -199,9 +200,9 @@ static void refresh_color(void) {
   const uint32_t base = demo_color_fb_addr();
   for (int y = 0; y < TEX_FB_H; ++y) {
     for (int x = 0; x < TEX_FB_W; ++x) {
-      uint32_t const off = base + ((uint32_t)y * TEX_FB_W + x) * 2U;
+      uint32_t const off = base + ((((uint32_t)y * TEX_FB_W) + x) * 2U);
       uint16_t const p = (off + 1U < rsz) ? rdram_read16(rdram, off) : 0U;
-      s_stage[(size_t)y * TEX_FB_W + x] = rgba5551_to_rgba8(p);
+      s_stage[((size_t)y * TEX_FB_W) + x] = rgba5551_to_rgba8(p);
     }
   }
   SDL_UpdateTexture(s_tex_color, NULL, s_stage,
@@ -220,11 +221,11 @@ static void refresh_depth(void) {
   for (int y = 0; y < TEX_FB_H; ++y) {
     for (int x = 0; x < TEX_FB_W; ++x) {
       uint32_t const off =
-          DEMO_RDRAM_Z_BUF_ADDR + ((uint32_t)y * TEX_FB_W + x) * 2U;
+          DEMO_RDRAM_Z_BUF_ADDR + ((((uint32_t)y * TEX_FB_W) + x) * 2U);
       uint16_t const zb = (off + 1U < rsz) ? rdram_read16(rdram, off) : 0U;
       uint32_t const z18 = z_decode18(zb);
       uint8_t const v = (uint8_t)((z18 * 255U) / 0x3ffffU);
-      s_stage[(size_t)y * TEX_FB_W + x] = gray_rgba8(v);
+      s_stage[((size_t)y * TEX_FB_W) + x] = gray_rgba8(v);
     }
   }
   SDL_UpdateTexture(s_tex_depth, NULL, s_stage,
@@ -246,10 +247,10 @@ static void refresh_coverage(void) {
   const uint32_t base_hw = demo_color_fb_addr() >> 1;  // halfword index
   for (int y = 0; y < TEX_FB_H; ++y) {
     for (int x = 0; x < TEX_FB_W; ++x) {
-      uint32_t const hwi = base_hw + (uint32_t)y * TEX_FB_W + x;
+      uint32_t const hwi = base_hw + ((uint32_t)y * TEX_FB_W) + x;
       uint8_t const c = (hwi < hsz) ? (uint8_t)(hid[hwi] & 0x07U) : 0U;
       uint8_t const v = (uint8_t)(c * 36U);  // 7*36 ~= 252
-      s_stage[(size_t)y * TEX_FB_W + x] = gray_rgba8(v);
+      s_stage[((size_t)y * TEX_FB_W) + x] = gray_rgba8(v);
     }
   }
   SDL_UpdateTexture(s_tex_cvg, NULL, s_stage, TEX_FB_W * (int)sizeof(uint32_t));
@@ -267,9 +268,7 @@ static void image_fit(SDL_Texture* tex, int native_w, int native_h) {
   if (scale * (float)native_h > maxh) {
     scale = maxh / (float)native_h;
   }
-  if (scale < 1.0F) {
-    scale = 1.0F;
-  }
+  scale = rdpx_max(scale, 1.0F);
   ImGui::Image((ImTextureID)(intptr_t)tex,
                ImVec2((float)native_w * scale, (float)native_h * scale));
 }

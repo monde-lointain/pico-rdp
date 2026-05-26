@@ -11,6 +11,7 @@
 
 #include "dock_layout.h"
 #include "imgui.h"
+#include "minmax.h"
 #include "panels.h"
 #include "renderer_host.h"
 
@@ -64,9 +65,7 @@ void playback_init(struct Playback* pb) {
 
 // Feed the first `k` buffered commands to the renderer, then present.
 static void playback_feed(struct Playback* pb, uint32_t k) {
-  if (k > pb->cmd_total) {
-    k = pb->cmd_total;
-  }
+  k = rdpx_min(k, pb->cmd_total);
   struct CmdSink* sink = renderer_host_cmd_sink();
   if (!sink) {
     return;

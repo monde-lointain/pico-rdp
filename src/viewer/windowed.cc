@@ -20,6 +20,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
+#include "minmax.h"
 #include "panel_memory.h"
 #include "panel_perf.h"
 #include "panels.h"
@@ -217,9 +218,7 @@ int run_windowed(void) {
       ImVec2 const avail = ImGui::GetContentRegionAvail();
       float side =
           avail.x < avail.y ? avail.x : avail.y;  // keep the 1:1 square
-      if (side < 1.0F) {
-        side = 1.0F;
-      }
+      side = rdpx_max(side, 1.0F);
       ImGui::Image((ImTextureID)(intptr_t)scanout_tex, ImVec2(side, side));
     }
     ImGui::End();

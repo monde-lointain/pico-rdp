@@ -252,9 +252,7 @@ uint32_t z_compare(uint32_t wid, uint32_t zcurpixel, uint32_t sz,
       if (dzmem != 0x8000) {
         dzmemmodifier = 16 >> precision_factor;
         dzmem <<= 1;
-        if (dzmem < dzmemmodifier) {
-          dzmem = dzmemmodifier;
-        }
+        dzmem = rdpx_max(dzmem, dzmemmodifier);
 
       } else {
         force_coplanar = 1;

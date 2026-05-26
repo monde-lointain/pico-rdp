@@ -161,19 +161,21 @@ static void attr_coeffs(int64_t q0, int64_t q1, int64_t q2,
    * The q* already carry the attribute's quantization scale, so the results are
    * directly in quantized units. signed_area is in subpixel^2 units. */
   int64_t signed_area = e->signed_area;
-  int64_t sum_dx =
-      (int64_t)e->ab_y * q2 + (int64_t)e->ca_y * q1 + (int64_t)e->bc_y * q0;
-  int64_t sum_dy =
-      (int64_t)e->ab_x * q2 + (int64_t)e->ca_x * q1 + (int64_t)e->bc_x * q0;
+  int64_t sum_dx = ((int64_t)e->ab_y * q2) + ((int64_t)e->ca_y * q1) +
+                   ((int64_t)e->bc_y * q0);
+  int64_t sum_dy = ((int64_t)e->ab_x * q2) + ((int64_t)e->ca_x * q1) +
+                   ((int64_t)e->bc_x * q0);
 
   /* Multiply by SUBPIXELS then divide by signed_area, rounded to nearest. */
   int64_t num_dx = -(int64_t)SUBPIXELS * sum_dx;
   int64_t num_dy = (int64_t)SUBPIXELS * sum_dy;
 
-  int64_t dcdx = (num_dx >= 0) ? (num_dx + signed_area / 2) / signed_area
-                               : -(((-num_dx) + signed_area / 2) / signed_area);
-  int64_t dcdy = (num_dy >= 0) ? (num_dy + signed_area / 2) / signed_area
-                               : -(((-num_dy) + signed_area / 2) / signed_area);
+  int64_t dcdx = (num_dx >= 0)
+                     ? (num_dx + (signed_area / 2)) / signed_area
+                     : -(((-num_dx) + (signed_area / 2)) / signed_area);
+  int64_t dcdy = (num_dy >= 0)
+                     ? (num_dy + (signed_area / 2)) / signed_area
+                     : -(((-num_dy) + (signed_area / 2)) / signed_area);
 
   /* dcde = dcdy + dcdx * dxdy_a (dxdy_a is Q16.16 screen-X per screen-Y). */
   int64_t dcde =
@@ -264,7 +266,7 @@ static int setup_one(struct DemoPrimSetup *setup, const struct WorkTri *in,
   int32_t ab_y0 = ys[1] - ys[0];
   int32_t bc_x0 = xs[2] - xs[1];
   int32_t bc_y0 = ys[2] - ys[1];
-  int64_t signed_area = (int64_t)ab_x0 * bc_y0 - (int64_t)ab_y0 * bc_x0;
+  int64_t signed_area = ((int64_t)ab_x0 * bc_y0) - ((int64_t)ab_y0 * bc_x0);
 
   if (signed_area == 0) {
     return 0;
@@ -284,7 +286,7 @@ static int setup_one(struct DemoPrimSetup *setup, const struct WorkTri *in,
   int32_t bc_y = y_hi - y_mid;
   int32_t ca_y = y_lo - y_hi;
 
-  signed_area = (int64_t)ab_x * bc_y - (int64_t)ab_y * bc_x;
+  signed_area = ((int64_t)ab_x * bc_y) - ((int64_t)ab_y * bc_x);
   if (signed_area == 0) {
     return 0;
   }

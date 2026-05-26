@@ -496,8 +496,8 @@ void combiner_1cycle(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
   }
 
   if (rdpxi_state[wid].other_modes.cvg_times_alpha) {
-    temp =
-        (int32_t)((rdpxi_state[wid].pixel_color.a * (*curpixel_cvg) + 4) >> 3);
+    temp = (int32_t)(((rdpxi_state[wid].pixel_color.a * (*curpixel_cvg)) + 4) >>
+                     3);
     *curpixel_cvg = (temp >> 5) & 0xf;
   }
 
@@ -520,9 +520,8 @@ void combiner_1cycle(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
     } else {
       rdpxi_state[wid].pixel_color.a = (int32_t)((*curpixel_cvg) << 5);
     }
-    if (rdpxi_state[wid].pixel_color.a > 0xff) {
-      rdpxi_state[wid].pixel_color.a = 0xff;
-    }
+    rdpxi_state[wid].pixel_color.a =
+        rdpx_min(rdpxi_state[wid].pixel_color.a, 0xff);
   }
 
   rdpxi_state[wid].blender_shade_alpha =
@@ -590,14 +589,12 @@ void combiner_2cycle_cycle0(uint32_t wid, int adseed, uint32_t cvg,
       }
     } else {
       if (rdpxi_state[wid].other_modes.cvg_times_alpha) {
-        preacalpha = (int32_t)((preacalpha * cvg + 4) >> 3);
+        preacalpha = (int32_t)(((preacalpha * cvg) + 4) >> 3);
       } else {
         preacalpha = (int32_t)(cvg << 5);
       }
 
-      if (preacalpha > 0xff) {
-        preacalpha = 0xff;
-      }
+      preacalpha = rdpx_min(preacalpha, 0xff);
     }
 
     *acalpha = preacalpha;
@@ -707,8 +704,8 @@ void combiner_2cycle_cycle1(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
   }
 
   if (rdpxi_state[wid].other_modes.cvg_times_alpha) {
-    temp =
-        (int32_t)((rdpxi_state[wid].pixel_color.a * (*curpixel_cvg) + 4) >> 3);
+    temp = (int32_t)(((rdpxi_state[wid].pixel_color.a * (*curpixel_cvg)) + 4) >>
+                     3);
 
     *curpixel_cvg = (temp >> 5) & 0xf;
   }
@@ -732,9 +729,8 @@ void combiner_2cycle_cycle1(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
     } else {
       rdpxi_state[wid].pixel_color.a = (int32_t)((*curpixel_cvg) << 5);
     }
-    if (rdpxi_state[wid].pixel_color.a > 0xff) {
-      rdpxi_state[wid].pixel_color.a = 0xff;
-    }
+    rdpxi_state[wid].pixel_color.a =
+        rdpx_min(rdpxi_state[wid].pixel_color.a, 0xff);
   }
 
   rdpxi_state[wid].blender_shade_alpha =

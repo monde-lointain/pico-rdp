@@ -171,14 +171,14 @@ static STRICTINLINE void rgba_correct(uint32_t wid, int offx, int offy, int r,
     b >>= 2;
     a >>= 2;
   } else {
-    summand_r =
-        offx * rdpxi_state[wid].spans_cdr + offy * rdpxi_state[wid].spans_drdy;
-    summand_g =
-        offx * rdpxi_state[wid].spans_cdg + offy * rdpxi_state[wid].spans_dgdy;
-    summand_b =
-        offx * rdpxi_state[wid].spans_cdb + offy * rdpxi_state[wid].spans_dbdy;
-    summand_a =
-        offx * rdpxi_state[wid].spans_cda + offy * rdpxi_state[wid].spans_dady;
+    summand_r = (offx * rdpxi_state[wid].spans_cdr) +
+                (offy * rdpxi_state[wid].spans_drdy);
+    summand_g = (offx * rdpxi_state[wid].spans_cdg) +
+                (offy * rdpxi_state[wid].spans_dgdy);
+    summand_b = (offx * rdpxi_state[wid].spans_cdb) +
+                (offy * rdpxi_state[wid].spans_dbdy);
+    summand_a = (offx * rdpxi_state[wid].spans_cda) +
+                (offy * rdpxi_state[wid].spans_dady);
 
     r = ((r << 2) + summand_r) >> 4;
     g = ((g << 2) + summand_g) >> 4;
@@ -201,8 +201,8 @@ static STRICTINLINE void z_correct(uint32_t wid, int offx, int offy, int* z,
   if (cvg == 8) {
     sz = sz >> 3;
   } else {
-    summand_z =
-        offx * rdpxi_state[wid].spans_cdz + offy * rdpxi_state[wid].spans_dzdy;
+    summand_z = (offx * rdpxi_state[wid].spans_cdz) +
+                (offy * rdpxi_state[wid].spans_dzdy);
 
     sz = ((sz << 2) + summand_z) >> 5;
   }
@@ -340,7 +340,7 @@ static void render_spans_1cycle_complete(uint32_t wid, int start, int end,
       w = rdpxi_state[wid].span[i].w;
 
       x = xendsc;
-      curpixel = rdpxi_state[wid].fb_width * i + x;
+      curpixel = (rdpxi_state[wid].fb_width * i) + x;
       zbcur = zb + curpixel;
 
       if (!flip) {
@@ -567,7 +567,7 @@ static void render_spans_1cycle_notexel1(uint32_t wid, int start, int end,
       w = rdpxi_state[wid].span[i].w;
 
       x = xendsc;
-      curpixel = rdpxi_state[wid].fb_width * i + x;
+      curpixel = (rdpxi_state[wid].fb_width * i) + x;
       zbcur = zb + curpixel;
 
       if (!flip) {
@@ -749,7 +749,7 @@ static void render_spans_1cycle_notex(uint32_t wid, int start, int end,
               : (int)rdpxi_state[wid].span[i].z;
 
       x = xendsc;
-      curpixel = rdpxi_state[wid].fb_width * i + x;
+      curpixel = (rdpxi_state[wid].fb_width * i) + x;
       zbcur = zb + curpixel;
 
       if (!flip) {
@@ -938,7 +938,7 @@ static void render_spans_2cycle_complete(uint32_t wid, int start, int end,
       w = rdpxi_state[wid].span[i].w;
 
       x = xendsc;
-      curpixel = rdpxi_state[wid].fb_width * i + x;
+      curpixel = (rdpxi_state[wid].fb_width * i) + x;
       zbcur = zb + curpixel;
 
       if (!flip) {
@@ -1239,7 +1239,7 @@ static void render_spans_2cycle_notexelnext(uint32_t wid, int start, int end,
       w = rdpxi_state[wid].span[i].w;
 
       x = xendsc;
-      curpixel = rdpxi_state[wid].fb_width * i + x;
+      curpixel = (rdpxi_state[wid].fb_width * i) + x;
       zbcur = zb + curpixel;
 
       if (!flip) {
@@ -1508,7 +1508,7 @@ static void render_spans_2cycle_notexel1(uint32_t wid, int start, int end,
       w = rdpxi_state[wid].span[i].w;
 
       x = xendsc;
-      curpixel = rdpxi_state[wid].fb_width * i + x;
+      curpixel = (rdpxi_state[wid].fb_width * i) + x;
       zbcur = zb + curpixel;
 
       if (!flip) {
@@ -1747,7 +1747,7 @@ static void render_spans_2cycle_notex(uint32_t wid, int start, int end,
               : (int)rdpxi_state[wid].span[i].z;
 
       x = xendsc;
-      curpixel = rdpxi_state[wid].fb_width * i + x;
+      curpixel = (rdpxi_state[wid].fb_width * i) + x;
       zbcur = zb + curpixel;
 
       if (!flip) {
@@ -1895,7 +1895,7 @@ static void render_spans_fill(uint32_t wid, int start, int end, int flip) {
     xendsc = rdpxi_state[wid].span[i].rx;
 
     x = xendsc;
-    curpixel = rdpxi_state[wid].fb_width * i + x;
+    curpixel = (rdpxi_state[wid].fb_width * i) + x;
     length = flip ? (xstart - xendsc) : (xendsc - xstart);
 
     if (rdpxi_state[wid].span[i].validline) {
@@ -2026,12 +2026,12 @@ static void render_spans_copy(uint32_t wid, int start, int end, int tilenum,
       xstart = rdpxi_state[wid].span[i].lx;
       xendsc = rdpxi_state[wid].span[i].rx;
 
-      fb_index = rdpxi_state[wid].fb_width * i + xendsc;
+      fb_index = (rdpxi_state[wid].fb_width * i) + xendsc;
       fbptr = rdpxi_state[wid].fb_address +
               PIXELS_TO_BYTES_SPECIAL4(fb_index, rdpxi_state[wid].fb_size);
       fbendptr =
           rdpxi_state[wid].fb_address +
-          PIXELS_TO_BYTES_SPECIAL4((rdpxi_state[wid].fb_width * i + xstart),
+          PIXELS_TO_BYTES_SPECIAL4(((rdpxi_state[wid].fb_width * i) + xstart),
                                    rdpxi_state[wid].fb_size);
       length = flip ? (xstart - xendsc) : (xendsc - xstart);
 
@@ -2096,12 +2096,10 @@ static void render_spans_copy(uint32_t wid, int start, int end, int tilenum,
           alphamask = 0;
         }
 
-        copywmask = (flip) ? (int)(fbendptr - fbptr + bytesperpixel)
-                           : (int)(fbptr - fbendptr + bytesperpixel);
+        copywmask = flip ? (int)(fbendptr - fbptr + bytesperpixel)
+                         : (int)(fbptr - fbendptr + bytesperpixel);
 
-        if (copywmask > 8) {
-          copywmask = 8;
-        }
+        copywmask = rdpx_min((int32_t)copywmask, 8);
         tempdword = fbptr;
         k = 7;
         while (copywmask > 0) {

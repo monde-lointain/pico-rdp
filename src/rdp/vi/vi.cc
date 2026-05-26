@@ -123,7 +123,7 @@ static void vi_process_full_parallel(uint32_t worker_id) {
 
   /* Fixup buffer overflow. */
   if (ctrl.serrate && v_start + y_end > (PRESCALE_HEIGHT / 2)) {
-    y_end = PRESCALE_HEIGHT / 2 - v_start;
+    y_end = (PRESCALE_HEIGHT / 2) - v_start;
   } else if (!ctrl.serrate && v_start + y_end > PRESCALE_HEIGHT) {
     y_end = PRESCALE_HEIGHT - v_start;
   }
@@ -131,8 +131,8 @@ static void vi_process_full_parallel(uint32_t worker_id) {
   for (y = y_begin; y < y_end; y += y_inc) {
     int32_t x;
     uint32_t x_offs = x_start;
-    uint32_t const curry = y_start + y * y_add;
-    uint32_t const nexty = y_start + (y + 1) * y_add;
+    uint32_t const curry = y_start + (y * y_add);
+    uint32_t const nexty = y_start + ((y + 1) * y_add);
     uint32_t const prevy = curry >> 10;
 
     cache_marker = cache_next_marker = cache_marker_init;
@@ -140,7 +140,7 @@ static void vi_process_full_parallel(uint32_t worker_id) {
       divot_cache_marker = divot_cache_next_marker = cache_marker_init;
     }
 
-    struct Rgba* pixel_row = &prescale[prescale_ptr + linecount * y];
+    struct Rgba* pixel_row = &prescale[prescale_ptr + (linecount * y)];
 
     yfrac = (int32_t)((curry >> 5) & 0x1f);
     pixels = vi_width_low * prevy;
@@ -172,6 +172,16 @@ static void vi_process_full_parallel(uint32_t worker_id) {
       prev_line_x++;
       next_line_x++;
       far_line_x++;
+
+      // Bounds-clamp the source-derived cache indices to [0, 0xa10) — the
+      // viaa_array/divot_array half-cache size. Pathological VI scale
+      // programming (large x_add and/or the h_start<0 boost) can drive
+      // x_offs>>10 past the cache, making the AA/divot filters read+write out
+      // of bounds. Identity for valid programming, so output is unchanged.
+      line_x = clamp(line_x, 0, 0xa10 - 1);
+      prev_line_x = clamp(prev_line_x, 0, 0xa10 - 1);
+      next_line_x = clamp(next_line_x, 0, 0xa10 - 1);
+      far_line_x = clamp(far_line_x, 0, 0xa10 - 1);
 
       xfrac = (int32_t)((x_offs >> 5) & 0x1f);
 
@@ -329,7 +339,7 @@ static bool vi_process_full(void) {
 
   linecount = PRESCALE_WIDTH << ctrl.serrate;
   prescale_ptr =
-      v_start * linecount + h_start + (lowerfield ? PRESCALE_WIDTH : 0);
+      (v_start * linecount) + h_start + (lowerfield ? PRESCALE_WIDTH : 0);
 
   int32_t i;
   if (isblank) {
@@ -349,7 +359,7 @@ static bool vi_process_full(void) {
     // clear right border
     if (h_end >= 0 && h_end < PRESCALE_WIDTH) {
       for (i = 0; i < vactivelines; i++) {
-        memset(&prescale[i * PRESCALE_WIDTH + h_end], 0,
+        memset(&prescale[(i * PRESCALE_WIDTH) + h_end], 0,
                hrightblank * sizeof(uint32_t));
       }
     }
@@ -360,7 +370,7 @@ static bool vi_process_full(void) {
         tvfadeoutstate[i]--;
         if (!tvfadeoutstate[i]) {
           if (validh) {
-            memset(&prescale[i * PRESCALE_WIDTH + h_start], 0,
+            memset(&prescale[(i * PRESCALE_WIDTH) + h_start], 0,
                    hres * sizeof(uint32_t));
           } else {
             memset(&prescale[(ptrdiff_t)i * PRESCALE_WIDTH], 0,
@@ -400,7 +410,7 @@ static bool vi_process_full(void) {
           tvfadeoutstate[i + 1]--;
           if (!tvfadeoutstate[i + 1]) {
             if (validh) {
-              memset(&prescale[(i + 1) * PRESCALE_WIDTH + h_start], 0,
+              memset(&prescale[((i + 1) * PRESCALE_WIDTH) + h_start], 0,
                      hres * sizeof(uint32_t));
             } else {
               memset(&prescale[(ptrdiff_t)(i + 1) * PRESCALE_WIDTH], 0,
@@ -420,7 +430,7 @@ static bool vi_process_full(void) {
       }
       if (!tvfadeoutstate[i]) {
         if (validh) {
-          memset(&prescale[i * PRESCALE_WIDTH + h_start], 0,
+          memset(&prescale[(i * PRESCALE_WIDTH) + h_start], 0,
                  hres * sizeof(uint32_t));
         } else {
           memset(&prescale[(ptrdiff_t)i * PRESCALE_WIDTH], 0,
@@ -454,7 +464,7 @@ static bool vi_process_full(void) {
     int32_t const x = h_start + minhpass;
     int32_t const y = (v_start + (emucontrolsvicurrent ? lowerfield : 0))
                       << ctrl.serrate;
-    fb.pixels += x + y * fb.pitch;
+    fb.pixels += x + (y * fb.pitch);
   } else {
     // use entire prescale buffer
     fb.width = PRESCALE_WIDTH;

@@ -28,16 +28,12 @@ static STRICTINLINE void video_max_optimized(const uint32_t* pixels,
   min = pixels[posmin];
   if (curpenmax != max) {
     for (i = posmax + 1; i < numofels; i++) {
-      if (pixels[i] > curpenmax) {
-        curpenmax = pixels[i];
-      }
+      curpenmax = rdpx_max(curpenmax, pixels[i]);
     }
   }
   if (curpenmin != min) {
     for (i = posmin + 1; i < numofels; i++) {
-      if (pixels[i] < curpenmin) {
-        curpenmin = pixels[i];
-      }
+      curpenmin = rdpx_min(curpenmin, pixels[i]);
     }
   }
   *penumax = curpenmax;

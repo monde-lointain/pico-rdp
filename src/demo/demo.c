@@ -97,7 +97,7 @@ void demo_init(uint8_t *rdram, uint32_t rdram_size) {
   // generated values are logical RGBA5551 pixel values; rdram_write16 stores
   // them so the renderer's halfword read recovers each entry).
   for (uint32_t i = 0; i < DEMO_TLUT_ENTRIES; ++i) {
-    rdram_write16(rdram, DEMO_RDRAM_TLUT_ADDR + i * 2U, arrows_tlut[i]);
+    rdram_write16(rdram, DEMO_RDRAM_TLUT_ADDR + (i * 2U), arrows_tlut[i]);
   }
 }
 

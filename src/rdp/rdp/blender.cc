@@ -126,12 +126,12 @@ static STRICTINLINE void blender_equation_cycle0(uint32_t wid, int* r, int* g,
 
   mulb = blend2a + 1;
 
-  blr = (*rdpxi_state[wid].blender1a_r[0]) * blend1a +
-        (*rdpxi_state[wid].blender2a_r[0]) * mulb;
-  blg = (*rdpxi_state[wid].blender1a_g[0]) * blend1a +
-        (*rdpxi_state[wid].blender2a_g[0]) * mulb;
-  blb = (*rdpxi_state[wid].blender1a_b[0]) * blend1a +
-        (*rdpxi_state[wid].blender2a_b[0]) * mulb;
+  blr = ((*rdpxi_state[wid].blender1a_r[0]) * blend1a) +
+        ((*rdpxi_state[wid].blender2a_r[0]) * mulb);
+  blg = ((*rdpxi_state[wid].blender1a_g[0]) * blend1a) +
+        ((*rdpxi_state[wid].blender2a_g[0]) * mulb);
+  blb = ((*rdpxi_state[wid].blender1a_b[0]) * blend1a) +
+        ((*rdpxi_state[wid].blender2a_b[0]) * mulb);
 
   if (!rdpxi_state[wid].other_modes.force_blend) {
     sum = ((blend1a & ~3) + (blend2a & ~3) + 4) << 9;
@@ -158,16 +158,16 @@ static STRICTINLINE void blender_equation_cycle0_2(uint32_t wid, int* r, int* g,
   }
 
   blend2a += 1;
-  *r = (((*rdpxi_state[wid].blender1a_r[0]) * blend1a +
-         (*rdpxi_state[wid].blender2a_r[0]) * blend2a) >>
+  *r = ((((*rdpxi_state[wid].blender1a_r[0]) * blend1a) +
+         ((*rdpxi_state[wid].blender2a_r[0]) * blend2a)) >>
         5) &
        0xff;
-  *g = (((*rdpxi_state[wid].blender1a_g[0]) * blend1a +
-         (*rdpxi_state[wid].blender2a_g[0]) * blend2a) >>
+  *g = ((((*rdpxi_state[wid].blender1a_g[0]) * blend1a) +
+         ((*rdpxi_state[wid].blender2a_g[0]) * blend2a)) >>
         5) &
        0xff;
-  *b = (((*rdpxi_state[wid].blender1a_b[0]) * blend1a +
-         (*rdpxi_state[wid].blender2a_b[0]) * blend2a) >>
+  *b = ((((*rdpxi_state[wid].blender1a_b[0]) * blend1a) +
+         ((*rdpxi_state[wid].blender2a_b[0]) * blend2a)) >>
         5) &
        0xff;
 }
@@ -190,12 +190,12 @@ static STRICTINLINE void blender_equation_cycle1(uint32_t wid, int* r, int* g,
   }
 
   mulb = blend2a + 1;
-  blr = (*rdpxi_state[wid].blender1a_r[1]) * blend1a +
-        (*rdpxi_state[wid].blender2a_r[1]) * mulb;
-  blg = (*rdpxi_state[wid].blender1a_g[1]) * blend1a +
-        (*rdpxi_state[wid].blender2a_g[1]) * mulb;
-  blb = (*rdpxi_state[wid].blender1a_b[1]) * blend1a +
-        (*rdpxi_state[wid].blender2a_b[1]) * mulb;
+  blr = ((*rdpxi_state[wid].blender1a_r[1]) * blend1a) +
+        ((*rdpxi_state[wid].blender2a_r[1]) * mulb);
+  blg = ((*rdpxi_state[wid].blender1a_g[1]) * blend1a) +
+        ((*rdpxi_state[wid].blender2a_g[1]) * mulb);
+  blb = ((*rdpxi_state[wid].blender1a_b[1]) * blend1a) +
+        ((*rdpxi_state[wid].blender2a_b[1]) * mulb);
 
   if (!rdpxi_state[wid].other_modes.force_blend) {
     sum = ((blend1a & ~3) + (blend2a & ~3) + 4) << 9;

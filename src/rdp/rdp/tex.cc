@@ -229,17 +229,21 @@ void texture_pipeline_cycle(uint32_t wid, struct Color* tex, struct Color* prev,
 
             tex->r =
                 t3.r +
-                ((invsfrg * (t2.r - t3.r) + invtf * (t1.r - t3.r) + 0x10) >> 5);
+                (((invsfrg * (t2.r - t3.r)) + (invtf * (t1.r - t3.r)) + 0x10) >>
+                 5);
             tex->g =
                 t3.g +
-                ((invsfrg * (t2.g - t3.g) + invtf * (t1.g - t3.g) + 0x10) >> 5);
+                (((invsfrg * (t2.g - t3.g)) + (invtf * (t1.g - t3.g)) + 0x10) >>
+                 5);
           } else {
             tex->r =
                 t0.r +
-                ((sfracrg * (t1.r - t0.r) + tfrac * (t2.r - t0.r) + 0x10) >> 5);
+                (((sfracrg * (t1.r - t0.r)) + (tfrac * (t2.r - t0.r)) + 0x10) >>
+                 5);
             tex->g =
                 t0.g +
-                ((sfracrg * (t1.g - t0.g) + tfrac * (t2.g - t0.g) + 0x10) >> 5);
+                (((sfracrg * (t1.g - t0.g)) + (tfrac * (t2.g - t0.g)) + 0x10) >>
+                 5);
           }
         } else {
           invt3r = ~t3.r;
@@ -259,17 +263,21 @@ void texture_pipeline_cycle(uint32_t wid, struct Color* tex, struct Color* prev,
 
             tex->b =
                 t3.b +
-                ((invsf * (t2.b - t3.b) + invtf * (t1.b - t3.b) + 0x10) >> 5);
+                (((invsf * (t2.b - t3.b)) + (invtf * (t1.b - t3.b)) + 0x10) >>
+                 5);
             tex->a =
                 t3.a +
-                ((invsf * (t2.a - t3.a) + invtf * (t1.a - t3.a) + 0x10) >> 5);
+                (((invsf * (t2.a - t3.a)) + (invtf * (t1.a - t3.a)) + 0x10) >>
+                 5);
           } else {
             tex->b =
                 t0.b +
-                ((sfrac * (t1.b - t0.b) + tfrac * (t2.b - t0.b) + 0x10) >> 5);
+                (((sfrac * (t1.b - t0.b)) + (tfrac * (t2.b - t0.b)) + 0x10) >>
+                 5);
             tex->a =
                 t0.a +
-                ((sfrac * (t1.a - t0.a) + tfrac * (t2.a - t0.a) + 0x10) >> 5);
+                (((sfrac * (t1.a - t0.a)) + (tfrac * (t2.a - t0.a)) + 0x10) >>
+                 5);
           }
         } else {
           invt3b = ~t3.b;
@@ -294,26 +302,30 @@ void texture_pipeline_cycle(uint32_t wid, struct Color* tex, struct Color* prev,
           if (upperrg) {
             tex->r =
                 prevb +
-                ((prevr * (t2.r - t3.r) + prevg * (t1.r - t3.r) + 0x80) >> 8);
+                (((prevr * (t2.r - t3.r)) + (prevg * (t1.r - t3.r)) + 0x80) >>
+                 8);
             tex->g =
                 prevb +
-                ((prevr * (t2.g - t3.g) + prevg * (t1.g - t3.g) + 0x80) >> 8);
+                (((prevr * (t2.g - t3.g)) + (prevg * (t1.g - t3.g)) + 0x80) >>
+                 8);
           } else {
             tex->r =
                 prevb +
-                ((prevr * (t1.r - t0.r) + prevg * (t2.r - t0.r) + 0x80) >> 8);
+                (((prevr * (t1.r - t0.r)) + (prevg * (t2.r - t0.r)) + 0x80) >>
+                 8);
             tex->g =
                 prevb +
-                ((prevr * (t1.g - t0.g) + prevg * (t2.g - t0.g) + 0x80) >> 8);
+                (((prevr * (t1.g - t0.g)) + (prevg * (t2.g - t0.g)) + 0x80) >>
+                 8);
           }
         } else {
           invt3r = ~t3.r;
           invt3g = ~t3.g;
 
-          tex->r = prevb + ((prevr * (t2.r - t3.r) + prevg * (t1.r - t3.r) +
+          tex->r = prevb + (((prevr * (t2.r - t3.r)) + (prevg * (t1.r - t3.r)) +
                              ((invt3r + t0.r) << 6) + 0xc0) >>
                             8);
-          tex->g = prevb + ((prevr * (t2.g - t3.g) + prevg * (t1.g - t3.g) +
+          tex->g = prevb + (((prevr * (t2.g - t3.g)) + (prevg * (t1.g - t3.g)) +
                              ((invt3g + t0.g) << 6) + 0xc0) >>
                             8);
         }
@@ -322,26 +334,30 @@ void texture_pipeline_cycle(uint32_t wid, struct Color* tex, struct Color* prev,
           if (upper) {
             tex->b =
                 prevb +
-                ((prevr * (t2.b - t3.b) + prevg * (t1.b - t3.b) + 0x80) >> 8);
+                (((prevr * (t2.b - t3.b)) + (prevg * (t1.b - t3.b)) + 0x80) >>
+                 8);
             tex->a =
                 prevb +
-                ((prevr * (t2.a - t3.a) + prevg * (t1.a - t3.a) + 0x80) >> 8);
+                (((prevr * (t2.a - t3.a)) + (prevg * (t1.a - t3.a)) + 0x80) >>
+                 8);
           } else {
             tex->b =
                 prevb +
-                ((prevr * (t1.b - t0.b) + prevg * (t2.b - t0.b) + 0x80) >> 8);
+                (((prevr * (t1.b - t0.b)) + (prevg * (t2.b - t0.b)) + 0x80) >>
+                 8);
             tex->a =
                 prevb +
-                ((prevr * (t1.a - t0.a) + prevg * (t2.a - t0.a) + 0x80) >> 8);
+                (((prevr * (t1.a - t0.a)) + (prevg * (t2.a - t0.a)) + 0x80) >>
+                 8);
           }
         } else {
           invt3b = ~t3.b;
           invt3a = ~t3.a;
 
-          tex->b = prevb + ((prevr * (t2.b - t3.b) + prevg * (t1.b - t3.b) +
+          tex->b = prevb + (((prevr * (t2.b - t3.b)) + (prevg * (t1.b - t3.b)) +
                              ((invt3b + t0.b) << 6) + 0xc0) >>
                             8);
-          tex->a = prevb + ((prevr * (t2.a - t3.a) + prevg * (t1.a - t3.a) +
+          tex->a = prevb + (((prevr * (t2.a - t3.a)) + (prevg * (t1.a - t3.a)) +
                              ((invt3a + t0.a) << 6) + 0xc0) >>
                             8);
         }
@@ -370,34 +386,34 @@ void texture_pipeline_cycle(uint32_t wid, struct Color* tex, struct Color* prev,
 
       if (upperrg) {
         if (upper) {
-          tex->r = t3.b + ((rdpxi_state[wid].k0_tf * t3.g + 0x80) >> 8);
-          tex->g = t3.b + ((rdpxi_state[wid].k1_tf * t3.r +
-                            rdpxi_state[wid].k2_tf * t3.g + 0x80) >>
+          tex->r = t3.b + (((rdpxi_state[wid].k0_tf * t3.g) + 0x80) >> 8);
+          tex->g = t3.b + (((rdpxi_state[wid].k1_tf * t3.r) +
+                            (rdpxi_state[wid].k2_tf * t3.g) + 0x80) >>
                            8);
-          tex->b = t3.b + ((rdpxi_state[wid].k3_tf * t3.r + 0x80) >> 8);
+          tex->b = t3.b + (((rdpxi_state[wid].k3_tf * t3.r) + 0x80) >> 8);
           tex->a = t3.b;
         } else {
-          tex->r = t0.b + ((rdpxi_state[wid].k0_tf * t3.g + 0x80) >> 8);
-          tex->g = t0.b + ((rdpxi_state[wid].k1_tf * t3.r +
-                            rdpxi_state[wid].k2_tf * t3.g + 0x80) >>
+          tex->r = t0.b + (((rdpxi_state[wid].k0_tf * t3.g) + 0x80) >> 8);
+          tex->g = t0.b + (((rdpxi_state[wid].k1_tf * t3.r) +
+                            (rdpxi_state[wid].k2_tf * t3.g) + 0x80) >>
                            8);
-          tex->b = t0.b + ((rdpxi_state[wid].k3_tf * t3.r + 0x80) >> 8);
+          tex->b = t0.b + (((rdpxi_state[wid].k3_tf * t3.r) + 0x80) >> 8);
           tex->a = t0.b;
         }
       } else {
         if (upper) {
-          tex->r = t3.b + ((rdpxi_state[wid].k0_tf * t0.g + 0x80) >> 8);
-          tex->g = t3.b + ((rdpxi_state[wid].k1_tf * t0.r +
-                            rdpxi_state[wid].k2_tf * t0.g + 0x80) >>
+          tex->r = t3.b + (((rdpxi_state[wid].k0_tf * t0.g) + 0x80) >> 8);
+          tex->g = t3.b + (((rdpxi_state[wid].k1_tf * t0.r) +
+                            (rdpxi_state[wid].k2_tf * t0.g) + 0x80) >>
                            8);
-          tex->b = t3.b + ((rdpxi_state[wid].k3_tf * t0.r + 0x80) >> 8);
+          tex->b = t3.b + (((rdpxi_state[wid].k3_tf * t0.r) + 0x80) >> 8);
           tex->a = t3.b;
         } else {
-          tex->r = t0.b + ((rdpxi_state[wid].k0_tf * t0.g + 0x80) >> 8);
-          tex->g = t0.b + ((rdpxi_state[wid].k1_tf * t0.r +
-                            rdpxi_state[wid].k2_tf * t0.g + 0x80) >>
+          tex->r = t0.b + (((rdpxi_state[wid].k0_tf * t0.g) + 0x80) >> 8);
+          tex->g = t0.b + (((rdpxi_state[wid].k1_tf * t0.r) +
+                            (rdpxi_state[wid].k2_tf * t0.g) + 0x80) >>
                            8);
-          tex->b = t0.b + ((rdpxi_state[wid].k3_tf * t0.r + 0x80) >> 8);
+          tex->b = t0.b + (((rdpxi_state[wid].k3_tf * t0.r) + 0x80) >> 8);
           tex->a = t0.b;
         }
       }
@@ -434,11 +450,11 @@ void texture_pipeline_cycle(uint32_t wid, struct Color* tex, struct Color* prev,
         fetch_texel(wid, &t0, sss1, sst1, tilenum);
       }
 
-      tex->r = t0.b + ((rdpxi_state[wid].k0_tf * t0.g + 0x80) >> 8);
-      tex->g = t0.b + ((rdpxi_state[wid].k1_tf * t0.r +
-                        rdpxi_state[wid].k2_tf * t0.g + 0x80) >>
+      tex->r = t0.b + (((rdpxi_state[wid].k0_tf * t0.g) + 0x80) >> 8);
+      tex->g = t0.b + (((rdpxi_state[wid].k1_tf * t0.r) +
+                        (rdpxi_state[wid].k2_tf * t0.g) + 0x80) >>
                        8);
-      tex->b = t0.b + ((rdpxi_state[wid].k3_tf * t0.r + 0x80) >> 8);
+      tex->b = t0.b + (((rdpxi_state[wid].k3_tf * t0.r) + 0x80) >> 8);
       tex->a = t0.b & 0x1ff;
       tex->r &= 0x1ff;
       tex->g &= 0x1ff;
@@ -533,7 +549,7 @@ static void loading_pipeline(uint32_t wid, int start, int end, int tilenum,
     s = rdpxi_state[wid].span[i].s;
     t = rdpxi_state[wid].span[i].t;
 
-    ti_index = rdpxi_state[wid].ti_width * i + xend;
+    ti_index = (rdpxi_state[wid].ti_width * i) + xend;
     tiptr = (int)(rdpxi_state[wid].ti_address +
                   PIXELS_TO_BYTES(ti_index, rdpxi_state[wid].ti_size));
 
@@ -627,6 +643,9 @@ static void loading_pipeline(uint32_t wid, int start, int end, int tilenum,
 
       switch (tmem_formatting) {
         case 0:
+          // tiptr&7 is 0-7 so one switch case above always inits loadqword;
+          // analyzer can't prove the &7 invariant excludes the default path.
+          // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
           readval0 = (uint32_t)((((loadqword >> 56) & 0xff) << 24) |
                                 (((loadqword >> 40) & 0xff) << 16) |
                                 (((loadqword >> 24) & 0xff) << 8) |
@@ -652,6 +671,9 @@ static void loading_pipeline(uint32_t wid, int start, int end, int tilenum,
           }
           break;
         case 1:
+          // tiptr&7 is 0-7 so one switch case above always inits loadqword;
+          // analyzer can't prove the &7 invariant excludes the default path.
+          // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
           readval0 = (uint32_t)(((loadqword >> 48) << 16) |
                                 ((loadqword >> 16) & 0xffff));
           readval1 = (uint32_t)((((loadqword >> 32) & 0xffff) << 16) |
@@ -676,13 +698,22 @@ static void loading_pipeline(uint32_t wid, int start, int end, int tilenum,
         case 2:
           if (!dswap) {
             if (!hibit) {
+              // tiptr&7 is 0-7 so one switch case above always inits loadqword;
+              // analyzer can't prove the &7 invariant excludes the default
+              // path.
+              // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
               TMEM16[tmemidx0 ^ WORD_ADDR_XOR] = (uint16_t)(loadqword >> 48);
               TMEM16[tmemidx1 ^ WORD_ADDR_XOR] = (uint16_t)(loadqword >> 32);
               TMEM16[tmemidx2 ^ WORD_ADDR_XOR] = (uint16_t)(loadqword >> 16);
               TMEM16[tmemidx3 ^ WORD_ADDR_XOR] = (uint16_t)(loadqword & 0xffff);
             } else {
+              // tiptr&7 is 0-7 so one switch case above always inits loadqword;
+              // analyzer can't prove the &7 invariant excludes the default
+              // path.
+              // NOLINTBEGIN(clang-analyzer-core.UndefinedBinaryOperatorResult)
               TMEM16[(tmemidx0 | 0x400) ^ WORD_ADDR_XOR] =
                   (uint16_t)(loadqword >> 48);
+              // NOLINTEND(clang-analyzer-core.UndefinedBinaryOperatorResult)
               TMEM16[(tmemidx1 | 0x400) ^ WORD_ADDR_XOR] =
                   (uint16_t)(loadqword >> 32);
               TMEM16[(tmemidx2 | 0x400) ^ WORD_ADDR_XOR] =
@@ -692,13 +723,22 @@ static void loading_pipeline(uint32_t wid, int start, int end, int tilenum,
             }
           } else {
             if (!hibit) {
+              // tiptr&7 is 0-7 so one switch case above always inits loadqword;
+              // analyzer can't prove the &7 invariant excludes the default
+              // path.
+              // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
               TMEM16[tmemidx0 ^ WORD_ADDR_XOR] = (uint16_t)(loadqword >> 16);
               TMEM16[tmemidx1 ^ WORD_ADDR_XOR] = (uint16_t)(loadqword & 0xffff);
               TMEM16[tmemidx2 ^ WORD_ADDR_XOR] = (uint16_t)(loadqword >> 48);
               TMEM16[tmemidx3 ^ WORD_ADDR_XOR] = (uint16_t)(loadqword >> 32);
             } else {
+              // tiptr&7 is 0-7 so one switch case above always inits loadqword;
+              // analyzer can't prove the &7 invariant excludes the default
+              // path.
+              // NOLINTBEGIN(clang-analyzer-core.UndefinedBinaryOperatorResult)
               TMEM16[(tmemidx0 | 0x400) ^ WORD_ADDR_XOR] =
                   (uint16_t)(loadqword >> 16);
+              // NOLINTEND(clang-analyzer-core.UndefinedBinaryOperatorResult)
               TMEM16[(tmemidx1 | 0x400) ^ WORD_ADDR_XOR] =
                   (uint16_t)(loadqword & 0xffff);
               TMEM16[(tmemidx2 | 0x400) ^ WORD_ADDR_XOR] =
@@ -905,7 +945,7 @@ static void tile_tlut_common_cs_decoder(uint32_t wid, const uint32_t* args) {
 
   lewdata[0] = (int32_t)((args[0] & 0xff000000) | (0x10 << 19) |
                          (tilenum << 16) | (th | 3));
-  lewdata[1] = ((th | 3) << 16) | (tl);
+  lewdata[1] = ((th | 3) << 16) | tl;
   lewdata[2] = ((sh >> 2) << 16) | ((sh & 3) << 14);
   lewdata[3] = ((sl >> 2) << 16) | ((sl & 3) << 14);
   lewdata[4] = ((sh >> 2) << 16) | ((sh & 3) << 14);

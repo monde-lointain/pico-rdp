@@ -1052,7 +1052,7 @@ void tcoord_init_lut(void) {
 
   maskbits_table[0] = 0x3ff;
   for (i = 1; i < 16; i++) {
-    maskbits_table[i] = ((uint16_t)(0xffff) >> (16 - i)) & 0x3ff;
+    maskbits_table[i] = ((uint16_t)0xffff >> (16 - i)) & 0x3ff;
   }
 }
 

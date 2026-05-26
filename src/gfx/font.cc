@@ -56,9 +56,9 @@ static void blit_glyph(struct Framebuffer *fb, const struct Sprite *atlas,
         continue;
       }
 
-      const int sidx = (src_y0 + sy) * (int)atlas->w + (src_x0 + sx);
+      const int sidx = ((src_y0 + sy) * (int)atlas->w) + (src_x0 + sx);
       if (atlas->mask[sidx >> 3] & (uint8_t)(0x80 >> (sidx & 7))) {
-        fb->px[dy_abs * SCREEN_W + dx_abs] = fg;
+        fb->px[(dy_abs * SCREEN_W) + dx_abs] = fg;
       }
     }
   }

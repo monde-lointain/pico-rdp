@@ -32,7 +32,7 @@ void hline(struct Framebuffer *fb, int x, int y, int len, color_t color) {
   if (!clip1d(&x, &len, SCREEN_W)) {
     return;
   }
-  color_t *p = fb->px + (ptrdiff_t)y * SCREEN_W + x;
+  color_t *p = fb->px + ((ptrdiff_t)y * SCREEN_W) + x;
   int i;
   for (i = 0; i < len; ++i) {
     p[i] = color;
@@ -46,7 +46,7 @@ void vline(struct Framebuffer *fb, int x, int y, int len, color_t color) {
   if (!clip1d(&y, &len, SCREEN_H)) {
     return;
   }
-  color_t *p = fb->px + (ptrdiff_t)y * SCREEN_W + x;
+  color_t *p = fb->px + ((ptrdiff_t)y * SCREEN_W) + x;
   int i;
   for (i = 0; i < len; ++i) {
     p[(ptrdiff_t)i * SCREEN_W] = color;
@@ -68,7 +68,7 @@ void frect(struct Framebuffer *fb, int x, int y, int w, int h, color_t color) {
   if (!clip1d(&y, &h, SCREEN_H)) {
     return;
   }
-  color_t *row = fb->px + (ptrdiff_t)y * SCREEN_W + x;
+  color_t *row = fb->px + ((ptrdiff_t)y * SCREEN_W) + x;
   int j;
   int i;
   for (j = 0; j < h; ++j) {
@@ -86,7 +86,7 @@ void frect(struct Framebuffer *fb, int x, int y, int w, int h, color_t color) {
 static int src_idx(const struct Sprite *s, int dc, int dr, int flags) {
   const int sc = (flags & BLIT_HFLIP) ? (s->w - 1 - dc) : dc;
   const int sr = (flags & BLIT_VFLIP) ? (s->h - 1 - dr) : dr;
-  return sr * s->w + sc;
+  return (sr * s->w) + sc;
 }
 
 void blit_copy(struct Framebuffer *fb, const struct Sprite *s, int x, int y,
@@ -132,7 +132,7 @@ void blit_copy(struct Framebuffer *fb, const struct Sprite *s, int x, int y,
   int dr;
   int dc;
   for (dr = 0; dr < draw_h; ++dr) {
-    color_t *dst = fb->px + (ptrdiff_t)(y + dr) * SCREEN_W + x;
+    color_t *dst = fb->px + ((ptrdiff_t)(y + dr) * SCREEN_W) + x;
     for (dc = 0; dc < draw_w; ++dc) {
       const int sidx = src_idx(s, dx_start + dc, dy_start + dr, flags);
       dst[dc] = s->rgb565[sidx];
@@ -182,7 +182,7 @@ void blit_mask(struct Framebuffer *fb, const struct Sprite *s, int x, int y,
   int dr;
   int dc;
   for (dr = 0; dr < draw_h; ++dr) {
-    color_t *dst = fb->px + (ptrdiff_t)(y + dr) * SCREEN_W + x;
+    color_t *dst = fb->px + ((ptrdiff_t)(y + dr) * SCREEN_W) + x;
     for (dc = 0; dc < draw_w; ++dc) {
       const int sidx = src_idx(s, dx_start + dc, dy_start + dr, flags);
       /* check mask bit */

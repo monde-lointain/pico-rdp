@@ -16,7 +16,7 @@ struct Sprite {
 
 static inline bool sprite_opaque_at(const struct Sprite *s, uint16_t x,
                                     uint16_t y) {
-  const uint32_t idx = (uint32_t)y * s->w + x;
+  const uint32_t idx = ((uint32_t)y * s->w) + x;
   return (s->mask[idx >> 3] & (uint8_t)(0x80 >> (idx & 7))) != 0;
 }
 

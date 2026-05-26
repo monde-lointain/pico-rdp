@@ -27,6 +27,7 @@
 #include "rdram_io.h"  // XOR-correct halfword I/O for the demo->staging blit
 
 extern "C" {
+#include "minmax.h"
 #include "n64video.h"
 
 // Harness hooks NOT in the public header (test-only / adapter entry points),
@@ -106,17 +107,13 @@ static void renderer_host_scanout_cb(const void* data, uint32_t width,
     s_scanout_valid = 0;
     return;
   }
-  if (width > SCANOUT_MAX_W) {
-    width = SCANOUT_MAX_W;
-  }
-  if (height > SCANOUT_MAX_H) {
-    height = SCANOUT_MAX_H;
-  }
+  width = rdpx_min(width, (uint32_t)SCANOUT_MAX_W);
+  height = rdpx_min(height, (uint32_t)SCANOUT_MAX_H);
 
   const uint32_t* src = (const uint32_t*)data;  // pitch is in pixels
   for (uint32_t y = 0; y < height; ++y) {
-    const uint32_t* srow = src + (size_t)y * pitch;
-    uint32_t* drow = s_scanout + (size_t)y * width;
+    const uint32_t* srow = src + ((size_t)y * pitch);
+    uint32_t* drow = s_scanout + ((size_t)y * width);
     for (uint32_t x = 0; x < width; ++x) {
       drow[x] =
           srow[x] | 0xff000000U;  // force opaque alpha (top byte = A in RGBA32)
@@ -164,7 +161,7 @@ static void renderer_host_emit(void* ctx, const uint32_t* words, uint32_t n) {
 static void renderer_host_program_vi(void) {
   memset(s_vi_regs, 0, sizeof(s_vi_regs));
 
-  s_vi_regs[VI_STATUS] = (2U) | (3U << 8);  // RGBA5551 | AA replicate (0x302)
+  s_vi_regs[VI_STATUS] = 2U | (3U << 8);  // RGBA5551 | AA replicate (0x302)
   s_vi_regs[VI_ORIGIN] =
       CLEAR_FB_ADDR;  // color FB byte addr (non-zero; see macro)
   s_vi_regs[VI_WIDTH] = CLEAR_FB_DIM;  // 256 (FB row stride in pixels)
@@ -374,20 +371,16 @@ void renderer_host_present_demo(uint32_t src_fb_addr, uint32_t src_w,
   // RDRAM under the byte-swizzle, so copy via the XOR-correct halfword helpers.
   const uint32_t dst_stride_px = CLEAR_FB_DIM;  // 256 (staging row stride)
   const uint32_t dst_col_off = 8U;              // matches the VI crop offset
-  if (src_w > dst_stride_px - dst_col_off) {
-    src_w = dst_stride_px - dst_col_off;
-  }
-  if (src_h > CLEAR_FB_DIM) {
-    src_h = CLEAR_FB_DIM;
-  }
+  src_w = rdpx_min(src_w, dst_stride_px - dst_col_off);
+  src_h = rdpx_min(src_h, (uint32_t)CLEAR_FB_DIM);
 
   for (uint32_t y = 0; y < src_h; ++y) {
-    const uint32_t src_row_off = src_fb_addr + (y * src_w) * 2U;
+    const uint32_t src_row_off = src_fb_addr + ((y * src_w) * 2U);
     const uint32_t dst_row_off =
-        CLEAR_FB_ADDR + (y * dst_stride_px + dst_col_off) * 2U;
+        CLEAR_FB_ADDR + (((y * dst_stride_px) + dst_col_off) * 2U);
     for (uint32_t x = 0; x < src_w; ++x) {
-      uint16_t const px = rdram_read16(s_rdram, src_row_off + x * 2U);
-      rdram_write16(s_rdram, dst_row_off + x * 2U, px);
+      uint16_t const px = rdram_read16(s_rdram, src_row_off + (x * 2U));
+      rdram_write16(s_rdram, dst_row_off + (x * 2U), px);
     }
   }
 

@@ -2,7 +2,11 @@
 # wholesale (they demand auto/range-for/named-casts and flag C-casts, malloc,
 # and C-arrays, all of which Orthodox C++ mandates the opposite of). The
 # Orthodoxy clang plugin is the style authority; clang-tidy keeps only the
-# correctness/portability checks that don't conflict.
+# correctness/portability checks that don't conflict. Two clang-tidy-22 checks
+# are also dropped: readability-use-std-min-max (mandates std::min/max from
+# <algorithm> — Orthodox-forbidden; use rdpx_min/rdpx_max from rdp/minmax.h) and
+# misc-use-internal-linkage (false positives on the cross-TU rdram_* API in
+# *_internal.h, since clang-tidy analyses one TU at a time).
 Checks: >
   -*,
   bugprone-*,
@@ -16,11 +20,14 @@ Checks: >
   -misc-include-cleaner,
   -misc-non-private-member-variables-in-classes,
   -misc-use-anonymous-namespace,
+  -misc-use-internal-linkage,
   -performance-enum-size,
+  -portability-avoid-pragma-once,
   -readability-function-cognitive-complexity,
   -readability-identifier-length,
   -readability-implicit-bool-conversion,
-  -readability-magic-numbers
+  -readability-magic-numbers,
+  -readability-use-std-min-max
 HeaderFilterRegex: 'src/(app|game|gfx|platform|viewer|rdp)/|src/demo/[^/]+\.h$'
 WarningsAsErrors: ''
 CheckOptions:

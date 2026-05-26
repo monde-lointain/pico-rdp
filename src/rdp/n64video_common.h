@@ -46,6 +46,6 @@
 // Defined in angrylion n64video.c; lifted here verbatim (math unchanged) so the
 // sequence is unit-testable in isolation. Worker seed is 3 + worker_id*13.
 static STRICTINLINE uint32_t irand(uint32_t* state) {
-  *state = *state * 0x343fd + 0x269ec3;
+  *state = (*state * 0x343fd) + 0x269ec3;
   return ((*state >> 16) & 0x7fff);
 }

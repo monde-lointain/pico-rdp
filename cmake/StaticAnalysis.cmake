@@ -2,7 +2,8 @@
 # adapted for this project: headers live under src/ (no include/), and pico-only and
 # generated sources are excluded since they are not in the host compile DB.
 
-find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy)
+# Prefer the newest versioned binary available; fall back to the unversioned one.
+find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-22 clang-tidy)
 if(CLANG_TIDY_EXECUTABLE)
   file(GLOB_RECURSE TIDY_SOURCE_FILES
     ${CMAKE_SOURCE_DIR}/src/*.cc

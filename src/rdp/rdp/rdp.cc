@@ -331,7 +331,7 @@ void deduce_derivatives(uint32_t wid) {
 void rdpxi_rdp_init(uint32_t wid, uint32_t num_workers) {
   rdpxi_state[wid].stride = num_workers;
   rdpxi_state[wid].offset = wid;
-  rdpxi_state[wid].rseed = 3 + wid * 13;
+  rdpxi_state[wid].rseed = 3 + (wid * 13);
 
   uint32_t tmp[2] = {0};
   rdp_set_other_modes(wid, tmp);

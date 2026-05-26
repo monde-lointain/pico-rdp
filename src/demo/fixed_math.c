@@ -37,9 +37,9 @@ void demo_mat4_mul(struct DemoMat4 *out, const struct DemoMat4 *a,
     for (int32_t c = 0; c < 4; ++c) {
       int64_t acc = 0;
       for (int32_t k = 0; k < 4; ++k) {
-        acc += (int64_t)a->m[r * 4 + k] * (int64_t)b->m[k * 4 + c];
+        acc += (int64_t)a->m[(r * 4) + k] * (int64_t)b->m[(k * 4) + c];
       }
-      out->m[r * 4 + c] = (demo_fix)(acc >> DEMO_FIX_SHIFT);
+      out->m[(r * 4) + c] = (demo_fix)(acc >> DEMO_FIX_SHIFT);
     }
   }
 }
@@ -50,7 +50,7 @@ void demo_mat4_mul_vec4(demo_fix *out, const struct DemoMat4 *m,
   for (int32_t c = 0; c < 4; ++c) {
     int64_t acc = 0;
     for (int32_t r = 0; r < 4; ++r) {
-      acc += (int64_t)v[r] * (int64_t)m->m[r * 4 + c];
+      acc += (int64_t)v[r] * (int64_t)m->m[(r * 4) + c];
     }
     out[c] = (demo_fix)(acc >> DEMO_FIX_SHIFT);
   }
