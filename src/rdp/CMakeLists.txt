@@ -40,17 +40,25 @@ target_include_directories(rdp_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(rdp_core PRIVATE project_warnings)
 
 # Cross-TU inlining: the unity build inlined the per-pixel helpers for free;
-# splitting into TUs relies on LTO to recover that. Enable IPO for non-Debug
-# configs (so pico Release benefits; host Debug stays fast to build). Guarded by
-# check_ipo_supported so toolchains without LTO still configure.
-include(CheckIPOSupported)
-check_ipo_supported(RESULT RDP_IPO_OK OUTPUT RDP_IPO_MSG)
-if(RDP_IPO_OK)
-  set_target_properties(rdp_core PROPERTIES
-    INTERPROCEDURAL_OPTIMIZATION_RELEASE ON
-    INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
-else()
-  message(STATUS "rdp_core: IPO/LTO unavailable (${RDP_IPO_MSG}); skipping")
+# splitting into TUs relies on LTO to recover that. OPT-IN (default OFF):
+# clang's LTO emits an LLVM-bitcode archive that the default GNU `ld` cannot
+# read (needs LLVMgold.so or lld), so enabling it by default would break stock
+# host links. Turn on with -DRDP_ENABLE_LTO=ON together with a plugin-capable
+# linker (e.g. -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld). Perf is forward-looking:
+# the renderer isn't linked into the device firmware yet and host perf is
+# informational, so the default build stays plain (no perf bar to clear).
+option(RDP_ENABLE_LTO "Enable LTO/IPO on rdp_core (needs an LTO-capable linker)"
+  OFF)
+if(RDP_ENABLE_LTO)
+  include(CheckIPOSupported)
+  check_ipo_supported(RESULT RDP_IPO_OK OUTPUT RDP_IPO_MSG)
+  if(RDP_IPO_OK)
+    set_target_properties(rdp_core PROPERTIES
+      INTERPROCEDURAL_OPTIMIZATION_RELEASE ON
+      INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
+  else()
+    message(WARNING "RDP_ENABLE_LTO=ON but IPO unsupported (${RDP_IPO_MSG})")
+  endif()
 endif()
 
 # RDPX_TESTING: when host tests are built, compile the rdpx_* test-accessor block
