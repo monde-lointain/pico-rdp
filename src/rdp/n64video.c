@@ -35,6 +35,7 @@
 #include "n64video_common.h"
 #include "rdp/rdp_internal.h"
 #include "rdp/rdram_internal.h"  // rdram_init() + rdpxi_rdram_hidden accessor
+#include "vi/vi_internal.h"      // struct Rgba/FrameBuffer + VI exports
 
 // The renderer config global. External linkage (rdpxi_-prefixed to avoid
 // colliding with the Angrylion oracle's `config`) so split-out stage TUs
@@ -99,26 +100,13 @@ uint64_t rdpxi_pixel_count = 0;
 //     the conformance adapter, so the parallel branches in vi.c are dead; the
 //     stubs exist only so the dead branches link.
 //
-// Every VI external (vi_update_screen, vi_set_zbuffer_address, vi_gamma_init,
-// vi_restore_init, vi_init, vi_close) was made `static` in the ported vi/*.c so
-// nothing collides with the oracle's original VI symbol names at link.
+// Every VI external (vi_update_screen, vi_set_zbuffer_address,
+// rdpxi_vi_gamma_init, rdpxi_vi_restore_init, vi_init, vi_close) was made
+// `static` in the ported vi/*.c so nothing collides with the oracle's original
+// VI symbol names at link.
 
-#define PARALLEL_MAX_WORKERS RDPX_PARALLEL_MAX_WORKERS
-
-struct Rgba {
-  uint8_t r;
-  uint8_t g;
-  uint8_t b;
-  uint8_t a;
-};
-
-struct FrameBuffer {
-  struct Rgba* pixels;
-  uint32_t width;
-  uint32_t height;
-  uint32_t height_out;
-  uint32_t pitch;
-};
+// struct Rgba / struct FrameBuffer / PARALLEL_MAX_WORKERS now live in
+// vi/vi_internal.h (shared with the VI stage TUs).
 
 // Adapter-installed scanout callback. data is RGBA8888 (struct Rgba) pixels;
 // mirrors the oracle's vdac_write -> update_screen(pixels, width, height,

@@ -1,63 +1,6 @@
 #ifdef N64VIDEO_C
 
-// anamorphic NTSC resolution
-#define H_RES_NTSC 640
-#define V_RES_NTSC 480
-
-// anamorphic PAL resolution
-#define H_RES_PAL 768
-#define V_RES_PAL 576
-
-// typical VI_V_SYNC values for NTSC and PAL
-#define V_SYNC_NTSC 525
-#define V_SYNC_PAL 625
-
-// maximum possible size of the prescale area
-#define PRESCALE_WIDTH H_RES_NTSC
-#define PRESCALE_HEIGHT V_SYNC_PAL
-
-enum ViType {
-  VI_TYPE_BLANK,     // no data, no sync
-  VI_TYPE_RESERVED,  // unused, should never be set
-  VI_TYPE_RGBA5551,  // 16 bit color (internally 18 bit RGBA5553)
-  VI_TYPE_RGBA8888   // 32 bit color
-};
-
-enum ViAa {
-  VI_AA_RESAMP_EXTRA_ALWAYS,  // resample and AA (always fetch extra lines)
-  VI_AA_RESAMP_EXTRA,         // resample and AA (fetch extra lines if needed)
-  VI_AA_RESAMP_ONLY,          // only resample (treat as all fully covered)
-  VI_AA_REPLICATE             // replicate pixels, no interpolation
-};
-
-struct ViRegCtrl {
-  uint8_t type;
-  bool gamma_dither_enable;
-  bool gamma_enable;
-  bool divot_enable;
-  bool vbus_clock_enable;
-  bool serrate;
-  bool test_mode;
-  uint8_t aa_mode;
-  bool reserved;
-  bool kill_we;
-  uint8_t pixel_advance;
-  bool dither_filter_enable;
-};
-
-typedef void (*vi_fetch_filter_func)(struct Rgba*, uint32_t, uint32_t,
-                                     struct ViRegCtrl, uint32_t, uint32_t);
-
-// Dependency order (matches the canonical fork 31bdb1f): fetch uses
-// restore_filter*/video_filter* from restore.c/video.c. Do NOT alphabetize.
-// clang-format off
-#include "vi/gamma.c"
-#include "vi/lerp.c"
-#include "vi/divot.c"
-#include "vi/video.c"
-#include "vi/restore.c"
-#include "vi/fetch.c"
-// clang-format on
+#include "vi_internal.h"
 
 // states
 static uint32_t prevvicurrent;
@@ -99,8 +42,8 @@ static uint32_t vi_frame_count;
 static void vi_init(void) {
   vdac_init(&rdpxi_config);
 
-  vi_gamma_init();
-  vi_restore_init();
+  rdpxi_vi_gamma_init();
+  rdpxi_vi_restore_init();
 
   memset(prescale, 0, sizeof(prescale));
 

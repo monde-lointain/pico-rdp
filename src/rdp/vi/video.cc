@@ -1,4 +1,8 @@
-#ifdef N64VIDEO_C
+// vi/video.cc — VI video stage (standalone TU). Ported VERBATIM from the fork
+// 31bdb1f. Cross-TU exports declared in vi_internal.h.
+
+#include "rdp/rdram_internal.h"
+#include "vi_internal.h"
 
 static STRICTINLINE void video_max_optimized(const uint32_t* pixels,
                                              uint32_t* penumin,
@@ -40,10 +44,9 @@ static STRICTINLINE void video_max_optimized(const uint32_t* pixels,
   *penumin = curpenmin;
 }
 
-static STRICTINLINE void video_filter16(int* endr, int* endg, int* endb,
-                                        uint32_t fboffset, uint32_t num,
-                                        uint32_t hres, uint32_t centercvg,
-                                        uint32_t fetchbugstate) {
+void video_filter16(int* endr, int* endg, int* endb, uint32_t fboffset,
+                    uint32_t num, uint32_t hres, uint32_t centercvg,
+                    uint32_t fetchbugstate) {
   int i;
   uint32_t penumaxr;
   uint32_t penumaxg;
@@ -125,10 +128,9 @@ static STRICTINLINE void video_filter16(int* endr, int* endg, int* endb,
   *endb = colb & 0xff;
 }
 
-static STRICTINLINE void video_filter32(int* endr, int* endg, int* endb,
-                                        uint32_t fboffset, uint32_t num,
-                                        uint32_t hres, uint32_t centercvg,
-                                        uint32_t fetchbugstate) {
+void video_filter32(int* endr, int* endg, int* endb, uint32_t fboffset,
+                    uint32_t num, uint32_t hres, uint32_t centercvg,
+                    uint32_t fetchbugstate) {
   int i;
   uint32_t penumaxr;
   uint32_t penumaxg;
@@ -210,5 +212,3 @@ static STRICTINLINE void video_filter32(int* endr, int* endg, int* endb,
   *endg = colg & 0xff;
   *endb = colb & 0xff;
 }
-
-#endif  // N64VIDEO_C

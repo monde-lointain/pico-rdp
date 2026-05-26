@@ -1,8 +1,12 @@
-#ifdef N64VIDEO_C
+// vi/fetch.cc — VI fetch stage (standalone TU). Ported VERBATIM from the fork
+// 31bdb1f. Cross-TU exports declared in vi_internal.h.
 
-static void vi_fetch_filter16(struct Rgba* res, uint32_t fboffset,
-                              uint32_t cur_x, struct ViRegCtrl ctrl,
-                              uint32_t hres, uint32_t fetchstate) {
+#include "rdp/rdram_internal.h"
+#include "vi_internal.h"
+
+void vi_fetch_filter16(struct Rgba* res, uint32_t fboffset, uint32_t cur_x,
+                       struct ViRegCtrl ctrl, uint32_t hres,
+                       uint32_t fetchstate) {
   int r;
   int g;
   int b;
@@ -35,9 +39,9 @@ static void vi_fetch_filter16(struct Rgba* res, uint32_t fboffset,
   res->a = cur_cvg;
 }
 
-static void vi_fetch_filter32(struct Rgba* res, uint32_t fboffset,
-                              uint32_t cur_x, struct ViRegCtrl ctrl,
-                              uint32_t hres, uint32_t fetchstate) {
+void vi_fetch_filter32(struct Rgba* res, uint32_t fboffset, uint32_t cur_x,
+                       struct ViRegCtrl ctrl, uint32_t hres,
+                       uint32_t fetchstate) {
   int r;
   int g;
   int b;
@@ -67,5 +71,3 @@ static void vi_fetch_filter32(struct Rgba* res, uint32_t fboffset,
   res->b = b;
   res->a = cur_cvg;
 }
-
-#endif  // N64VIDEO_C

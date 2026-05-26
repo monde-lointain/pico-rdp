@@ -1,4 +1,7 @@
-#ifdef N64VIDEO_C
+// vi/gamma.cc — VI gamma stage (standalone TU). Ported VERBATIM from the fork
+// 31bdb1f. Cross-TU exports declared in vi_internal.h.
+
+#include "vi_internal.h"
 
 static uint8_t gamma_table[0x100];
 static uint8_t gamma_dither_table[0x4000];
@@ -23,9 +26,8 @@ static uint32_t vi_integer_sqrt(uint32_t a) {
   return res;
 }
 
-static STRICTINLINE void gamma_filters(struct Rgba* pixel, bool gamma_enable,
-                                       bool gamma_dither_enable,
-                                       uint32_t noise_seed) {
+void gamma_filters(struct Rgba* pixel, bool gamma_enable,
+                   bool gamma_dither_enable, uint32_t noise_seed) {
   int cdith;
   int dith;
 
@@ -64,7 +66,7 @@ static STRICTINLINE void gamma_filters(struct Rgba* pixel, bool gamma_enable,
   }
 }
 
-static void vi_gamma_init(void) {
+void rdpxi_vi_gamma_init(void) {
   int i;
   for (i = 0; i < 256; i++) {
     gamma_table[i] = vi_integer_sqrt(i << 6);
@@ -76,5 +78,3 @@ static void vi_gamma_init(void) {
     gamma_dither_table[i] <<= 1;
   }
 }
-
-#endif  // N64VIDEO_C

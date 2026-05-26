@@ -1,11 +1,13 @@
-#ifdef N64VIDEO_C
+// vi/restore.cc — VI restore stage (standalone TU). Ported VERBATIM from the
+// fork 31bdb1f. Cross-TU exports declared in vi_internal.h.
+
+#include "rdp/rdram_internal.h"
+#include "vi_internal.h"
 
 static int vi_restore_table[0x400];
 
-static STRICTINLINE void restore_filter16(int* r, int* g, int* b,
-                                          uint32_t fboffset, uint32_t num,
-                                          uint32_t hres,
-                                          uint32_t fetchbugstate) {
+void restore_filter16(int* r, int* g, int* b, uint32_t fboffset, uint32_t num,
+                      uint32_t hres, uint32_t fetchbugstate) {
   int i;
   uint32_t const idx = (fboffset >> 1) + num;
 
@@ -68,10 +70,8 @@ static STRICTINLINE void restore_filter16(int* r, int* g, int* b,
   *b = bend;
 }
 
-static STRICTINLINE void restore_filter32(int* r, int* g, int* b,
-                                          uint32_t fboffset, uint32_t num,
-                                          uint32_t hres,
-                                          uint32_t fetchbugstate) {
+void restore_filter32(int* r, int* g, int* b, uint32_t fboffset, uint32_t num,
+                      uint32_t hres, uint32_t fetchbugstate) {
   int i;
   uint32_t const idx = (fboffset >> 2) + num;
 
@@ -134,7 +134,7 @@ static STRICTINLINE void restore_filter32(int* r, int* g, int* b,
   *b = bend;
 }
 
-static void vi_restore_init() {
+void rdpxi_vi_restore_init() {
   int i;
   for (i = 0; i < 0x400; i++) {
     if (((i >> 5) & 0x1f) < (i & 0x1f)) {
@@ -146,5 +146,3 @@ static void vi_restore_init() {
     }
   }
 }
-
-#endif  // N64VIDEO_C

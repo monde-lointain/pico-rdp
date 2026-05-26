@@ -28,6 +28,12 @@ add_library(rdp_core STATIC
     rdp/tcoord.cc
     rdp/tex.cc
     rdp/rasterizer.cc
+    vi/gamma.cc
+    vi/lerp.cc
+    vi/divot.cc
+    vi/video.cc
+    vi/restore.cc
+    vi/fetch.cc
 )
 add_library(Rdp::rdp ALIAS rdp_core)
 

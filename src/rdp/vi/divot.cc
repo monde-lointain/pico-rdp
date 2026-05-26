@@ -1,7 +1,10 @@
-#ifdef N64VIDEO_C
+// vi/divot.cc — VI divot stage (standalone TU). Ported VERBATIM from the fork
+// 31bdb1f. Cross-TU exports declared in vi_internal.h.
 
-static STRICTINLINE void divot_filter(struct Rgba* final, struct Rgba center,
-                                      struct Rgba left, struct Rgba right) {
+#include "vi_internal.h"
+
+void divot_filter(struct Rgba* final, struct Rgba center, struct Rgba left,
+                  struct Rgba right) {
   *final = center;
 
   if ((center.a & left.a & right.a) == 7) {
@@ -32,5 +35,3 @@ static STRICTINLINE void divot_filter(struct Rgba* final, struct Rgba center,
     final->b = right.b;
   }
 }
-
-#endif  // N64VIDEO_C
