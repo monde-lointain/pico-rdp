@@ -132,22 +132,35 @@ static int64_t qscale_z(demo_fix v) {
   return -(((-n) + 4) >> 3);
 }
 
+/* Per-triangle invariants shared by all attribute setups: the reordered edge
+ * deltas, signed_area (subpixel^2), dxdy_a (long-edge slope, Q16.16 screen-X
+ * per screen-Y), and yfrac (Q16.16 fraction in [0,1)). Built once per triangle
+ * and passed to attr_coeffs for each attribute. */
+struct AttrEdge {
+  int32_t ab_x, bc_x, ca_x;
+  int32_t ab_y, bc_y, ca_y;
+  int64_t signed_area;
+  int32_t dxdy_a;
+  demo_fix yfrac;
+};
+
 /* Compute the four coefficients (c, dcdx, dcde, dcdy) for one attribute given
  * the three quantized vertex values q[3] (already in the attribute's RDP scale,
- * 64-bit), the reordered edge deltas, signed_area, dxdy_a (the long-edge slope
- * in the screen-X-per-Y Q16.16 form), and yfrac (Q16.16 fraction in [0,1)).
+ * 64-bit) and the per-triangle edge invariants in *e.
  * Writes results into out_c/out_dcdx/out_dcde/out_dcdy. */
-static void attr_coeffs(int64_t q0, int64_t q1, int64_t q2, int32_t ab_x,
-                        int32_t bc_x, int32_t ca_x, int32_t ab_y, int32_t bc_y,
-                        int32_t ca_y, int64_t signed_area, int32_t dxdy_a,
-                        demo_fix yfrac, int32_t *out_c, int32_t *out_dcdx,
-                        int32_t *out_dcde, int32_t *out_dcdy) {
+static void attr_coeffs(int64_t q0, int64_t q1, int64_t q2,
+                        const struct AttrEdge *e, int32_t *out_c,
+                        int32_t *out_dcdx, int32_t *out_dcde,
+                        int32_t *out_dcdy) {
   /* dcdx = -SUBPIXELS * (ab_y*q2 + ca_y*q1 + bc_y*q0) / signed_area
    * dcdy =  SUBPIXELS * (ab_x*q2 + ca_x*q1 + bc_x*q0) / signed_area
    * The q* already carry the attribute's quantization scale, so the results are
    * directly in quantized units. signed_area is in subpixel^2 units. */
-  int64_t sum_dx = (int64_t)ab_y * q2 + (int64_t)ca_y * q1 + (int64_t)bc_y * q0;
-  int64_t sum_dy = (int64_t)ab_x * q2 + (int64_t)ca_x * q1 + (int64_t)bc_x * q0;
+  int64_t signed_area = e->signed_area;
+  int64_t sum_dx =
+      (int64_t)e->ab_y * q2 + (int64_t)e->ca_y * q1 + (int64_t)e->bc_y * q0;
+  int64_t sum_dy =
+      (int64_t)e->ab_x * q2 + (int64_t)e->ca_x * q1 + (int64_t)e->bc_x * q0;
 
   /* Multiply by SUBPIXELS then divide by signed_area, rounded to nearest. */
   int64_t num_dx = -(int64_t)SUBPIXELS * sum_dx;
@@ -159,10 +172,10 @@ static void attr_coeffs(int64_t q0, int64_t q1, int64_t q2, int32_t ab_x,
                                : -(((-num_dy) + signed_area / 2) / signed_area);
 
   /* dcde = dcdy + dcdx * dxdy_a (dxdy_a is Q16.16 screen-X per screen-Y). */
-  int64_t dcde = dcdy + (int64_t)((dcdx * (int64_t)dxdy_a) >> DEMO_FIX_SHIFT);
+  int64_t dcde = dcdy + (int64_t)((dcdx * (int64_t)e->dxdy_a) >> DEMO_FIX_SHIFT);
 
   /* c = q0 - yfrac * dcde (yfrac Q16.16). */
-  int64_t c = q0 - (int64_t)((dcde * (int64_t)yfrac) >> DEMO_FIX_SHIFT);
+  int64_t c = q0 - (int64_t)((dcde * (int64_t)e->yfrac) >> DEMO_FIX_SHIFT);
 
   *out_c = (int32_t)c;
   *out_dcdx = (int32_t)dcdx;
@@ -269,39 +282,37 @@ static int setup_one(struct DemoPrimSetup *setup, const struct WorkTri *in,
   demo_fix yfrac = (demo_fix)(((int32_t)(y_lo & (SUBPIXELS - 1)))
                               << (DEMO_FIX_SHIFT - SUBPIXELS_LOG2));
 
+  struct AttrEdge edge = {ab_x,        bc_x,    ca_x, ab_y, bc_y,
+                          ca_y,        signed_area, dxdy_a,    yfrac};
+
   /* Color (4 channels). */
   for (int c = 0; c < 4; ++c) {
     int64_t q0 = qscale_color(in->v[ia].color[c]);
     int64_t q1 = qscale_color(in->v[ib].color[c]);
     int64_t q2 = qscale_color(in->v[ic].color[c]);
-    attr_coeffs(q0, q1, q2, ab_x, bc_x, ca_x, ab_y, bc_y, ca_y, signed_area,
-                dxdy_a, yfrac, &setup->attr.c[c], &setup->attr.dcdx[c],
+    attr_coeffs(q0, q1, q2, &edge, &setup->attr.c[c], &setup->attr.dcdx[c],
                 &setup->attr.dcde[c], &setup->attr.dcdy[c]);
   }
 
   /* Z. */
   attr_coeffs(qscale_z(in->v[ia].clip[2]), qscale_z(in->v[ib].clip[2]),
-              qscale_z(in->v[ic].clip[2]), ab_x, bc_x, ca_x, ab_y, bc_y, ca_y,
-              signed_area, dxdy_a, yfrac, &setup->attr.z, &setup->attr.dzdx,
-              &setup->attr.dzde, &setup->attr.dzdy);
+              qscale_z(in->v[ic].clip[2]), &edge, &setup->attr.z,
+              &setup->attr.dzdx, &setup->attr.dzde, &setup->attr.dzdy);
 
   /* U. */
   attr_coeffs(qscale_uv(in->v[ia].u), qscale_uv(in->v[ib].u),
-              qscale_uv(in->v[ic].u), ab_x, bc_x, ca_x, ab_y, bc_y, ca_y,
-              signed_area, dxdy_a, yfrac, &setup->attr.u, &setup->attr.dudx,
+              qscale_uv(in->v[ic].u), &edge, &setup->attr.u, &setup->attr.dudx,
               &setup->attr.dude, &setup->attr.dudy);
 
   /* V. */
   attr_coeffs(qscale_uv(in->v[ia].v), qscale_uv(in->v[ib].v),
-              qscale_uv(in->v[ic].v), ab_x, bc_x, ca_x, ab_y, bc_y, ca_y,
-              signed_area, dxdy_a, yfrac, &setup->attr.v, &setup->attr.dvdx,
+              qscale_uv(in->v[ic].v), &edge, &setup->attr.v, &setup->attr.dvdx,
               &setup->attr.dvde, &setup->attr.dvdy);
 
   /* W (the rescaled 1/w). */
   attr_coeffs(qscale_w(in->v[ia].clip[3]), qscale_w(in->v[ib].clip[3]),
-              qscale_w(in->v[ic].clip[3]), ab_x, bc_x, ca_x, ab_y, bc_y, ca_y,
-              signed_area, dxdy_a, yfrac, &setup->attr.w, &setup->attr.dwdx,
-              &setup->attr.dwde, &setup->attr.dwdy);
+              qscale_w(in->v[ic].clip[3]), &edge, &setup->attr.w,
+              &setup->attr.dwdx, &setup->attr.dwde, &setup->attr.dwdy);
 
   setup->pos.flags |= DEMO_PRIMITIVE_PERSPECTIVE_CORRECT_BIT;
   return 1;
