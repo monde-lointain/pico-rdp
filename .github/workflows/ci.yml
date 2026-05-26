@@ -37,20 +37,23 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # All three build Release: the full Debug conformance suite exceeds
+          # GitHub's 6h job cap; Release fits comfortably. Single-config
+          # generators (Linux/macOS) take the build type at configure via
+          # CMAKE_BUILD_TYPE; the multi-config VS gen (Windows) takes it via
+          # --config / --build-config (matrix.build_config feeds both).
           - name: linux-clang
             os: ubuntu-latest
             require_orthodoxy: "ON"
-            build_config: "Debug"
+            build_config: "Release"
           - name: windows-msvc
             os: windows-latest
             require_orthodoxy: "OFF"
-            # Release: the Debug conformance suite exceeds GitHub's 6h job cap on
-            # the Windows runner; Release fits comfortably (multi-config VS gen).
             build_config: "Release"
           - name: macos-appleclang
             os: macos-latest
             require_orthodoxy: "OFF"
-            build_config: "Debug"
+            build_config: "Release"
 
     steps:
       - name: Checkout
@@ -120,6 +123,7 @@ jobs:
         if: runner.os == 'Linux'
         run: >
           cmake --preset host
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_config }}
           -DCMAKE_C_COMPILER=${RDP_CC}
           -DCMAKE_CXX_COMPILER=${RDP_CXX}
           -DRDP_REQUIRE_ORTHODOXY=${{ matrix.require_orthodoxy }}
@@ -128,6 +132,7 @@ jobs:
         if: runner.os == 'macOS'
         run: >
           cmake --preset host
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_config }}
           -DCMAKE_C_COMPILER=clang
           -DCMAKE_CXX_COMPILER=clang++
 
