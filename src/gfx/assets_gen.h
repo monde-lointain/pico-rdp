@@ -7,8 +7,9 @@
 
 /* Sprite identifier enum. */
 typedef enum {
-  SPRITE_FONT = 0
-  , SPRITE_ID_COUNT = 1
+  SPRITE_ARROWS = 0,
+  SPRITE_FONT = 1
+  , SPRITE_ID_COUNT = 2
 } SpriteId;
 
 /* Return a pointer to the sprite for the given id, or NULL if out of range. */

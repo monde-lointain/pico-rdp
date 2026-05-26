@@ -364,4 +364,6 @@ const uint32_t* renderer_host_scanout(uint32_t* out_w, uint32_t* out_h,
   return s_scanout;
 }
 
-int renderer_host_crash_latched(void) { return s_crash_latched; }
+int renderer_host_crash_latched(void) {
+  return s_crash_latched || rdpx_pipeline_crashed();
+}

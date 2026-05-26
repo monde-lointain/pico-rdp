@@ -125,6 +125,11 @@ void rdpx_video_update_screen(struct n64video_frame_buffer* fb);
 void rdpx_video_process_list(void);
 void rdpx_video_close(void);
 
+// Returns nonzero if the RDP pipeline-crash latch has tripped (a malformed or
+// unsupported command halted processing); cleared by rdpx_video_close/init.
+// Behavior-neutral query; always compiled in (front-ends surface the state).
+int rdpx_pipeline_crashed(void);
+
 #ifdef RDPX_TESTING
 // Test-only accessors (compiled into rdp_core only when RDPX_TESTING is defined,
 // i.e. BUILD_TESTS=ON). Behavior-neutral instrumentation reached by the test/

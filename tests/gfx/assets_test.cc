@@ -10,8 +10,8 @@
 /* ---- sprite count -------------------------------------------------------- */
 
 TEST(AssetsGen, EmitsExpectedSpriteCount) {
-  /* font atlas = 1 sprite ID. */
-  EXPECT_EQ((int)SPRITE_ID_COUNT, 1);
+  /* arrows image + font atlas = 2 sprite IDs. */
+  EXPECT_EQ((int)SPRITE_ID_COUNT, 2);
 }
 
 /* ---- dimension checks ---------------------------------------------------- */

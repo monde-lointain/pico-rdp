@@ -28,6 +28,8 @@ demo_fix demo_fix_mul(demo_fix a, demo_fix b);
 
 // Fixed-point divide (perspective divide). Uses the integer `/` op so it is
 // bit-identical host vs device and HW-accelerated on the RP2040 SIO divider.
+// Contract: den==0 returns 0 (defensive sentinel, avoids integer-divide UB; an
+// in-front vertex's perspective divide never yields den==0).
 demo_fix demo_fix_div(demo_fix num, demo_fix den);
 
 // 4x4 matrix in row-major Q16.16. m[row*4 + col].

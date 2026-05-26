@@ -415,6 +415,13 @@ void rdpx_msg_debug(const char* err)
     (void)err;
 }
 
+// Public query for the pipeline-crash latch (see header). Behavior-neutral;
+// always compiled in so a front-end can surface the crash state.
+int rdpx_pipeline_crashed(void)
+{
+    return rdp_pipeline_crashed;
+}
+
 // ---- RDPX_TESTING accessor block ------------------------------------------
 // Exposes file-static base pointers so the conformance adapter can hand the
 // harness our hidden-RDRAM and TMEM buffers (RDRAM itself is caller-owned via

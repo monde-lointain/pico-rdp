@@ -103,9 +103,9 @@ void renderer_host_present_demo(uint32_t src_fb_addr, uint32_t src_w,
 const uint32_t* renderer_host_scanout(uint32_t* out_w, uint32_t* out_h,
                                       uint32_t* out_pitch_px);
 
-// Host-tracked pipeline-crash latch state for the UI. NOTE: rdp_core's real
-// latch (rdp_pipeline_crashed) is file-static with no public accessor, so this
-// reflects only host-observable signals; renderer_host_reset() clears both.
+// Pipeline-crash latch state for the UI: combines host-observable signals with
+// rdp_core's real latch via rdpx_pipeline_crashed(). renderer_host_reset()
+// (close->init) clears both.
 int renderer_host_crash_latched(void);
 
 #ifdef __cplusplus
