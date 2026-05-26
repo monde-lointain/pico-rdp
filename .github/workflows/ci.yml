@@ -40,12 +40,17 @@ jobs:
           - name: linux-clang
             os: ubuntu-latest
             require_orthodoxy: "ON"
+            build_config: "Debug"
           - name: windows-msvc
             os: windows-latest
             require_orthodoxy: "OFF"
+            # Release: the Debug conformance suite exceeds GitHub's 6h job cap on
+            # the Windows runner; Release fits comfortably (multi-config VS gen).
+            build_config: "Release"
           - name: macos-appleclang
             os: macos-latest
             require_orthodoxy: "OFF"
+            build_config: "Debug"
 
     steps:
       - name: Checkout
@@ -75,23 +80,23 @@ jobs:
       - name: Install LLVM/Clang dev + build Orthodoxy plugin (Linux)
         if: runner.os == 'Linux'
         env:
-          LLVM_VERSION: "18"
+          LLVM_VERSION: "22"
           ORTHODOXY_URL: "https://github.com/d-musique/orthodoxy"
           ORTHODOXY_REF: "master"
         run: |
           set -euo pipefail
-          # LLVM/Clang + dev headers (clang, llvm-config, libclang/llvm dev).
-          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
-            | sudo gpg --dearmor -o /usr/share/keyrings/llvm.gpg
-          . /etc/os-release
-          echo "deb [signed-by=/usr/share/keyrings/llvm.gpg] http://apt.llvm.org/${VERSION_CODENAME}/ llvm-toolchain-${VERSION_CODENAME}-${LLVM_VERSION} main" \
-            | sudo tee /etc/apt/sources.list.d/llvm.list
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            clang-${LLVM_VERSION} \
-            llvm-${LLVM_VERSION}-dev \
+          # LLVM/Clang ${LLVM_VERSION} toolchain via the official llvm.sh installer.
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh ${LLVM_VERSION}
+          # Dev libs the Orthodoxy plugin links against (-lclang-cpp / -lLLVM) and
+          # llvm-config. Package naming is inconsistent across the two: the C API
+          # dev pkg is libclang-${LLVM_VERSION}-dev (hyphen), the C++ one is
+          # libclang-cpp${LLVM_VERSION}-dev (no hyphen). libclang-*-dev pulls in
+          # llvm-${LLVM_VERSION}-dev (llvm-config + libLLVM.so) transitively.
+          sudo apt-get install -y \
             libclang-${LLVM_VERSION}-dev \
-            clang-tools-${LLVM_VERSION}
+            libclang-cpp${LLVM_VERSION}-dev
           # Build + install the Orthodoxy plugin against this LLVM/Clang.
           git clone --depth 1 --branch "${ORTHODOXY_REF}" \
             "${ORTHODOXY_URL}" "${RUNNER_TEMP}/orthodoxy"
@@ -144,14 +149,14 @@ jobs:
       # demo_core (Orthodoxy-enforced), the rdp_viewer SDL/ImGui exe (link-only;
       # never run in CI — headless runners have no display), and all tests.
       - name: Build
-        run: cmake --build build-host --config Debug --parallel
+        run: cmake --build build-host --config ${{ matrix.build_config }} --parallel
 
       # ---- Test ---------------------------------------------------------
       # On Linux with the plugin live, the WILL_FAIL canary test proves
       # enforcement is active. Other OSes run the regular unit suite. The host
       # preset's ctest set includes the tests/demo suite (demo_core + oracle).
       - name: Test
-        run: ctest --preset host --build-config Debug
+        run: ctest --preset host --build-config ${{ matrix.build_config }}
 
   # ---- PicoSystem cross-compile (portable libs only; no device, no tests) ----
   # Guards against ARM/ILP32-only C++ build regressions in the renderer TU and

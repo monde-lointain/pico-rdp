@@ -12,8 +12,8 @@ Orthodoxy is a Clang compiler plugin: it inspects the AST and turns forbidden
 C++ features (`auto`, `class`, named casts, exceptions, etc. — see
 `.orthodoxy.yml`) into compile errors. Because it links against Clang/LLVM
 internals, **the plugin must be built against the SAME major version of
-LLVM/Clang you compile the project with.** A clang-18 build needs an
-orthodoxy plugin built against LLVM 18.
+LLVM/Clang you compile the project with.** A clang-22 build needs an
+orthodoxy plugin built against LLVM 22.
 
 The plugin's `find_package(orthodoxy)` config locates the installed
 `.../<clang-major>/orthodoxy.so` by your compiler's reported major version, so a
@@ -22,10 +22,10 @@ exact failure mode `RDP_REQUIRE_ORTHODOXY` exists to catch.
 
 ## Prerequisites
 
-- **LLVM/Clang dev libraries**, v18+ (the plugin's README notes it "tightly
+- **LLVM/Clang dev libraries**, v22 (the plugin's README notes it "tightly
   integrates with a particular version of the Clang compiler"; this project is
-  validated against clang-18). You need the dev packages, not just the
-  compiler: `llvm-config`, LLVM and libclang dev headers.
+  validated against clang-22). You need the dev packages, not just the
+  compiler: `llvm-config`, LLVM and libclang (C and C++) dev headers.
 - **CMake ≥ 3.31** to *build the plugin* (the orthodoxy `CMakeLists.txt`
   pins `cmake_minimum_required(VERSION 3.31)`). The RDP project itself only
   needs CMake ≥ 3.28.
@@ -36,23 +36,22 @@ exact failure mode `RDP_REQUIRE_ORTHODOXY` exists to catch.
 ### Debian/Ubuntu (apt.llvm.org)
 
 ```sh
-LLVM_VERSION=18
-wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
-  | sudo gpg --dearmor -o /usr/share/keyrings/llvm.gpg
-. /etc/os-release
-echo "deb [signed-by=/usr/share/keyrings/llvm.gpg] http://apt.llvm.org/${VERSION_CODENAME}/ llvm-toolchain-${VERSION_CODENAME}-${LLVM_VERSION} main" \
-  | sudo tee /etc/apt/sources.list.d/llvm.list
-sudo apt-get update
+LLVM_VERSION=22
+# Easiest: the official installer script (this is what CI uses).
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh ${LLVM_VERSION}
+# Dev libs the plugin links against. Note the inconsistent package naming:
+# libclang-${LLVM_VERSION}-dev (hyphen) vs libclang-cpp${LLVM_VERSION}-dev (none).
+# libclang-*-dev pulls in llvm-${LLVM_VERSION}-dev (llvm-config + libLLVM.so).
 sudo apt-get install -y \
-  clang-${LLVM_VERSION} \
-  llvm-${LLVM_VERSION}-dev \
   libclang-${LLVM_VERSION}-dev \
-  clang-tools-${LLVM_VERSION}
+  libclang-cpp${LLVM_VERSION}-dev
 ```
 
-This gives you `clang-18`, `clang++-18`, and `llvm-config-18`. (Plain
-`apt install clang llvm-dev libclang-dev` also works if your distro's default
-LLVM is already 18+.)
+This gives you `clang-22`, `clang++-22`, and `llvm-config-22`. (Plain
+`apt install clang llvm-dev libclang-dev libclang-cpp-dev` also works if your
+distro's default LLVM is already 22.)
 
 ### macOS (Homebrew)
 
@@ -74,9 +73,9 @@ git clone https://github.com/d-musique/orthodoxy.git
 cd orthodoxy
 cmake -S . -B build -G Ninja \
   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-  -DCMAKE_C_COMPILER=clang-18 \
-  -DCMAKE_CXX_COMPILER=clang++-18 \
-  -DORTHODOXY_LLVM_CONFIG=/usr/bin/llvm-config-18
+  -DCMAKE_C_COMPILER=clang-22 \
+  -DCMAKE_CXX_COMPILER=clang++-22 \
+  -DORTHODOXY_LLVM_CONFIG=/usr/bin/llvm-config-22
 cmake --build build
 sudo cmake --build build --target install     # installs to /usr/local by default
 ```
@@ -95,14 +94,14 @@ required so configure fails loudly if the plugin is not actually picked up:
 
 ```sh
 cmake --preset host \
-  -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 \
+  -DCMAKE_C_COMPILER=clang-22 -DCMAKE_CXX_COMPILER=clang++-22 \
   -DRDP_REQUIRE_ORTHODOXY=ON
 ```
 
 Expected configure output when the plugin is live:
 
 ```
--- Found orthodoxy plugin: .../18/orthodoxy.so
+-- Found orthodoxy plugin: .../22/orthodoxy.so
 -- Orthodoxy plugin found: enforcement enabled on src/{game,gfx,app}
 ```
 
