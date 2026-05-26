@@ -308,7 +308,7 @@ uint32_t rdpx_get_hidden_rdram_size(void) {
   return (uint32_t)sizeof(rdpxi_rdram_hidden);
 }
 
-uint8_t* rdpx_get_tmem(void) { return get_tmem(); }
+uint8_t* rdpx_get_tmem(void) { return rdpxi_get_tmem(); }
 
 uint32_t rdpx_get_tmem_size(void) {
   return (uint32_t)sizeof(rdpxi_state[0].tmem);

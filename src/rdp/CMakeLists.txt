@@ -24,6 +24,7 @@ add_library(rdp_core STATIC
     rdp/blender.cc
     rdp/combiner.cc
     rdp/fbuffer.cc
+    rdp/tmem.cc
 )
 add_library(Rdp::rdp ALIAS rdp_core)
 

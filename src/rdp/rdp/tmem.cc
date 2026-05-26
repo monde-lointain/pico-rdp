@@ -1,12 +1,15 @@
-#ifdef N64VIDEO_C
+// tmem.cc — TMEM addressing + texel fetch/decode (standalone TU).
+// Ported VERBATIM from the fork 31bdb1f. get_tmem collides with the oracle, so
+// it is exported as rdpxi_get_tmem; fetch/decode helpers de-inlined. The
+// TMEM16/TC16/TLUT accessor macros (also used by tex.cc) live in
+// tmem_internal.h.
 
-#define TMEM16 ((uint16_t *)rdpxi_state[wid].tmem)
-#define TC16 ((uint16_t *)rdpxi_state[wid].tmem)
-#define TLUT ((uint16_t *)(&rdpxi_state[wid].tmem[0x800]))
+#include <string.h>
 
-// Symbol hygiene: oracle exports get_tmem(); ours is file-static. Forward-
-// declared static in rdp.c so this definition keeps internal linkage.
-static uint8_t *get_tmem(void) { return rdpxi_state[0].tmem; }
+#include "tmem_internal.h"
+
+// Symbol hygiene: oracle exports get_tmem(); ours is rdpxi_-prefixed.
+uint8_t *rdpxi_get_tmem(void) { return rdpxi_state[0].tmem; }
 
 static uint8_t replicated_rgba[32];
 
@@ -64,8 +67,8 @@ static void compute_color_index(uint32_t wid, uint32_t *cidx,
   *cidx = (hinib << 4) | lownib;
 }
 
-static INLINE void fetch_texel(uint32_t wid, struct Color *color, int s, int t,
-                               uint32_t tilenum) {
+void fetch_texel(uint32_t wid, struct Color *color, int s, int t,
+                 uint32_t tilenum) {
   uint32_t const tbase = rdpxi_state[wid].tile[tilenum].line * (t & 0xff) +
                          rdpxi_state[wid].tile[tilenum].tmem;
 
@@ -362,12 +365,10 @@ static INLINE void fetch_texel(uint32_t wid, struct Color *color, int s, int t,
   }
 }
 
-static INLINE void fetch_texel_quadro(uint32_t wid, struct Color *color0,
-                                      struct Color *color1,
-                                      struct Color *color2,
-                                      struct Color *color3, int s0, int sdiff,
-                                      int t0, int tdiff, uint32_t tilenum,
-                                      int unequaluppers) {
+void fetch_texel_quadro(uint32_t wid, struct Color *color0,
+                        struct Color *color1, struct Color *color2,
+                        struct Color *color3, int s0, int sdiff, int t0,
+                        int tdiff, uint32_t tilenum, int unequaluppers) {
   uint32_t const tbase0 = rdpxi_state[wid].tile[tilenum].line * (t0 & 0xff) +
                           rdpxi_state[wid].tile[tilenum].tmem;
 
@@ -1334,10 +1335,11 @@ static INLINE void fetch_texel_quadro(uint32_t wid, struct Color *color0,
   }
 }
 
-static INLINE void fetch_texel_entlut_quadro(
-    uint32_t wid, struct Color *color0, struct Color *color1,
-    struct Color *color2, struct Color *color3, int s0, int sdiff, int t0,
-    int tdiff, uint32_t tilenum, int isupper, int isupperrg) {
+void fetch_texel_entlut_quadro(uint32_t wid, struct Color *color0,
+                               struct Color *color1, struct Color *color2,
+                               struct Color *color3, int s0, int sdiff, int t0,
+                               int tdiff, uint32_t tilenum, int isupper,
+                               int isupperrg) {
   uint32_t const tbase0 = rdpxi_state[wid].tile[tilenum].line * (t0 & 0xff) +
                           rdpxi_state[wid].tile[tilenum].tmem;
   int const t1 = (t0 & 0xff) + tdiff;
@@ -1628,10 +1630,12 @@ static INLINE void fetch_texel_entlut_quadro(
   }
 }
 
-static INLINE void fetch_texel_entlut_quadro_nearest(
-    uint32_t wid, struct Color *color0, struct Color *color1,
-    struct Color *color2, struct Color *color3, int s0, int t0,
-    uint32_t tilenum, int isupper, int isupperrg) {
+void fetch_texel_entlut_quadro_nearest(uint32_t wid, struct Color *color0,
+                                       struct Color *color1,
+                                       struct Color *color2,
+                                       struct Color *color3, int s0, int t0,
+                                       uint32_t tilenum, int isupper,
+                                       int isupperrg) {
   uint32_t const tbase0 = rdpxi_state[wid].tile[tilenum].line * t0 +
                           rdpxi_state[wid].tile[tilenum].tmem;
   uint32_t const tpal = rdpxi_state[wid].tile[tilenum].palette << 4;
@@ -1796,10 +1800,9 @@ static INLINE void fetch_texel_entlut_quadro_nearest(
   }
 }
 
-static void get_tmem_idx(uint32_t wid, int s, int t, uint32_t tilenum,
-                         uint32_t *idx0, uint32_t *idx1, uint32_t *idx2,
-                         uint32_t *idx3, uint32_t *bit3flipped,
-                         uint32_t *hibit) {
+void get_tmem_idx(uint32_t wid, int s, int t, uint32_t tilenum, uint32_t *idx0,
+                  uint32_t *idx1, uint32_t *idx2, uint32_t *idx3,
+                  uint32_t *bit3flipped, uint32_t *hibit) {
   uint32_t tbase = (rdpxi_state[wid].tile[tilenum].line * t) & 0x1ff;
   tbase += rdpxi_state[wid].tile[tilenum].tmem;
   uint32_t const tsize = rdpxi_state[wid].tile[tilenum].size;
@@ -1837,9 +1840,9 @@ static void get_tmem_idx(uint32_t wid, int s, int t, uint32_t tilenum,
   sort_tmem_idx(idx3, tidx_a, tidx_b, tidx_c, tidx_d, 3);
 }
 
-static void read_tmem_copy(uint32_t wid, int s, int s1, int s2, int s3, int t,
-                           uint32_t tilenum, uint32_t *sortshort, int *hibits,
-                           int *lowbits) {
+void read_tmem_copy(uint32_t wid, int s, int s1, int s2, int s3, int t,
+                    uint32_t tilenum, uint32_t *sortshort, int *hibits,
+                    int *lowbits) {
   uint32_t tbase = (rdpxi_state[wid].tile[tilenum].line * t) & 0x1ff;
   tbase += rdpxi_state[wid].tile[tilenum].tmem;
   uint32_t const tsize = rdpxi_state[wid].tile[tilenum].size;
@@ -1987,11 +1990,9 @@ static void read_tmem_copy(uint32_t wid, int s, int s1, int s2, int s3, int t,
   }
 }
 
-static void tmem_init_lut(void) {
+void tmem_init_lut(void) {
   int i;
   for (i = 0; i < 32; i++) {
     replicated_rgba[i] = (i << 3) | ((i >> 2) & 7);
   }
 }
-
-#endif  // N64VIDEO_C

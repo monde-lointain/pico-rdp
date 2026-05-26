@@ -31,6 +31,7 @@
 #include "rdp/dither_internal.h"
 #include "rdp/fbuffer_internal.h"
 #include "rdp/rdram_internal.h"
+#include "rdp/tmem_internal.h"
 #include "rdp/zbuffer_internal.h"
 
 struct RdpState rdpxi_state[RDPX_PARALLEL_MAX_WORKERS];
@@ -71,7 +72,6 @@ static void rdp_set_texture_image(uint32_t wid, const uint32_t* args);
 static void rdp_cmd(uint32_t wid, const uint32_t* args);
 
 // init funcs forward-declared static (internal linkage vs oracle's globals).
-static uint8_t* get_tmem(void);
 
 // dither (reseed_noise/noise_get_*/rgb_dither/get_dither_noise) is now a
 // standalone TU — see rdp/dither_internal.h.
@@ -161,7 +161,7 @@ static void deduce_derivatives(uint32_t wid);
 
 
 
-#include "rdp/tmem.c"
+
 #include "rdp/tcoord.c"
 #include "rdp/tex.c"
 #include "rdp/rasterizer.c"
