@@ -353,10 +353,21 @@ endforeach()
 # (minutes each, single-threaded). Raise the per-test ctest timeout well above
 # the 1500s default so a slow host / parallel contention can't spuriously fail
 # them on wall-clock alone (correctness is unaffected).
+#
+# Under sanitizers (RDP_SANITIZE set, Debug -O0 + ASan/UBSan) these run several
+# times slower, so multiply the timeout when instrumented. Tune RDP_SANITIZE_TIMEOUT_MULT
+# from the actual sanitizer wall time; 6x is a conservative starting point.
+set(RDP_SANITIZE_TIMEOUT_MULT 6 CACHE STRING
+    "Multiplier applied to heavy conformance test timeouts when RDP_SANITIZE is set")
+if(RDP_SANITIZE)
+    math(EXPR _rdp_heavy_timeout "7200 * ${RDP_SANITIZE_TIMEOUT_MULT}")
+else()
+    set(_rdp_heavy_timeout 7200)
+endif()
 set_tests_properties(
     conformance.rasterization-many-primitives
     conformance.rasterization-many-primitives-alias
-    PROPERTIES TIMEOUT 7200)
+    PROPERTIES TIMEOUT ${_rdp_heavy_timeout})
 
 # ---- LUT memcmp scaffold (gtest) -----------------------------------------
 # Trivially asserting until Stream B fills the LUTs; wired now so the home exists.

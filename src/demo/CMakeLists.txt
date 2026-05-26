@@ -24,12 +24,16 @@ add_library(Rdp::demo ALIAS demo_core)
 # that A.2 lands alongside these sources.
 target_include_directories(demo_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(demo_core PRIVATE project_warnings)
+# Sanitizers (no-op unless RDP_SANITIZE is set). PUBLIC so the flags propagate to
+# every dependent test/exe (compile + link). Mirrors rdp_core.
+target_link_libraries(demo_core PUBLIC Rdp::sanitizers)
 
 # Bit-exactness: the RDRAM byte I/O aliases through uint8/16/32* (UB under strict
 # aliasing, required to match Angrylion). Pin -fno-strict-aliasing; never
-# -ffast-math. Mirrors src/rdp/CMakeLists.txt.
+# -ffast-math. -fwrapv defines signed-overflow as two's-complement wrap on host
+# AND device (the fixed-point setup math relies on it). Mirrors src/rdp.
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  target_compile_options(demo_core PRIVATE -fno-strict-aliasing)
+  target_compile_options(demo_core PRIVATE -fno-strict-aliasing -fwrapv)
 endif()
 
 # Orthodox C++ enforcement (host/clang only; no-op otherwise). Applies to OUR

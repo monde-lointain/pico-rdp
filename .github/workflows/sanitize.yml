@@ -1,0 +1,133 @@
+# Nightly ASan + UBSan run of the renderer against the conformance oracle.
+#
+# Separate from ci.yml ON PURPOSE: `schedule:` is workflow-level, so putting it
+# here keeps the per-PR build/test jobs (linux/windows/macos/pico) off the
+# nightly cron. The bit-exact gate stays the Release conformance job in ci.yml;
+# this run hunts runtime UB (OOB, misalignment, signed overflow, bad shifts)
+# that static analysis can't see and that can diverge x86 -> arm.
+#
+# Build is clang-22 Debug (-O0): -O0 maximizes UBSan coverage (the optimizer
+# can't elide checked operations). The full suite is far too slow under ASan to
+# fit one 6h job, so it is SHARDED by ctest label across a matrix; the mandatory
+# `fast` shard runs the non-conformance gtests (so demo_core is sanitized too).
+
+name: Sanitizers
+
+on:
+  schedule:
+    - cron: "0 4 * * *"   # 04:00 UTC nightly
+  workflow_dispatch: {}
+
+concurrency:
+  group: sanitize-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LLVM_VERSION: "22"
+  # Gate env: abort on the first finding (RDP_SANITIZE_HALT=ON bakes the matching
+  # compile flag). container/odr-overflow off — uninstrumented gtest/SDL/harness
+  # cross the instrumentation boundary and would trip bogus reports.
+  ASAN_OPTIONS: "detect_leaks=1:halt_on_error=1:detect_container_overflow=0:detect_odr_violation=0"
+  UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:report_error_type=1"
+
+jobs:
+  # ---- Coverage guard: every conformance test must carry a shard label -------
+  # The conformance tests are loop-generated, so the m*/vi partition can't be
+  # proven from source. Assert the per-label counts sum to the full set, else a
+  # mislabeled test would be silently skipped by the sharded matrix below.
+  label-coverage:
+    name: label-coverage-guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang + SDL deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xorg-dev libwayland-dev wayland-protocols libxkbcommon-dev \
+            libegl1-mesa-dev libgles2-mesa-dev libdbus-1-dev libudev-dev \
+            libpulse-dev ninja-build
+          wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh
+          sudo ./llvm.sh ${LLVM_VERSION}
+      - name: Configure (no sanitizer needed to list tests)
+        run: cmake --preset host -DCMAKE_C_COMPILER=clang-${LLVM_VERSION} -DCMAKE_CXX_COMPILER=clang++-${LLVM_VERSION}
+      - name: Assert label partition covers every conformance test
+        run: |
+          set -euo pipefail
+          total=$(ctest --test-dir build-host -N -L conformance | sed -n 's/^Total Tests: //p')
+          sum=0
+          for L in m0 m1 m2 m3 m4 m4t m4p m4l m4y m5 m6 m7 m8 vi; do
+            n=$(ctest --test-dir build-host -N -L "$L" | sed -n 's/^Total Tests: //p')
+            sum=$((sum + n))
+          done
+          echo "conformance total=$total  sum-of-label-shards=$sum"
+          # Tests can carry multiple module labels, so sum >= total is expected;
+          # sum < total means some conformance test has no shard label -> gap.
+          if [ "$sum" -lt "$total" ]; then
+            echo "::error::A conformance test carries no shard label; the matrix would skip it."
+            exit 1
+          fi
+
+  sanitize-conformance:
+    name: asan-ubsan (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    needs: label-coverage
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        # `fast` = the non-conformance gtests (demo_core/rdp/gfx/app); the rest
+        # are conformance suite-group labels. Refine grouping if a shard nears 6h.
+        label: [fast, m0, m1, m2, m3, m4, m4t, m4p, m4l, m4y, m5, m6, m7, m8, vi]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SDL build deps + clang-${{ env.LLVM_VERSION }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xorg-dev libwayland-dev wayland-protocols libxkbcommon-dev \
+            libegl1-mesa-dev libgles2-mesa-dev libdbus-1-dev libudev-dev \
+            libpulse-dev ninja-build ccache
+          wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh
+          sudo ./llvm.sh ${LLVM_VERSION}
+
+      - name: ccache (shared across shards)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-sanitize-${{ matrix.label }}-${{ github.sha }}
+          restore-keys: |
+            ccache-sanitize-${{ matrix.label }}-
+            ccache-sanitize-
+
+      - name: Install Pillow (asset gen)
+        run: python -m pip install --upgrade pip Pillow
+
+      # Gate build: clang-22, Debug -O0, RDP_SANITIZE_HALT=ON.
+      - name: Configure (host-asan, halt-on-first)
+        run: >
+          cmake --preset host-asan
+          -DRDP_SANITIZE_HALT=ON
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Build
+        run: cmake --build build-asan --parallel
+
+      - name: Symbolizer path
+        run: echo "ASAN_SYMBOLIZER_PATH=$(command -v llvm-symbolizer-${LLVM_VERSION} llvm-symbolizer | head -1)" >> "$GITHUB_ENV"
+
+      # The `fast` shard runs the non-conformance gtests so demo_core gets
+      # sanitized in CI (it is exercised only by tests/demo, never by conformance
+      # labels). All other shards run their conformance slice.
+      - name: Run sanitized tests (${{ matrix.label }})
+        env:
+          LSAN_OPTIONS: "suppressions=${{ github.workspace }}/tools/lsan.supp"
+        run: |
+          if [ "${{ matrix.label }}" = "fast" ]; then
+            ctest --preset host-asan -E 'conformance|perf' --output-on-failure
+          else
+            ctest --preset host-asan -L '${{ matrix.label }}' --output-on-failure
+          fi

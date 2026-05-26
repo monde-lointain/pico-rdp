@@ -2398,10 +2398,13 @@ static void edgewalker_for_prims(uint32_t wid, const int32_t* ewdata) {
     z += dzde;           \
   }
 
-  int32_t maxxmx;
-  int32_t minxmx;
-  int32_t maxxhx;
-  int32_t minxhx;
+  // Seeded to the spix==0 values (max->0, min->0xfff). Init at declaration so
+  // -fwrapv's altered dataflow analysis can't false-flag -Wmaybe-uninitialized;
+  // the per-span seed block re-assigns these before use, so bit-exact.
+  int32_t maxxmx = 0;
+  int32_t minxmx = 0xfff;
+  int32_t maxxhx = 0;
+  int32_t minxhx = 0xfff;
 
   int spix = 0;
   int const ycur = yh & ~3;

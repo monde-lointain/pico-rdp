@@ -19,9 +19,10 @@
 #include "generated/baked_matrices.h"
 #include "generated/geometry.h"
 
-// int16 model-space coordinate -> Q16.16 (value << 16).
+// int16 model-space coordinate -> Q16.16 (value * 2^16).
 static demo_fix scene_pos_to_fix(int16_t v) {
-  return (demo_fix)((int32_t)v << DEMO_FIX_SHIFT);
+  // Multiply, not <<: left-shifting a negative value is UB. Value-identical.
+  return (demo_fix)((int32_t)v * DEMO_FIX_ONE);
 }
 
 // 8-bit color channel [0,255] -> [0,1] Q16.16: round(c/255 * 2^16).
@@ -29,9 +30,10 @@ static demo_fix scene_color_to_fix(uint8_t c) {
   return (demo_fix)((((uint32_t)c * DEMO_FIX_ONE) + 127U) / 255U);
 }
 
-// int16 texel coordinate [0,64] -> texel-unit Q16.16 (value << 16).
+// int16 texel coordinate [0,64] -> texel-unit Q16.16 (value * 2^16).
 static demo_fix scene_uv_to_fix(int16_t v) {
-  return (demo_fix)((int32_t)v << DEMO_FIX_SHIFT);
+  // Multiply, not <<: left-shifting a negative value is UB. Value-identical.
+  return (demo_fix)((int32_t)v * DEMO_FIX_ONE);
 }
 
 void scene_build_mvp(struct DemoMat4 *out, const int32_t *model16,

@@ -1,0 +1,20 @@
+# UBSan source-level ignorelist (-fsanitize-ignorelist=).
+#
+# ONLY for confirmed-intentional bit-exact behavior the renderer relies on —
+# specifically signed-integer-overflow (defined wraparound the N64 RDP emulates).
+# Each entry MUST cite why it is safe. NEVER ignorelist `alignment`, OOB, or
+# `function` findings: those are genuine cross-platform (arm) UB and must be
+# FIXED, not suppressed.
+#
+# Format (clang SpecialCaseList):
+#   [signed-integer-overflow]
+#   fun:rdpxi_some_function   # why this wraparound is intentional + arm-safe
+#   src:src/rdp/rdp/foo.cc    # (file-scoped; prefer fun: granularity)
+#
+# Triage outcome (2026-05-26): EMPTY by design. The survey surfaced only
+# signed-integer-overflow (rasterizer/demo fixed-point accumulators) and
+# left-shift-of-negative (demo fixed-point conversions). Rather than ignore
+# them, the signed-overflow class is now DEFINED via -fwrapv on rdp_core +
+# demo_core (host AND device), and the negative-shift sites were fixed in
+# source (multiply instead of <<). So nothing needs suppressing. Kept as the
+# mechanism for any genuinely-unfixable future site.

@@ -25,8 +25,10 @@ demo_fix demo_fix_div(demo_fix num, demo_fix den) {
   if (den == 0) {
     return 0;
   }
-  /* Pre-shift numerator into Q32.16-in-64 then integer divide. */
-  return (demo_fix)(((int64_t)num << DEMO_FIX_SHIFT) / (int64_t)den);
+  /* Pre-scale numerator into Q32.16-in-64 then integer divide. Multiply (not
+   * <<) so a negative numerator is well-defined: left-shifting a negative value
+   * is UB. Value-identical to `num << DEMO_FIX_SHIFT`. */
+  return (demo_fix)(((int64_t)num * DEMO_FIX_ONE) / (int64_t)den);
 }
 
 void demo_mat4_mul(struct DemoMat4 *out, const struct DemoMat4 *a,

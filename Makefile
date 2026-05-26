@@ -29,7 +29,7 @@ FORMAT_FILES := $(shell find src tests \( -name '*.cc' -o -name '*.c' -o -name '
 .DEFAULT_GOAL := help
 
 .PHONY: all build test reconfig clean distclean help
-.PHONY: format format-patch tidy assets
+.PHONY: format format-patch tidy assets sanitize
 
 all: build
 
@@ -78,6 +78,25 @@ tidy: | build-host/CMakeCache.txt
 assets:
 	$(Q)python3 tools/gen_assets.py assets src/gfx/assets_gen.h src/gfx/assets_gen.cc
 
+# ---- sanitizers ----------------------------------------------------------
+# Build the ASan/UBSan tree (clang-22, Debug) and run the fast subset under the
+# survey env (recoverable: collects all findings instead of aborting on the
+# first). container/odr-overflow off — uninstrumented gtest/SDL/harness cross the
+# instrumentation boundary and would trip bogus reports. LSan suppressions cover
+# third-party/static leaks so PRE_TEST gtest discovery can enumerate.
+SANITIZE_ENV := \
+  ASAN_OPTIONS=detect_leaks=1:abort_on_error=0:detect_container_overflow=0:detect_odr_violation=0 \
+  UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0:report_error_type=1 \
+  LSAN_OPTIONS=suppressions=$(CURDIR)/tools/lsan.supp \
+  ASAN_SYMBOLIZER_PATH=$(shell command -v llvm-symbolizer-22 llvm-symbolizer 2>/dev/null | head -1)
+
+sanitize: | build-asan/CMakeCache.txt
+	$(Q)cmake --build build-asan -j$(JOBS)
+	$(Q)$(SANITIZE_ENV) ctest --preset host-asan -E 'conformance|perf' --output-on-failure
+
+build-asan/CMakeCache.txt:
+	$(Q)cmake --preset host-asan $(CONFIGURE_OPTS)
+
 # ---- help ----------------------------------------------------------------
 help:
 	@echo "picosystem-template - make targets"
@@ -100,6 +119,7 @@ help:
 	@echo "  format        clang-format -i over src/ + tests/ (excludes generated assets)"
 	@echo "  format-patch  clang-format dry-run check (fails on any diff)"
 	@echo "  tidy          Build host, then gated clang-tidy (findings fail)"
+	@echo "  sanitize      Build clang-22 ASan/UBSan tree, run fast subset (survey env)"
 	@echo "  assets        Regenerate src/gfx/assets_gen.{h,cc} from assets/*.png"
 	@echo ""
 	@echo "Note: the pico build needs the arm-none-eabi toolchain + pico-sdk."

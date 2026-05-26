@@ -46,6 +46,13 @@ endif()
 # ---- Orthodox C++ enforcement (clang host only, scoped, optional) --------
 include(cmake/Orthodoxy.cmake)
 
+# ---- Sanitizers (ASan/UBSan, opt-in via RDP_SANITIZE, host-only) ---------
+# Defines the always-present Rdp::sanitizers interface target (no-op when off).
+# Linked into project_warnings so the demo exe / viewer inherit it too; rdp_core
+# and demo_core link it PUBLIC in their own CMakeLists.
+include(cmake/Sanitizers.cmake)
+target_link_libraries(project_warnings INTERFACE Rdp::sanitizers)
+
 # ---- Host dependencies (SDL3 + ImGui + GoogleTest via FetchContent) ------
 if(PLATFORM STREQUAL "sdl")
   include(cmake/Dependencies.cmake)

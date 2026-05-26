@@ -22,13 +22,28 @@
         "PLATFORM": "picosystem",
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "host-asan",
+      "displayName": "PC + ASan/UBSan (clang-22, Debug)",
+      "binaryDir": "${sourceDir}/build-asan",
+      "cacheVariables": {
+        "PLATFORM": "sdl",
+        "CMAKE_C_COMPILER": "clang-22",
+        "CMAKE_CXX_COMPILER": "clang++-22",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTS": "ON",
+        "RDP_SANITIZE": "address,undefined"
+      }
     }
   ],
   "buildPresets": [
     { "name": "host", "configurePreset": "host" },
-    { "name": "pico", "configurePreset": "pico" }
+    { "name": "pico", "configurePreset": "pico" },
+    { "name": "host-asan", "configurePreset": "host-asan" }
   ],
   "testPresets": [
-    { "name": "host", "configurePreset": "host", "output": { "outputOnFailure": true } }
+    { "name": "host", "configurePreset": "host", "output": { "outputOnFailure": true } },
+    { "name": "host-asan", "configurePreset": "host-asan", "output": { "outputOnFailure": true } }
   ]
 }

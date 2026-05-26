@@ -119,12 +119,14 @@ static int64_t qscale_color(demo_fix v) {
   return (int64_t)v * 255;
 }
 static int64_t qscale_uv(demo_fix v) {
-  /* round(v/2^16 * 2^6 * 2^16) = round(v * 2^6) = v << 6. */
-  return (int64_t)v << 6;
+  /* round(v/2^16 * 2^6 * 2^16) = round(v * 2^6) = v * 64. Multiply, not <<:
+   * v may be negative (texel coords) and left-shifting it is UB. */
+  return (int64_t)v * 64;
 }
 static int64_t qscale_w(demo_fix v) {
-  /* round(v/2^16 * 2^32) = v * 2^16 = v << 16. */
-  return (int64_t)v << 16;
+  /* round(v/2^16 * 2^32) = v * 2^16 = v * 65536. Multiply, not <<: defined for
+   * negative v. */
+  return (int64_t)v * 65536;
 }
 static int64_t qscale_z(demo_fix v) {
   /* round(v/2^16 * (2^18-1) * 2^13) = round(v * (2^18-1) * 2^13 / 2^16)
@@ -232,19 +234,22 @@ static int setup_one(struct DemoPrimSetup *setup, const struct WorkTri *in,
   int16_t x_b = xs[ib];
   int16_t x_c = xs[ic];
 
-  setup->pos.x_a = (int32_t)x_a << (16 - SUBPIXELS_LOG2);
-  setup->pos.x_b = (int32_t)x_a << (16 - SUBPIXELS_LOG2);
-  setup->pos.x_c = (int32_t)x_b << (16 - SUBPIXELS_LOG2);
+  // Multiply, not <<: left-shifting a negative coordinate is UB.
+  // Value-identical.
+  setup->pos.x_a = (int32_t)x_a * (1 << (16 - SUBPIXELS_LOG2));
+  setup->pos.x_b = (int32_t)x_a * (1 << (16 - SUBPIXELS_LOG2));
+  setup->pos.x_c = (int32_t)x_b * (1 << (16 - SUBPIXELS_LOG2));
 
   setup->pos.y_lo = y_lo;
   setup->pos.y_mid = y_mid;
   setup->pos.y_hi = y_hi;
 
-  setup->pos.dxdy_a =
-      round_away_divide(((int64_t)(x_c - x_a)) << 16, wv_max_i(1, y_hi - y_lo));
-  setup->pos.dxdy_b = round_away_divide(((int64_t)(x_b - x_a)) << 16,
+  // Multiply, not <<: left-shifting a negative delta is UB. Value-identical.
+  setup->pos.dxdy_a = round_away_divide((int64_t)(x_c - x_a) * (1 << 16),
+                                        wv_max_i(1, y_hi - y_lo));
+  setup->pos.dxdy_b = round_away_divide((int64_t)(x_b - x_a) * (1 << 16),
                                         wv_max_i(1, y_mid - y_lo));
-  setup->pos.dxdy_c = round_away_divide(((int64_t)(x_c - x_b)) << 16,
+  setup->pos.dxdy_c = round_away_divide((int64_t)(x_c - x_b) * (1 << 16),
                                         wv_max_i(1, y_hi - y_mid));
 
   /* Low 3 bits ignored by the rasterizer. */

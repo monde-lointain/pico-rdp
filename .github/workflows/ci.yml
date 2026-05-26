@@ -200,3 +200,41 @@ jobs:
 
       - name: Build rdp_core + demo_core for ARM
         run: cmake --build build-pico --target rdp_core demo_core --parallel
+
+  # ---- clang-tidy (clang-22 flags) -------------------------------------------
+  # Separate from the sanitizer nightly (sanitize.yml) so lint feedback is fast
+  # and per-PR. Reads compile_commands.json from a clang-22-configured host build
+  # (NOT build-host/clang-18), so the lint matches the clang-22 toolchain the
+  # Orthodoxy/conformance Linux job and the nightly sanitizer use. No RDP_SANITIZE
+  # here, else clang-tidy would honor -fsanitize-ignorelist=... and error on it.
+  tidy:
+    name: clang-tidy-22
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SDL build deps + clang-22
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xorg-dev libwayland-dev wayland-protocols libxkbcommon-dev \
+            libegl1-mesa-dev libgles2-mesa-dev libdbus-1-dev libudev-dev \
+            libpulse-dev ninja-build
+          wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh
+          sudo ./llvm.sh 22
+          sudo apt-get install -y clang-tidy-22
+
+      - name: Install Pillow (asset gen)
+        run: python -m pip install --upgrade pip Pillow
+
+      # build-host dir, but pinned to clang-22 so compile_commands.json carries
+      # clang-22 flags (different __cplusplus / builtins / default -std than 18).
+      - name: Configure (clang-22)
+        run: cmake --preset host -DCMAKE_C_COMPILER=clang-22 -DCMAKE_CXX_COMPILER=clang++-22
+
+      - name: Build (generates SDL3 headers + compile DB)
+        run: cmake --build build-host --parallel
+
+      - name: clang-tidy (gated; findings fail)
+        run: cmake --build build-host --target tidy

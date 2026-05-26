@@ -38,6 +38,9 @@ add_library(Rdp::rdp ALIAS rdp_core)
 
 target_include_directories(rdp_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(rdp_core PRIVATE project_warnings)
+# Sanitizers (no-op unless RDP_SANITIZE is set). PUBLIC so the flags propagate to
+# every dependent test/exe (compile + link); the oracle is deliberately excluded.
+target_link_libraries(rdp_core PUBLIC Rdp::sanitizers)
 
 # Cross-TU inlining: the unity build inlined the per-pixel helpers for free;
 # splitting into TUs relies on LTO to recover that. OPT-IN (default OFF):
@@ -72,8 +75,14 @@ endif()
 # Bit-exactness: RDRAM is aliased through uint8/16/32* (UB under strict aliasing,
 # required to match Angrylion). Pin -fno-strict-aliasing; never -ffast-math.
 # Applied per-target (each stream that compiles aliasing code does the same).
+#
+# -fwrapv: the Angrylion span/coord interpolation accumulators (rasterizer.cc)
+# intentionally overflow signed ints and rely on two's-complement wraparound.
+# That is UB in C; -fwrapv DEFINES it as wrapping on host AND device, so the
+# emulated behavior is guaranteed (not just de-facto) on arm and UBSan stays
+# clean — value-identical to the current de-facto wrap (conformance unchanged).
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  target_compile_options(rdp_core PRIVATE -fno-strict-aliasing)
+  target_compile_options(rdp_core PRIVATE -fno-strict-aliasing -fwrapv)
 endif()
 
 # Orthodox C++ enforcement (host/clang only; no-op otherwise). Applies to OUR
