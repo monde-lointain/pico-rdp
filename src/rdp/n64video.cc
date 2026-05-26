@@ -77,37 +77,26 @@ void rdpxi_msg_debug(const char* err, ...) { (void)err; }
 uint64_t rdpxi_pixel_count = 0;
 #endif
 
-// ---- VI (Stream C / M8) ---------------------------------------------------
-// Port of Angrylion's VI from 31bdb1f (src/core/n64video/vi.c + vi/*.c). The VI
-// code is included whole (mirroring the fork's `#include "n64video/vi.c"`); it
-// in turn includes vi/{gamma,lerp,divot,video,restore,fetch}.c.
+// ---- VI (Stream C / M8) glue ----------------------------------------------
+// The VI port (Angrylion 31bdb1f, src/core/n64video/vi.c + vi/*.c) is now its
+// own set of TUs (vi/*.cc); this file supplies the few symbols the fork's vi.c
+// needs from outside the VI stage files:
 //
-// The fork's vi.c depends on a handful of symbols that live outside the RDP
-// stage files: the `struct Rgba` / `struct FrameBuffer` scanout PODs (fork's
-// vdac.h), the vdac_* sink, the parallel_* worker API, and
-// PARALLEL_MAX_WORKERS. We supply file-static stand-ins here so the VI source
-// ports BYTE-FOR-BYTE:
+//   * struct Rgba / struct FrameBuffer / PARALLEL_MAX_WORKERS — moved to
+//     vi/vi_internal.h (shared with the VI TUs). Local PODs: no linkage, so no
+//     collision with the oracle's identically-named scanout types.
+//   * rdpxi_vdac_* — the vdac sink shims (below). vi.cc's vdac calls route the
+//     finished prescale frame here, which forwards to the rdpx_vdac_* sink (the
+//     conformance adapter), exactly as the oracle's vdac_write ->
+//     update_screen.
+//   * rdpxi_parallel_* — single-host-worker stubs (below).
+//   rdpxi_config.parallel
+//     is always false in the adapter, so vi.cc's parallel branches are dead;
+//     the stubs only satisfy the linker.
 //
-//   * struct Rgba / struct FrameBuffer — same layout as the fork's vdac.h (and
-//     our public n64video_pixel / n64video_frame_buffer). Local POD types:
-//     types have no linkage, so no collision with the oracle's
-//     identically-named ones.
-//   * vdac_* — static shims. rdpxi_vdac_write/sync route the finished prescale
-//   buffer
-//     to the rdpx_vdac_write / rdpx_vdac_sync sink (which forwards to the test
-//     adapter), exactly as the oracle's rdpxi_vdac_write calls update_screen().
-//   * parallel_* — single-host-worker stubs. rdpxi_config.parallel is always
-//   false in
-//     the conformance adapter, so the parallel branches in vi.c are dead; the
-//     stubs exist only so the dead branches link.
-//
-// Every VI external (vi_update_screen, rdpxi_vi_set_zbuffer_address,
-// rdpxi_vi_gamma_init, rdpxi_vi_restore_init, vi_init, vi_close) was made
-// `static` in the ported vi/*.c so nothing collides with the oracle's original
-// VI symbol names at link.
-
-// struct Rgba / struct FrameBuffer / PARALLEL_MAX_WORKERS now live in
-// vi/vi_internal.h (shared with the VI stage TUs).
+// These were file-static in the unity build; now that vi.cc is a separate TU
+// they are external, rdpxi_-prefixed so they don't collide with the oracle's
+// vdac_*/parallel_* at link.
 
 // Adapter-installed scanout callback. data is RGBA8888 (struct Rgba) pixels;
 // mirrors the oracle's rdpxi_vdac_write -> update_screen(pixels, width, height,
