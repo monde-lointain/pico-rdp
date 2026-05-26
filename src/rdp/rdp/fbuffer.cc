@@ -1,4 +1,14 @@
-#ifdef N64VIDEO_C
+// fbuffer.cc — framebuffer read/write/fill dispatch (standalone TU).
+// Ported VERBATIM from the fork 31bdb1f. rdp_set_color_image/rdp_set_fill_color
+// handlers collide with the oracle (rdpxi_-prefixed); fbfill_*/fb_init
+// de-inlined. The fbread/fbwrite function-pointer tables stay file-static. See
+// fbuffer_internal.h.
+
+#include <string.h>
+
+#include "coverage_internal.h"  // finalize_spanalpha
+#include "fbuffer_internal.h"
+#include "rdram_internal.h"  // RREAD*/RWRITE*/PAIR* macros
 
 static void fbwrite_4(uint32_t wid, uint32_t curpixel, uint32_t r, uint32_t g,
                       uint32_t b, uint32_t blend_en, uint32_t curpixel_cvg,
@@ -95,11 +105,11 @@ static void fbwrite_32(uint32_t wid, uint32_t curpixel, uint32_t r, uint32_t g,
   PAIRWRITE32(fb, finalcolor, (g & 1) ? 3 : 0, 0);
 }
 
-static void fbfill_4(uint32_t /*wid*/, uint32_t /*curpixel*/) {
-  rdp_pipeline_crashed = 1;
+void fbfill_4(uint32_t /*wid*/, uint32_t /*curpixel*/) {
+  rdpxi_pipeline_crashed = 1;
 }
 
-static void fbfill_8(uint32_t wid, uint32_t curpixel) {
+void fbfill_8(uint32_t wid, uint32_t curpixel) {
   uint32_t const fb = rdpxi_state[wid].fb_address + curpixel;
   uint32_t const val =
       (rdpxi_state[wid].fill_color >> (((fb & 3) ^ 3) << 3)) & 0xff;
@@ -107,7 +117,7 @@ static void fbfill_8(uint32_t wid, uint32_t curpixel) {
   PAIRWRITE8(fb, val, hval);
 }
 
-static void fbfill_16(uint32_t wid, uint32_t curpixel) {
+void fbfill_16(uint32_t wid, uint32_t curpixel) {
   uint16_t val;
   uint8_t hval;
   uint32_t const fb = (rdpxi_state[wid].fb_address >> 1) + curpixel;
@@ -120,7 +130,7 @@ static void fbfill_16(uint32_t wid, uint32_t curpixel) {
   PAIRWRITE16(fb, val, hval);
 }
 
-static void fbfill_32(uint32_t wid, uint32_t curpixel) {
+void fbfill_32(uint32_t wid, uint32_t curpixel) {
   uint32_t const fb = (rdpxi_state[wid].fb_address >> 2) + curpixel;
   PAIRWRITE32(fb, rdpxi_state[wid].fill_color,
               (rdpxi_state[wid].fill_color & 0x10000) ? 3 : 0,
@@ -284,7 +294,7 @@ static INLINE void fbread2_32(uint32_t wid, uint32_t curpixel,
   }
 }
 
-void rdp_set_color_image(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_set_color_image(uint32_t wid, const uint32_t* args) {
   rdpxi_state[wid].fb_format = (args[0] >> 21) & 0x7;
   rdpxi_state[wid].fb_size = (args[0] >> 19) & 0x3;
   rdpxi_state[wid].fb_width = (args[0] & 0x3ff) + 1;
@@ -295,11 +305,11 @@ void rdp_set_color_image(uint32_t wid, const uint32_t* args) {
   rdpxi_state[wid].fbwrite_ptr = fbwrite_func[rdpxi_state[wid].fb_size];
 }
 
-void rdp_set_fill_color(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_set_fill_color(uint32_t wid, const uint32_t* args) {
   rdpxi_state[wid].fill_color = args[1];
 }
 
-static void fb_init(uint32_t wid) {
+void fb_init(uint32_t wid) {
   rdpxi_state[wid].fb_format = FORMAT_RGBA;
   rdpxi_state[wid].fb_size = PIXEL_SIZE_4BIT;
   rdpxi_state[wid].fb_width = 0;
@@ -309,5 +319,3 @@ static void fb_init(uint32_t wid) {
   rdpxi_state[wid].fbread2_ptr = fbread2_func[rdpxi_state[wid].fb_size];
   rdpxi_state[wid].fbwrite_ptr = fbwrite_func[rdpxi_state[wid].fb_size];
 }
-
-#endif  // N64VIDEO_C

@@ -481,7 +481,7 @@ static void loading_pipeline(uint32_t wid, int start, int end, int tilenum,
   uint32_t hibit = 0;
 
   if (end > start && ltlut) {
-    rdp_pipeline_crashed = 1;
+    rdpxi_pipeline_crashed = 1;
     return;
   }
 
@@ -499,7 +499,7 @@ static void loading_pipeline(uint32_t wid, int start, int end, int tilenum,
   int tiptr = 0;
   switch (rdpxi_state[wid].ti_size) {
     case PIXEL_SIZE_4BIT:
-      rdp_pipeline_crashed = 1;
+      rdpxi_pipeline_crashed = 1;
       return;
       break;
     case PIXEL_SIZE_8BIT:

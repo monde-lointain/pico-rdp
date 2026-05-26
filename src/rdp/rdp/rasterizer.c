@@ -1835,7 +1835,7 @@ static void render_spans_2cycle_notex(uint32_t wid, int start, int end,
 
 static void render_spans_fill(uint32_t wid, int start, int end, int flip) {
   if (rdpxi_state[wid].fb_size == PIXEL_SIZE_4BIT) {
-    rdp_pipeline_crashed = 1;
+    rdpxi_pipeline_crashed = 1;
     return;
   }
 
@@ -1877,7 +1877,7 @@ static void render_spans_fill(uint32_t wid, int start, int end, int flip) {
               rdpxi_state[wid].other_modes.z_compare_en);
         }
         onetimewarnings.fillmbitcrashes = true;
-        rdp_pipeline_crashed = 1;
+        rdpxi_pipeline_crashed = 1;
         return;
       }
 
@@ -1913,7 +1913,7 @@ static void render_spans_fill(uint32_t wid, int start, int end, int flip) {
               rdpxi_state[wid].other_modes.z_source_sel);
         }
         onetimewarnings.fillmbitcrashes = 1;
-        rdp_pipeline_crashed = 1;
+        rdpxi_pipeline_crashed = 1;
         return;
       }
     }
@@ -1927,7 +1927,7 @@ static void render_spans_copy(uint32_t wid, int start, int end, int tilenum,
   int k;
 
   if (rdpxi_state[wid].fb_size == PIXEL_SIZE_32BIT) {
-    rdp_pipeline_crashed = 1;
+    rdpxi_pipeline_crashed = 1;
     return;
   }
 

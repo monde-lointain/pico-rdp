@@ -46,7 +46,7 @@ static struct {
   bool fillmbitcrashes, vbusclock, nolerp;
 } onetimewarnings;
 
-static int rdp_pipeline_crashed = 0;
+int rdpxi_pipeline_crashed = 0;
 
 // clamp lives in rdp_internal.h (header static inline, shared across TUs).
 // irand: from n64video_common.h (static STRICTINLINE). Stage files call
@@ -209,7 +209,7 @@ void rdpx_video_init(struct N64videoConfig* cfg) {
 
   rdram_init();
   vi_init();
-  rdp_pipeline_crashed = 0;
+  rdpxi_pipeline_crashed = 0;
   memset(&onetimewarnings, 0, sizeof(onetimewarnings));
 
   // Single host worker (no parallel split): worker 0 owns full framebuffer.
@@ -225,8 +225,8 @@ void rdpx_video_process_list(void) {
 void rdpx_rdp_cmd(uint32_t wid, const uint32_t* args) {
   // Real per-command dispatch — the harness entry point. Mirrors the oracle
   // adapter's rdp_cmd(0, words). If a prior command crashed the pipeline,
-  // angrylion stops processing; replicate by gating on rdp_pipeline_crashed.
-  if (rdp_pipeline_crashed) {
+  // angrylion stops processing; replicate by gating on rdpxi_pipeline_crashed.
+  if (rdpxi_pipeline_crashed) {
     return;
   }
   rdp_cmd(wid, args);
@@ -246,7 +246,7 @@ void rdpx_video_close(void) {
   // Release VI resources (none beyond file-static storage) and reset the crash
   // latch so a fresh driver instance starts clean.
   vi_close();
-  rdp_pipeline_crashed = 0;
+  rdpxi_pipeline_crashed = 0;
 }
 
 // ---- rdpx_vdac_* scanout sink --------------------------------------------
@@ -293,7 +293,7 @@ void rdpx_msg_debug(const char* err) { (void)err; }
 
 // Public query for the pipeline-crash latch (see header). Behavior-neutral;
 // always compiled in so a front-end can surface the crash state.
-int rdpx_pipeline_crashed(void) { return rdp_pipeline_crashed; }
+int rdpx_pipeline_crashed(void) { return rdpxi_pipeline_crashed; }
 
 // ---- RDPX_TESTING accessor block ------------------------------------------
 // Exposes file-static base pointers so the conformance adapter can hand the

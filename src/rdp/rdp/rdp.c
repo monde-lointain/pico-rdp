@@ -29,6 +29,7 @@
 #include "rdp/combiner_internal.h"
 #include "rdp/coverage_internal.h"
 #include "rdp/dither_internal.h"
+#include "rdp/fbuffer_internal.h"
 #include "rdp/rdram_internal.h"
 #include "rdp/zbuffer_internal.h"
 
@@ -66,9 +67,7 @@ static void rdp_load_tlut(uint32_t wid, const uint32_t* args);
 static void rdp_load_tile(uint32_t wid, const uint32_t* args);
 static void rdp_set_tile(uint32_t wid, const uint32_t* args);
 static void rdp_fill_rect(uint32_t wid, const uint32_t* args);
-static void rdp_set_fill_color(uint32_t wid, const uint32_t* args);
 static void rdp_set_texture_image(uint32_t wid, const uint32_t* args);
-static void rdp_set_color_image(uint32_t wid, const uint32_t* args);
 static void rdp_cmd(uint32_t wid, const uint32_t* args);
 
 // init funcs forward-declared static (internal linkage vs oracle's globals).
@@ -139,7 +138,7 @@ static const struct {
     {rdp_load_tile,           8},
     {rdp_set_tile,            8},
     {rdp_fill_rect,           8},
-    {rdp_set_fill_color,      8},
+    {rdpxi_rdp_set_fill_color,     8},
     {rdpxi_rdp_set_fog_color,     8},
     {rdpxi_rdp_set_blend_color,     8},
     {rdpxi_rdp_set_prim_color,     8},
@@ -147,7 +146,7 @@ static const struct {
     {rdpxi_rdp_set_combine,     8},
     {rdp_set_texture_image,   8},
     {rdpxi_rdp_set_mask_image,   8},
-    {rdp_set_color_image,     8}
+    {rdpxi_rdp_set_color_image,     8}
 };
 // clang-format on
 
@@ -161,7 +160,7 @@ static void deduce_derivatives(uint32_t wid);
 // clang-format off
 
 
-#include "rdp/fbuffer.c"
+
 #include "rdp/tmem.c"
 #include "rdp/tcoord.c"
 #include "rdp/tex.c"

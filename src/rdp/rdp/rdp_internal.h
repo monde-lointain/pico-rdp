@@ -437,6 +437,7 @@ extern struct N64videoConfig rdpxi_config;
 extern struct RdpState rdpxi_state[RDPX_PARALLEL_MAX_WORKERS];
 extern int32_t one_color;
 extern int32_t zero_color;
+extern int rdpxi_pipeline_crashed;
 
 // Message sinks (no-ops) — rdpxi_-prefixed; the oracle exports msg_*.
 void rdpxi_msg_error(const char* err, ...);
