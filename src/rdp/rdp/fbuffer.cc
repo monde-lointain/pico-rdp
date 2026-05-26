@@ -23,13 +23,19 @@ static void fbwrite_32(uint32_t wid, uint32_t curpixel, uint32_t r, uint32_t g,
                        uint32_t b, uint32_t blend_en, uint32_t curpixel_cvg,
                        uint32_t curpixel_memcvg);
 static void fbread_4(uint32_t wid, uint32_t num, uint32_t* curpixel_memcvg);
-static void fbread_8(uint32_t wid, uint32_t num, uint32_t* curpixel_memcvg);
-static void fbread_16(uint32_t wid, uint32_t num, uint32_t* curpixel_memcvg);
-static void fbread_32(uint32_t wid, uint32_t num, uint32_t* curpixel_memcvg);
+static void fbread_8(uint32_t wid, uint32_t curpixel,
+                     uint32_t* curpixel_memcvg);
+static void fbread_16(uint32_t wid, uint32_t curpixel,
+                      uint32_t* curpixel_memcvg);
+static void fbread_32(uint32_t wid, uint32_t curpixel,
+                      uint32_t* curpixel_memcvg);
 static void fbread2_4(uint32_t wid, uint32_t num, uint32_t* curpixel_memcvg);
-static void fbread2_8(uint32_t wid, uint32_t num, uint32_t* curpixel_memcvg);
-static void fbread2_16(uint32_t wid, uint32_t num, uint32_t* curpixel_memcvg);
-static void fbread2_32(uint32_t wid, uint32_t num, uint32_t* curpixel_memcvg);
+static void fbread2_8(uint32_t wid, uint32_t curpixel,
+                      uint32_t* curpixel_memcvg);
+static void fbread2_16(uint32_t wid, uint32_t curpixel,
+                       uint32_t* curpixel_memcvg);
+static void fbread2_32(uint32_t wid, uint32_t curpixel,
+                       uint32_t* curpixel_memcvg);
 
 static void (*fbread_func[4])(uint32_t, uint32_t, uint32_t*) = {
     fbread_4, fbread_8, fbread_16, fbread_32};
@@ -78,9 +84,9 @@ static void fbwrite_16(uint32_t wid, uint32_t curpixel, uint32_t r, uint32_t g,
   int16_t finalcolor;
 
   if (rdpxi_state[wid].fb_format == FORMAT_RGBA) {
-    finalcolor = ((r & ~7) << 8) | ((g & ~7) << 3) | ((b & ~7) >> 2);
+    finalcolor = (int16_t)(((r & ~7) << 8) | ((g & ~7) << 3) | ((b & ~7) >> 2));
   } else {
-    finalcolor = (r << 8) | (finalcvg << 5);
+    finalcolor = (int16_t)((r << 8) | (finalcvg << 5));
     finalcvg = 0;
   }
 
@@ -99,7 +105,7 @@ static void fbwrite_32(uint32_t wid, uint32_t curpixel, uint32_t r, uint32_t g,
       finalize_spanalpha(rdpxi_state[wid].other_modes.cvg_dest, blend_en,
                          curpixel_cvg, curpixel_memcvg);
 
-  finalcolor = (r << 24) | (g << 16) | (b << 8);
+  finalcolor = (int32_t)((r << 24) | (g << 16) | (b << 8));
   finalcolor |= (finalcvg << 5);
 
   PAIRWRITE32(fb, finalcolor, (g & 1) ? 3 : 0, 0);
@@ -270,7 +276,7 @@ static void fbread_32(uint32_t wid, uint32_t curpixel,
   rdpxi_state[wid].memory_color.b = RGBA32_B(mem);
   if (rdpxi_state[wid].other_modes.image_read_en) {
     *curpixel_memcvg = (mem >> 5) & 7;
-    rdpxi_state[wid].memory_color.a = mem & 0xe0;
+    rdpxi_state[wid].memory_color.a = (int32_t)(mem & 0xe0);
   } else {
     *curpixel_memcvg = 7;
     rdpxi_state[wid].memory_color.a = 0xe0;
@@ -287,7 +293,7 @@ static INLINE void fbread2_32(uint32_t wid, uint32_t curpixel,
   rdpxi_state[wid].pre_memory_color.b = RGBA32_B(mem);
   if (rdpxi_state[wid].other_modes.image_read_en) {
     *curpixel_memcvg = (mem >> 5) & 7;
-    rdpxi_state[wid].pre_memory_color.a = mem & 0xe0;
+    rdpxi_state[wid].pre_memory_color.a = (int32_t)(mem & 0xe0);
   } else {
     *curpixel_memcvg = 7;
     rdpxi_state[wid].pre_memory_color.a = 0xe0;
@@ -295,9 +301,9 @@ static INLINE void fbread2_32(uint32_t wid, uint32_t curpixel,
 }
 
 void rdpxi_rdp_set_color_image(uint32_t wid, const uint32_t* args) {
-  rdpxi_state[wid].fb_format = (args[0] >> 21) & 0x7;
-  rdpxi_state[wid].fb_size = (args[0] >> 19) & 0x3;
-  rdpxi_state[wid].fb_width = (args[0] & 0x3ff) + 1;
+  rdpxi_state[wid].fb_format = (int)((args[0] >> 21) & 0x7);
+  rdpxi_state[wid].fb_size = (int)((args[0] >> 19) & 0x3);
+  rdpxi_state[wid].fb_width = (int)((args[0] & 0x3ff) + 1);
   rdpxi_state[wid].fb_address = args[1] & 0x0ffffff;
 
   rdpxi_state[wid].fbread1_ptr = fbread_func[rdpxi_state[wid].fb_size];

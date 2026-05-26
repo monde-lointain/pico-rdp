@@ -48,6 +48,8 @@ static void sort_tmem_shorts_lowhalf(uint32_t *bindshort, uint32_t short0,
     case 3:
       *bindshort = short3;
       break;
+    default:
+      break;
   }
 }
 
@@ -168,7 +170,7 @@ void fetch_texel(uint32_t wid, struct Color *color, int s, int t,
     } break;
     case TEXEL_YUV16: {
       taddr = (tbase << 3) + s;
-      int taddrlow = taddr >> 1;
+      int taddrlow = (int)(taddr >> 1);
 
       taddr ^= ((t & 1) ? BYTE_XOR_DWORD_SWAP : BYTE_ADDR_XOR);
       taddrlow ^= ((t & 1) ? WORD_XOR_DWORD_SWAP : WORD_ADDR_XOR);
@@ -201,7 +203,7 @@ void fetch_texel(uint32_t wid, struct Color *color, int s, int t,
       int32_t v;
 
       taddr = (tbase << 3) + s;
-      taddrlow = taddr >> 1;
+      taddrlow = (int)(taddr >> 1);
 
       taddrlow ^= ((t & 1) ? WORD_XOR_DWORD_SWAP : WORD_ADDR_XOR);
 
@@ -365,10 +367,11 @@ void fetch_texel(uint32_t wid, struct Color *color, int s, int t,
   }
 }
 
-void fetch_texel_quadro(uint32_t wid, struct Color *color0,
-                        struct Color *color1, struct Color *color2,
-                        struct Color *color3, int s0, int sdiff, int t0,
-                        int tdiff, uint32_t tilenum, int unequaluppers) {
+void fetch_texel_quadro(uint32_t wid,  // NOLINT(readability-function-size)
+                        struct Color *color0, struct Color *color1,
+                        struct Color *color2, struct Color *color3, int s0,
+                        int sdiff, int t0, int tdiff, uint32_t tilenum,
+                        int unequaluppers) {
   uint32_t const tbase0 = rdpxi_state[wid].tile[tilenum].line * (t0 & 0xff) +
                           rdpxi_state[wid].tile[tilenum].tmem;
 
@@ -415,33 +418,33 @@ void fetch_texel_quadro(uint32_t wid, struct Color *color0,
       byteval = rdpxi_state[wid].tmem[taddr0];
       c = (ands) ? (byteval & 0xf) : (byteval >> 4);
       c |= (c << 4);
-      color0->r = c;
-      color0->g = c;
-      color0->b = c;
-      color0->a = c;
+      color0->r = (int32_t)c;
+      color0->g = (int32_t)c;
+      color0->b = (int32_t)c;
+      color0->a = (int32_t)c;
       byteval = rdpxi_state[wid].tmem[taddr2];
       c = (ands) ? (byteval & 0xf) : (byteval >> 4);
       c |= (c << 4);
-      color2->r = c;
-      color2->g = c;
-      color2->b = c;
-      color2->a = c;
+      color2->r = (int32_t)c;
+      color2->g = (int32_t)c;
+      color2->b = (int32_t)c;
+      color2->a = (int32_t)c;
 
       ands = s1 & 1;
       byteval = rdpxi_state[wid].tmem[taddr1];
       c = (ands) ? (byteval & 0xf) : (byteval >> 4);
       c |= (c << 4);
-      color1->r = c;
-      color1->g = c;
-      color1->b = c;
-      color1->a = c;
+      color1->r = (int32_t)c;
+      color1->g = (int32_t)c;
+      color1->b = (int32_t)c;
+      color1->a = (int32_t)c;
       byteval = rdpxi_state[wid].tmem[taddr3];
       c = (ands) ? (byteval & 0xf) : (byteval >> 4);
       c |= (c << 4);
-      color3->r = c;
-      color3->g = c;
-      color3->b = c;
-      color3->a = c;
+      color3->r = (int32_t)c;
+      color3->g = (int32_t)c;
+      color3->b = (int32_t)c;
+      color3->a = (int32_t)c;
     } break;
     case TEXEL_RGBA8: {
       taddr0 = (tbase0 << 3) + s0;
@@ -462,25 +465,25 @@ void fetch_texel_quadro(uint32_t wid, struct Color *color0,
       taddr2 &= 0xfff;
       taddr3 &= 0xfff;
       p = rdpxi_state[wid].tmem[taddr0];
-      color0->r = p;
-      color0->g = p;
-      color0->b = p;
-      color0->a = p;
+      color0->r = (int32_t)p;
+      color0->g = (int32_t)p;
+      color0->b = (int32_t)p;
+      color0->a = (int32_t)p;
       p = rdpxi_state[wid].tmem[taddr2];
-      color2->r = p;
-      color2->g = p;
-      color2->b = p;
-      color2->a = p;
+      color2->r = (int32_t)p;
+      color2->g = (int32_t)p;
+      color2->b = (int32_t)p;
+      color2->a = (int32_t)p;
       p = rdpxi_state[wid].tmem[taddr1];
-      color1->r = p;
-      color1->g = p;
-      color1->b = p;
-      color1->a = p;
+      color1->r = (int32_t)p;
+      color1->g = (int32_t)p;
+      color1->b = (int32_t)p;
+      color1->a = (int32_t)p;
       p = rdpxi_state[wid].tmem[taddr3];
-      color3->r = p;
-      color3->g = p;
-      color3->b = p;
-      color3->a = p;
+      color3->r = (int32_t)p;
+      color3->g = (int32_t)p;
+      color3->b = (int32_t)p;
+      color3->a = (int32_t)p;
     } break;
     case TEXEL_RGBA16: {
       taddr0 = (tbase0 << 2) + s0;
@@ -926,21 +929,21 @@ void fetch_texel_quadro(uint32_t wid, struct Color *color0,
       p = rdpxi_state[wid].tmem[taddr0];
       p = (ands) ? (p & 0xf) : (p >> 4);
       p = (tpal << 4) | p;
-      color0->r = color0->g = color0->b = color0->a = p;
+      color0->r = color0->g = color0->b = color0->a = (int32_t)p;
       p = rdpxi_state[wid].tmem[taddr2];
       p = (ands) ? (p & 0xf) : (p >> 4);
       p = (tpal << 4) | p;
-      color2->r = color2->g = color2->b = color2->a = p;
+      color2->r = color2->g = color2->b = color2->a = (int32_t)p;
 
       ands = s1 & 1;
       p = rdpxi_state[wid].tmem[taddr1];
       p = (ands) ? (p & 0xf) : (p >> 4);
       p = (tpal << 4) | p;
-      color1->r = color1->g = color1->b = color1->a = p;
+      color1->r = color1->g = color1->b = color1->a = (int32_t)p;
       p = rdpxi_state[wid].tmem[taddr3];
       p = (ands) ? (p & 0xf) : (p >> 4);
       p = (tpal << 4) | p;
-      color3->r = color3->g = color3->b = color3->a = p;
+      color3->r = color3->g = color3->b = color3->a = (int32_t)p;
     } break;
     case TEXEL_CI8: {
       taddr0 = (tbase0 << 3) + s0;
@@ -961,25 +964,25 @@ void fetch_texel_quadro(uint32_t wid, struct Color *color0,
       taddr2 &= 0xfff;
       taddr3 &= 0xfff;
       p = rdpxi_state[wid].tmem[taddr0];
-      color0->r = p;
-      color0->g = p;
-      color0->b = p;
-      color0->a = p;
+      color0->r = (int32_t)p;
+      color0->g = (int32_t)p;
+      color0->b = (int32_t)p;
+      color0->a = (int32_t)p;
       p = rdpxi_state[wid].tmem[taddr2];
-      color2->r = p;
-      color2->g = p;
-      color2->b = p;
-      color2->a = p;
+      color2->r = (int32_t)p;
+      color2->g = (int32_t)p;
+      color2->b = (int32_t)p;
+      color2->a = (int32_t)p;
       p = rdpxi_state[wid].tmem[taddr1];
-      color1->r = p;
-      color1->g = p;
-      color1->b = p;
-      color1->a = p;
+      color1->r = (int32_t)p;
+      color1->g = (int32_t)p;
+      color1->b = (int32_t)p;
+      color1->a = (int32_t)p;
       p = rdpxi_state[wid].tmem[taddr3];
-      color3->r = p;
-      color3->g = p;
-      color3->b = p;
-      color3->a = p;
+      color3->r = (int32_t)p;
+      color3->g = (int32_t)p;
+      color3->b = (int32_t)p;
+      color3->a = (int32_t)p;
     } break;
     case TEXEL_CI16:
     case TEXEL_CI32: {
@@ -1048,17 +1051,17 @@ void fetch_texel_quadro(uint32_t wid, struct Color *color0,
       p = ands ? (p & 0xf) : (p >> 4);
       i = p & 0xe;
       i = (i << 4) | (i << 1) | (i >> 2);
-      color0->r = i;
-      color0->g = i;
-      color0->b = i;
+      color0->r = (int32_t)i;
+      color0->g = (int32_t)i;
+      color0->b = (int32_t)i;
       color0->a = (p & 0x1) ? 0xff : 0;
       p = rdpxi_state[wid].tmem[taddr2];
       p = ands ? (p & 0xf) : (p >> 4);
       i = p & 0xe;
       i = (i << 4) | (i << 1) | (i >> 2);
-      color2->r = i;
-      color2->g = i;
-      color2->b = i;
+      color2->r = (int32_t)i;
+      color2->g = (int32_t)i;
+      color2->b = (int32_t)i;
       color2->a = (p & 0x1) ? 0xff : 0;
 
       ands = s1 & 1;
@@ -1066,17 +1069,17 @@ void fetch_texel_quadro(uint32_t wid, struct Color *color0,
       p = ands ? (p & 0xf) : (p >> 4);
       i = p & 0xe;
       i = (i << 4) | (i << 1) | (i >> 2);
-      color1->r = i;
-      color1->g = i;
-      color1->b = i;
+      color1->r = (int32_t)i;
+      color1->g = (int32_t)i;
+      color1->b = (int32_t)i;
       color1->a = (p & 0x1) ? 0xff : 0;
       p = rdpxi_state[wid].tmem[taddr3];
       p = ands ? (p & 0xf) : (p >> 4);
       i = p & 0xe;
       i = (i << 4) | (i << 1) | (i >> 2);
-      color3->r = i;
-      color3->g = i;
-      color3->b = i;
+      color3->r = (int32_t)i;
+      color3->g = (int32_t)i;
+      color3->b = (int32_t)i;
       color3->a = (p & 0x1) ? 0xff : 0;
     } break;
     case TEXEL_IA8: {
@@ -1101,31 +1104,31 @@ void fetch_texel_quadro(uint32_t wid, struct Color *color0,
       p = rdpxi_state[wid].tmem[taddr0];
       i = p & 0xf0;
       i |= (i >> 4);
-      color0->r = i;
-      color0->g = i;
-      color0->b = i;
-      color0->a = ((p & 0xf) << 4) | (p & 0xf);
+      color0->r = (int32_t)i;
+      color0->g = (int32_t)i;
+      color0->b = (int32_t)i;
+      color0->a = (int32_t)(((p & 0xf) << 4) | (p & 0xf));
       p = rdpxi_state[wid].tmem[taddr1];
       i = p & 0xf0;
       i |= (i >> 4);
-      color1->r = i;
-      color1->g = i;
-      color1->b = i;
-      color1->a = ((p & 0xf) << 4) | (p & 0xf);
+      color1->r = (int32_t)i;
+      color1->g = (int32_t)i;
+      color1->b = (int32_t)i;
+      color1->a = (int32_t)(((p & 0xf) << 4) | (p & 0xf));
       p = rdpxi_state[wid].tmem[taddr2];
       i = p & 0xf0;
       i |= (i >> 4);
-      color2->r = i;
-      color2->g = i;
-      color2->b = i;
-      color2->a = ((p & 0xf) << 4) | (p & 0xf);
+      color2->r = (int32_t)i;
+      color2->g = (int32_t)i;
+      color2->b = (int32_t)i;
+      color2->a = (int32_t)(((p & 0xf) << 4) | (p & 0xf));
       p = rdpxi_state[wid].tmem[taddr3];
       i = p & 0xf0;
       i |= (i >> 4);
-      color3->r = i;
-      color3->g = i;
-      color3->b = i;
-      color3->a = ((p & 0xf) << 4) | (p & 0xf);
+      color3->r = (int32_t)i;
+      color3->g = (int32_t)i;
+      color3->b = (int32_t)i;
+      color3->a = (int32_t)(((p & 0xf) << 4) | (p & 0xf));
     } break;
     case TEXEL_IA16: {
       taddr0 = (tbase0 << 2) + s0;
@@ -1231,21 +1234,21 @@ void fetch_texel_quadro(uint32_t wid, struct Color *color0,
       p = rdpxi_state[wid].tmem[taddr0];
       c0 = ands ? (p & 0xf) : (p >> 4);
       c0 |= (c0 << 4);
-      color0->r = color0->g = color0->b = color0->a = c0;
+      color0->r = color0->g = color0->b = color0->a = (int32_t)c0;
       p = rdpxi_state[wid].tmem[taddr2];
       c2 = ands ? (p & 0xf) : (p >> 4);
       c2 |= (c2 << 4);
-      color2->r = color2->g = color2->b = color2->a = c2;
+      color2->r = color2->g = color2->b = color2->a = (int32_t)c2;
 
       ands = s1 & 1;
       p = rdpxi_state[wid].tmem[taddr1];
       c1 = ands ? (p & 0xf) : (p >> 4);
       c1 |= (c1 << 4);
-      color1->r = color1->g = color1->b = color1->a = c1;
+      color1->r = color1->g = color1->b = color1->a = (int32_t)c1;
       p = rdpxi_state[wid].tmem[taddr3];
       c3 = ands ? (p & 0xf) : (p >> 4);
       c3 |= (c3 << 4);
-      color3->r = color3->g = color3->b = color3->a = c3;
+      color3->r = color3->g = color3->b = color3->a = (int32_t)c3;
 
     } break;
     case TEXEL_I8: {
@@ -1268,25 +1271,25 @@ void fetch_texel_quadro(uint32_t wid, struct Color *color0,
       taddr3 &= 0xfff;
 
       p = rdpxi_state[wid].tmem[taddr0];
-      color0->r = p;
-      color0->g = p;
-      color0->b = p;
-      color0->a = p;
+      color0->r = (int32_t)p;
+      color0->g = (int32_t)p;
+      color0->b = (int32_t)p;
+      color0->a = (int32_t)p;
       p = rdpxi_state[wid].tmem[taddr1];
-      color1->r = p;
-      color1->g = p;
-      color1->b = p;
-      color1->a = p;
+      color1->r = (int32_t)p;
+      color1->g = (int32_t)p;
+      color1->b = (int32_t)p;
+      color1->a = (int32_t)p;
       p = rdpxi_state[wid].tmem[taddr2];
-      color2->r = p;
-      color2->g = p;
-      color2->b = p;
-      color2->a = p;
+      color2->r = (int32_t)p;
+      color2->g = (int32_t)p;
+      color2->b = (int32_t)p;
+      color2->a = (int32_t)p;
       p = rdpxi_state[wid].tmem[taddr3];
-      color3->r = p;
-      color3->g = p;
-      color3->b = p;
-      color3->a = p;
+      color3->r = (int32_t)p;
+      color3->g = (int32_t)p;
+      color3->b = (int32_t)p;
+      color3->a = (int32_t)p;
     } break;
     case TEXEL_I16:
     case TEXEL_I32:
@@ -1675,7 +1678,7 @@ void fetch_texel_entlut_quadro_nearest(uint32_t wid, struct Color *color0,
 
       taddr0 = (tpal | c0) << 2;
     } break;
-    case 4:
+    case 4:  // NOLINT(bugprone-branch-clone)
     case 5:
     case 6: {
       taddr0 = (tbase0 << 3) + s0;
@@ -1820,7 +1823,7 @@ void get_tmem_idx(uint32_t wid, int s, int t, uint32_t tilenum, uint32_t *idx0,
 
   *bit3flipped = ((sshorts & 2) != 0) ^ (t & 1);
 
-  int tidx_a = ((tbase << 2) + sshorts) & 0x7fd;
+  int tidx_a = (int)(((tbase << 2) + sshorts) & 0x7fd);
   int tidx_b = (tidx_a + 1) & 0x7ff;
   int tidx_c = (tidx_a + 2) & 0x7ff;
   int tidx_d = (tidx_a + 3) & 0x7ff;
@@ -1884,15 +1887,15 @@ void read_tmem_copy(uint32_t wid, int s, int s1, int s2, int s3, int t,
   int tidx_dhi;
 
   tbase <<= 4;
-  tidx_a = (tbase + shbytes) & 0x1fff;
-  tidx_bhi = (tbase + shbytes1) & 0x1fff;
-  tidx_c = (tbase + shbytes2) & 0x1fff;
-  tidx_dhi = (tbase + shbytes3) & 0x1fff;
+  tidx_a = (int)((tbase + shbytes) & 0x1fff);
+  tidx_bhi = (int)((tbase + shbytes1) & 0x1fff);
+  tidx_c = (int)((tbase + shbytes2) & 0x1fff);
+  tidx_dhi = (int)((tbase + shbytes3) & 0x1fff);
 
   if (tformat == FORMAT_YUV) {
-    delta = shbytes1 - shbytes;
+    delta = (int32_t)(shbytes1 - shbytes);
     tidx_blow = (tidx_a + (delta << 1)) & 0x1fff;
-    tidx_dlow = (tidx_blow + shbytes3 - shbytes) & 0x1fff;
+    tidx_dlow = (int)((tidx_blow + shbytes3 - shbytes) & 0x1fff);
   } else {
     tidx_blow = tidx_bhi;
     tidx_dlow = tidx_dhi;

@@ -110,9 +110,9 @@ void video_filter16(int* endr, int* endg, int* endb, uint32_t fboffset,
   uint32_t colg;
   uint32_t colb;
 
-  video_max_optimized(backr, &penuminr, &penumaxr, numoffull);
-  video_max_optimized(backg, &penuming, &penumaxg, numoffull);
-  video_max_optimized(backb, &penuminb, &penumaxb, numoffull);
+  video_max_optimized(backr, &penuminr, &penumaxr, (int)numoffull);
+  video_max_optimized(backg, &penuming, &penumaxg, (int)numoffull);
+  video_max_optimized(backb, &penuminb, &penumaxb, (int)numoffull);
 
   uint32_t const coeff = 7 - centercvg;
   colr = penuminr + penumaxr - (r << 1);
@@ -123,9 +123,9 @@ void video_filter16(int* endr, int* endg, int* endb, uint32_t fboffset,
   colg = (((colg * coeff) + 4) >> 3) + g;
   colb = (((colb * coeff) + 4) >> 3) + b;
 
-  *endr = colr & 0xff;
-  *endg = colg & 0xff;
-  *endb = colb & 0xff;
+  *endr = (int)(colr & 0xff);
+  *endg = (int)(colg & 0xff);
+  *endb = (int)(colb & 0xff);
 }
 
 void video_filter32(int* endr, int* endg, int* endb, uint32_t fboffset,
@@ -195,9 +195,9 @@ void video_filter32(int* endr, int* endg, int* endb, uint32_t fboffset,
   uint32_t colg;
   uint32_t colb;
 
-  video_max_optimized(backr, &penuminr, &penumaxr, numoffull);
-  video_max_optimized(backg, &penuming, &penumaxg, numoffull);
-  video_max_optimized(backb, &penuminb, &penumaxb, numoffull);
+  video_max_optimized(backr, &penuminr, &penumaxr, (int)numoffull);
+  video_max_optimized(backg, &penuming, &penumaxg, (int)numoffull);
+  video_max_optimized(backb, &penuminb, &penumaxb, (int)numoffull);
 
   uint32_t const coeff = 7 - centercvg;
   colr = penuminr + penumaxr - (r << 1);
@@ -208,7 +208,7 @@ void video_filter32(int* endr, int* endg, int* endb, uint32_t fboffset,
   colg = (((colg * coeff) + 4) >> 3) + g;
   colb = (((colb * coeff) + 4) >> 3) + b;
 
-  *endr = colr & 0xff;
-  *endg = colg & 0xff;
-  *endb = colb & 0xff;
+  *endr = (int)(colr & 0xff);
+  *endg = (int)(colg & 0xff);
+  *endb = (int)(colb & 0xff);
 }

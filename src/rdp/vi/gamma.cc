@@ -35,7 +35,7 @@ void gamma_filters(struct Rgba* pixel, bool gamma_enable,
     case 0:  // no gamma, no dithering
       return;
     case 1:  // no gamma, dithering enabled
-      cdith = noise_seed;
+      cdith = (int)noise_seed;
       dith = cdith & 1;
       if (pixel->r < 255) {
         pixel->r += dith;
@@ -55,13 +55,15 @@ void gamma_filters(struct Rgba* pixel, bool gamma_enable,
       pixel->b = gamma_table[pixel->b];
       break;
     case 3:  // gamma and dithering enabled
-      cdith = noise_seed;
+      cdith = (int)noise_seed;
       dith = cdith & 0x3f;
       pixel->r = gamma_dither_table[((pixel->r) << 6) | dith];
       dith = (cdith >> 6) & 0x3f;
       pixel->g = gamma_dither_table[((pixel->g) << 6) | dith];
       dith = ((cdith >> 9) & 0x38) | (cdith & 7);
       pixel->b = gamma_dither_table[((pixel->b) << 6) | dith];
+      break;
+    default:
       break;
   }
 }

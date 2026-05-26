@@ -4,6 +4,7 @@
 // file-static. Calls the VI leaf filters + the vdac/parallel shims (in
 // n64video.cc). See vi_internal.h.
 
+#include <stddef.h>  // ptrdiff_t
 #include <string.h>
 
 #include "rdp/dither_internal.h"  // rdpxi_reseed_noise
@@ -74,7 +75,7 @@ static void vi_process_full_parallel(uint32_t worker_id) {
   int32_t cache_next_marker = 0;
   int32_t divot_cache_marker = 0;
   int32_t divot_cache_next_marker = 0;
-  int32_t const cache_marker_init = (x_start >> 10) - 1;
+  int32_t const cache_marker_init = (int32_t)((x_start >> 10) - 1);
 
   struct Rgba* viaa_cache = &viaa_array[0];
   struct Rgba* viaa_cache_next = &viaa_array[0xa10];
@@ -111,15 +112,13 @@ static void vi_process_full_parallel(uint32_t worker_id) {
 
   bool cache_init = false;
 
-  pixels = 0;
-
   int32_t y_begin = 0;
   int32_t y_end = vres;
   int32_t y_inc = 1;
 
   if (rdpxi_config.parallel) {
-    y_begin = worker_id;
-    y_inc = rdpxi_parallel_num_workers();
+    y_begin = (int32_t)worker_id;
+    y_inc = (int32_t)rdpxi_parallel_num_workers();
   }
 
   /* Fixup buffer overflow. */
@@ -143,7 +142,7 @@ static void vi_process_full_parallel(uint32_t worker_id) {
 
     struct Rgba* pixel_row = &prescale[prescale_ptr + linecount * y];
 
-    yfrac = (curry >> 5) & 0x1f;
+    yfrac = (int32_t)((curry >> 5) & 0x1f);
     pixels = vi_width_low * prevy;
     nextpixels = vi_width_low + pixels;
 
@@ -154,27 +153,27 @@ static void vi_process_full_parallel(uint32_t worker_id) {
     }
 
     for (x = 0; x < hres; x++, x_offs += x_add) {
-      line_x = x_offs >> 10;
+      line_x = (int32_t)(x_offs >> 10);
       prev_line_x = line_x - 1;
       next_line_x = line_x + 1;
       far_line_x = line_x + 2;
 
-      cur_x = pixels + line_x;
-      prev_x = pixels + prev_line_x;
-      next_x = pixels + next_line_x;
-      far_x = pixels + far_line_x;
+      cur_x = (int32_t)(pixels + line_x);
+      prev_x = (int32_t)(pixels + prev_line_x);
+      next_x = (int32_t)(pixels + next_line_x);
+      far_x = (int32_t)(pixels + far_line_x);
 
-      scan_x = nextpixels + line_x;
-      prev_scan_x = nextpixels + prev_line_x;
-      next_scan_x = nextpixels + next_line_x;
-      far_scan_x = nextpixels + far_line_x;
+      scan_x = (int32_t)(nextpixels + line_x);
+      prev_scan_x = (int32_t)(nextpixels + prev_line_x);
+      next_scan_x = (int32_t)(nextpixels + next_line_x);
+      far_scan_x = (int32_t)(nextpixels + far_line_x);
 
       line_x++;
       prev_line_x++;
       next_line_x++;
       far_line_x++;
 
-      xfrac = (x_offs >> 5) & 0x1f;
+      xfrac = (int32_t)((x_offs >> 5) & 0x1f);
 
       if (prev_line_x > cache_marker) {
         vi_fetch_filter_ptr(&viaa_cache[prev_line_x], frame_buffer, prev_x,
@@ -292,9 +291,6 @@ static void vi_process_full_parallel(uint32_t worker_id) {
     }
 
     if (!cache_init && y_add == 0x400) {
-      cache_marker = cache_next_marker;
-      cache_next_marker = cache_marker_init;
-
       struct Rgba* tempccvgptr = viaa_cache;
       viaa_cache = viaa_cache_next;
       viaa_cache_next = tempccvgptr;
@@ -345,7 +341,8 @@ static bool vi_process_full(void) {
     int32_t j;
     if (h_start > 0 && h_start < PRESCALE_WIDTH) {
       for (i = 0; i < vactivelines; i++) {
-        memset(&prescale[i * PRESCALE_WIDTH], 0, h_start * sizeof(uint32_t));
+        memset(&prescale[(ptrdiff_t)i * PRESCALE_WIDTH], 0,
+               h_start * sizeof(uint32_t));
       }
     }
 
@@ -366,7 +363,7 @@ static bool vi_process_full(void) {
             memset(&prescale[i * PRESCALE_WIDTH + h_start], 0,
                    hres * sizeof(uint32_t));
           } else {
-            memset(&prescale[i * PRESCALE_WIDTH], 0,
+            memset(&prescale[(ptrdiff_t)i * PRESCALE_WIDTH], 0,
                    PRESCALE_WIDTH * sizeof(uint32_t));
           }
         }
@@ -380,7 +377,7 @@ static bool vi_process_full(void) {
         } else if (tvfadeoutstate[i]) {
           tvfadeoutstate[i]--;
           if (!tvfadeoutstate[i]) {
-            memset(&prescale[i * PRESCALE_WIDTH], 0,
+            memset(&prescale[(ptrdiff_t)i * PRESCALE_WIDTH], 0,
                    PRESCALE_WIDTH * sizeof(uint32_t));
           }
         }
@@ -394,7 +391,7 @@ static bool vi_process_full(void) {
         } else if (tvfadeoutstate[i]) {
           tvfadeoutstate[i]--;
           if (!tvfadeoutstate[i]) {
-            memset(&prescale[i * PRESCALE_WIDTH], 0,
+            memset(&prescale[(ptrdiff_t)i * PRESCALE_WIDTH], 0,
                    PRESCALE_WIDTH * sizeof(uint32_t));
           }
         }
@@ -406,7 +403,7 @@ static bool vi_process_full(void) {
               memset(&prescale[(i + 1) * PRESCALE_WIDTH + h_start], 0,
                      hres * sizeof(uint32_t));
             } else {
-              memset(&prescale[(i + 1) * PRESCALE_WIDTH], 0,
+              memset(&prescale[(ptrdiff_t)(i + 1) * PRESCALE_WIDTH], 0,
                      PRESCALE_WIDTH * sizeof(uint32_t));
             }
           }
@@ -426,7 +423,7 @@ static bool vi_process_full(void) {
           memset(&prescale[i * PRESCALE_WIDTH + h_start], 0,
                  hres * sizeof(uint32_t));
         } else {
-          memset(&prescale[i * PRESCALE_WIDTH], 0,
+          memset(&prescale[(ptrdiff_t)i * PRESCALE_WIDTH], 0,
                  PRESCALE_WIDTH * sizeof(uint32_t));
         }
       }
@@ -491,15 +488,15 @@ static void vi_process_fast_parallel(uint32_t worker_id) {
   }
 
   if (rdpxi_config.parallel) {
-    y_begin = worker_id;
-    y_inc = rdpxi_parallel_num_workers();
+    y_begin = (int32_t)worker_id;
+    y_inc = (int32_t)rdpxi_parallel_num_workers();
   }
 
   for (y = y_begin; y < y_end; y += y_inc) {
     int32_t x;
     int32_t const line = y * vi_width_low;
 
-    struct Rgba* pixel_row = &prescale[y * hres_raw];
+    struct Rgba* pixel_row = &prescale[(ptrdiff_t)y * hres_raw];
 
     for (x = 0; x < hres_raw; x++) {
       struct Rgba* pixel = &pixel_row[x];
@@ -620,11 +617,11 @@ void vi_update_screen(void) {
   // parse and check some common registers
   vi_reg_ptr = rdpxi_config.gfx.vi_reg;
 
-  v_start = (*vi_reg_ptr[VI_V_START] >> 16) & 0x3ff;
-  h_start = (*vi_reg_ptr[VI_H_START] >> 16) & 0x3ff;
+  v_start = (int32_t)((*vi_reg_ptr[VI_V_START] >> 16) & 0x3ff);
+  h_start = (int32_t)((*vi_reg_ptr[VI_H_START] >> 16) & 0x3ff);
 
-  int32_t const v_end = *vi_reg_ptr[VI_V_START] & 0x3ff;
-  int32_t const h_end = *vi_reg_ptr[VI_H_START] & 0x3ff;
+  int32_t const v_end = (int32_t)(*vi_reg_ptr[VI_V_START] & 0x3ff);
+  int32_t const h_end = (int32_t)(*vi_reg_ptr[VI_H_START] & 0x3ff);
 
   hres = h_end - h_start;
   vres = (v_end - v_start) >> 1;  // vertical is measured in half-lines
@@ -635,10 +632,10 @@ void vi_update_screen(void) {
   y_add = *vi_reg_ptr[VI_Y_SCALE] & 0xfff;
   y_start = (*vi_reg_ptr[VI_Y_SCALE] >> 16) & 0xfff;
 
-  v_sync = *vi_reg_ptr[VI_V_SYNC] & 0x3ff;
-  v_current_line = *vi_reg_ptr[VI_V_CURRENT_LINE] & 1;
+  v_sync = (int32_t)(*vi_reg_ptr[VI_V_SYNC] & 0x3ff);
+  v_current_line = (int32_t)(*vi_reg_ptr[VI_V_CURRENT_LINE] & 1);
 
-  vi_width_low = *vi_reg_ptr[VI_WIDTH] & 0xfff;
+  vi_width_low = (int32_t)(*vi_reg_ptr[VI_WIDTH] & 0xfff);
   frame_buffer = *vi_reg_ptr[VI_ORIGIN] & 0xffffff;
 
   // cancel if the frame buffer contains no valid address
@@ -734,7 +731,7 @@ void vi_update_screen(void) {
 
   if (vactivelines >= 0) {
     uint32_t const lineshifter = !ctrl.serrate;
-    vactivelines >>= lineshifter;
+    vactivelines >>= (int32_t)lineshifter;
 
     minhpass = h_start_clamped ? 0 : 8;
     maxhpass = hres_clamped ? hres : (hres - 7);

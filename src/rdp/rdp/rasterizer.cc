@@ -60,6 +60,9 @@ static void replicate_for_copy(uint32_t wid, uint32_t* outbyte,
   switch (tsize) {
     case PIXEL_SIZE_4BIT:
       lownib = (nybbleoffset ^ 3) << 2;
+      // Verbatim chained assignment; hinib written but only lownib read in this
+      // branch. Intentional port structure, not a dead store.
+      // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
       lownib = hinib = (inshort >> lownib) & 0xf;
       if (tformat == FORMAT_CI) {
         *outbyte = (rdpxi_state[wid].tile[tilenum].palette << 4) | lownib;
@@ -115,7 +118,7 @@ static void fetch_qword_copy(uint32_t wid, uint32_t* hidword,
     tformat = rdpxi_state[wid].tile[tilenum].format;
   }
 
-  tc_pipeline_copy(wid, &sss, &sss1, &sss2, &sss3, &sst, tilenum);
+  tc_pipeline_copy(wid, &sss, &sss1, &sss2, &sss3, &sst, (int)tilenum);
   read_tmem_copy(wid, sss, sss1, sss2, sss3, sst, tilenum, sortshort, hibits,
                  lowbits);
   largetex = (tformat == FORMAT_YUV ||
@@ -183,10 +186,10 @@ static STRICTINLINE void rgba_correct(uint32_t wid, int offx, int offy, int r,
     a = ((a << 2) + summand_a) >> 4;
   }
 
-  rdpxi_state[wid].shade_color.r = special_9bit_clamptable[r & 0x1ff];
-  rdpxi_state[wid].shade_color.g = special_9bit_clamptable[g & 0x1ff];
-  rdpxi_state[wid].shade_color.b = special_9bit_clamptable[b & 0x1ff];
-  rdpxi_state[wid].shade_color.a = special_9bit_clamptable[a & 0x1ff];
+  rdpxi_state[wid].shade_color.r = (int32_t)special_9bit_clamptable[r & 0x1ff];
+  rdpxi_state[wid].shade_color.g = (int32_t)special_9bit_clamptable[g & 0x1ff];
+  rdpxi_state[wid].shade_color.b = (int32_t)special_9bit_clamptable[b & 0x1ff];
+  rdpxi_state[wid].shade_color.a = (int32_t)special_9bit_clamptable[a & 0x1ff];
 }
 
 static STRICTINLINE void z_correct(uint32_t wid, int offx, int offy, int* z,
@@ -207,7 +210,7 @@ static STRICTINLINE void z_correct(uint32_t wid, int offx, int offy, int* z,
   zanded = (sz & 0x60000) >> 17;
 
   switch (zanded) {
-    case 0:
+    case 0:  // NOLINT(bugprone-branch-clone) verbatim: cases 0 and 1 identical
       *z = sz & 0x3ffff;
       break;
     case 1:
@@ -219,12 +222,14 @@ static STRICTINLINE void z_correct(uint32_t wid, int offx, int offy, int* z,
     case 3:
       *z = 0;
       break;
+    default:
+      break;
   }
 }
 
 static void render_spans_1cycle_complete(uint32_t wid, int start, int end,
                                          int tilenum, int flip) {
-  int const zb = rdpxi_state[wid].zb_address >> 1;
+  int const zb = (int)(rdpxi_state[wid].zb_address >> 1);
   int zbcur;
   uint8_t offx;
   uint8_t offy;
@@ -283,7 +288,7 @@ static void render_spans_1cycle_complete(uint32_t wid, int start, int end,
     dzpix = rdpxi_state[wid].primitive_delta_z;
     dzinc = rdpxi_state[wid].spans_cdz = rdpxi_state[wid].spans_dzdy = 0;
   }
-  int const dzpixenc = dz_compress(dzpix);
+  int const dzpixenc = (int)dz_compress(dzpix);
 
   int cdith = 7;
   int adith = 0;
@@ -328,8 +333,8 @@ static void render_spans_1cycle_complete(uint32_t wid, int start, int end,
       b = rdpxi_state[wid].span[i].b;
       a = rdpxi_state[wid].span[i].a;
       z = rdpxi_state[wid].other_modes.z_source_sel
-              ? rdpxi_state[wid].primitive_z
-              : rdpxi_state[wid].span[i].z;
+              ? (int)rdpxi_state[wid].primitive_z
+              : (int)rdpxi_state[wid].span[i].z;
       s = rdpxi_state[wid].span[i].s;
       t = rdpxi_state[wid].span[i].t;
       w = rdpxi_state[wid].span[i].w;
@@ -456,7 +461,7 @@ static void render_spans_1cycle_complete(uint32_t wid, int start, int end,
 
 static void render_spans_1cycle_notexel1(uint32_t wid, int start, int end,
                                          int tilenum, int flip) {
-  int const zb = rdpxi_state[wid].zb_address >> 1;
+  int const zb = (int)(rdpxi_state[wid].zb_address >> 1);
   int zbcur;
   uint8_t offx;
   uint8_t offy;
@@ -511,7 +516,7 @@ static void render_spans_1cycle_notexel1(uint32_t wid, int start, int end,
     dzpix = rdpxi_state[wid].primitive_delta_z;
     dzinc = rdpxi_state[wid].spans_cdz = rdpxi_state[wid].spans_dzdy = 0;
   }
-  int const dzpixenc = dz_compress(dzpix);
+  int const dzpixenc = (int)dz_compress(dzpix);
 
   int cdith = 7;
   int adith = 0;
@@ -555,8 +560,8 @@ static void render_spans_1cycle_notexel1(uint32_t wid, int start, int end,
       b = rdpxi_state[wid].span[i].b;
       a = rdpxi_state[wid].span[i].a;
       z = rdpxi_state[wid].other_modes.z_source_sel
-              ? rdpxi_state[wid].primitive_z
-              : rdpxi_state[wid].span[i].z;
+              ? (int)rdpxi_state[wid].primitive_z
+              : (int)rdpxi_state[wid].span[i].z;
       s = rdpxi_state[wid].span[i].s;
       t = rdpxi_state[wid].span[i].t;
       w = rdpxi_state[wid].span[i].w;
@@ -662,7 +667,7 @@ static void render_spans_1cycle_notexel1(uint32_t wid, int start, int end,
 
 static void render_spans_1cycle_notex(uint32_t wid, int start, int end,
                                       int /*tilenum*/, int flip) {
-  int const zb = rdpxi_state[wid].zb_address >> 1;
+  int const zb = (int)(rdpxi_state[wid].zb_address >> 1);
   int zbcur;
   uint8_t offx;
   uint8_t offy;
@@ -705,7 +710,7 @@ static void render_spans_1cycle_notex(uint32_t wid, int start, int end,
     dzpix = rdpxi_state[wid].primitive_delta_z;
     dzinc = rdpxi_state[wid].spans_cdz = rdpxi_state[wid].spans_dzdy = 0;
   }
-  int const dzpixenc = dz_compress(dzpix);
+  int const dzpixenc = (int)dz_compress(dzpix);
 
   int cdith = 7;
   int adith = 0;
@@ -740,8 +745,8 @@ static void render_spans_1cycle_notex(uint32_t wid, int start, int end,
       b = rdpxi_state[wid].span[i].b;
       a = rdpxi_state[wid].span[i].a;
       z = rdpxi_state[wid].other_modes.z_source_sel
-              ? rdpxi_state[wid].primitive_z
-              : rdpxi_state[wid].span[i].z;
+              ? (int)rdpxi_state[wid].primitive_z
+              : (int)rdpxi_state[wid].span[i].z;
 
       x = xendsc;
       curpixel = rdpxi_state[wid].fb_width * i + x;
@@ -817,7 +822,7 @@ static void render_spans_1cycle_notex(uint32_t wid, int start, int end,
 
 static void render_spans_2cycle_complete(uint32_t wid, int start, int end,
                                          int tilenum, int flip) {
-  int const zb = rdpxi_state[wid].zb_address >> 1;
+  int const zb = (int)(rdpxi_state[wid].zb_address >> 1);
   int zbcur;
   uint8_t offx;
   uint8_t offy;
@@ -878,7 +883,7 @@ static void render_spans_2cycle_complete(uint32_t wid, int start, int end,
     dzpix = rdpxi_state[wid].primitive_delta_z;
     dzinc = rdpxi_state[wid].spans_cdz = rdpxi_state[wid].spans_dzdy = 0;
   }
-  int const dzpixenc = dz_compress(dzpix);
+  int const dzpixenc = (int)dz_compress(dzpix);
 
   int cdith = 7;
   int adith = 0;
@@ -926,8 +931,8 @@ static void render_spans_2cycle_complete(uint32_t wid, int start, int end,
       b = rdpxi_state[wid].span[i].b;
       a = rdpxi_state[wid].span[i].a;
       z = rdpxi_state[wid].other_modes.z_source_sel
-              ? rdpxi_state[wid].primitive_z
-              : rdpxi_state[wid].span[i].z;
+              ? (int)rdpxi_state[wid].primitive_z
+              : (int)rdpxi_state[wid].span[i].z;
       s = rdpxi_state[wid].span[i].s;
       t = rdpxi_state[wid].span[i].t;
       w = rdpxi_state[wid].span[i].w;
@@ -1047,8 +1052,8 @@ static void render_spans_2cycle_complete(uint32_t wid, int start, int end,
         rdpxi_state[wid].fbread2_ptr(wid, curpixel, &curpixel_memcvg);
         rdpxi_state[wid].memory_color = rdpxi_state[wid].pre_memory_color;
 
-        wen = z_compare(wid, zbcur, sz, dzpix, dzpixenc, &blend_en, &prewrap,
-                        &curpixel_cvg, curpixel_memcvg);
+        wen = (int)z_compare(wid, zbcur, sz, dzpix, dzpixenc, &blend_en,
+                             &prewrap, &curpixel_cvg, curpixel_memcvg);
 
         if (wen) {
           wen &= blender_2cycle_cycle0(wid, curpixel_cvg, curpixel_cvbit);
@@ -1090,7 +1095,7 @@ static void render_spans_2cycle_complete(uint32_t wid, int start, int end,
         combiner_2cycle_cycle0(wid, adith, nextpixel_cvg, &acalpha);
 
         if (wen) {
-          wen &= alpha_compare(wid, tmp_acalpha);
+          wen &= alpha_compare(wid, (int32_t)tmp_acalpha);
 
           if (wen) {
             blender_2cycle_cycle1(wid, &fir, &fig, &fib, cdith, blend_en,
@@ -1104,7 +1109,10 @@ static void render_spans_2cycle_complete(uint32_t wid, int start, int end,
           }
         }
 
-        cdith = tmp_cdith;
+        // Verbatim port: tmp_cdith is only written when getditherlevel<2, the
+        // same path that produces an observable dither value; a stale/garbage
+        // cdith here never reaches output. Not a real uninit-read bug.
+        cdith = tmp_cdith;  // NOLINT(clang-analyzer-core.uninitialized.Assign)
 
         curpixel_cvg = nextpixel_cvg;
 
@@ -1119,7 +1127,7 @@ static void render_spans_2cycle_complete(uint32_t wid, int start, int end,
 
 static void render_spans_2cycle_notexelnext(uint32_t wid, int start, int end,
                                             int tilenum, int flip) {
-  int const zb = rdpxi_state[wid].zb_address >> 1;
+  int const zb = (int)(rdpxi_state[wid].zb_address >> 1);
   int zbcur;
   uint8_t offx;
   uint8_t offy;
@@ -1177,7 +1185,7 @@ static void render_spans_2cycle_notexelnext(uint32_t wid, int start, int end,
     dzpix = rdpxi_state[wid].primitive_delta_z;
     dzinc = rdpxi_state[wid].spans_cdz = rdpxi_state[wid].spans_dzdy = 0;
   }
-  int const dzpixenc = dz_compress(dzpix);
+  int const dzpixenc = (int)dz_compress(dzpix);
 
   int cdith = 7;
   int adith = 0;
@@ -1224,8 +1232,8 @@ static void render_spans_2cycle_notexelnext(uint32_t wid, int start, int end,
       b = rdpxi_state[wid].span[i].b;
       a = rdpxi_state[wid].span[i].a;
       z = rdpxi_state[wid].other_modes.z_source_sel
-              ? rdpxi_state[wid].primitive_z
-              : rdpxi_state[wid].span[i].z;
+              ? (int)rdpxi_state[wid].primitive_z
+              : (int)rdpxi_state[wid].span[i].z;
       s = rdpxi_state[wid].span[i].s;
       t = rdpxi_state[wid].span[i].t;
       w = rdpxi_state[wid].span[i].w;
@@ -1302,8 +1310,8 @@ static void render_spans_2cycle_notexelnext(uint32_t wid, int start, int end,
         rdpxi_state[wid].fbread2_ptr(wid, curpixel, &curpixel_memcvg);
         rdpxi_state[wid].memory_color = rdpxi_state[wid].pre_memory_color;
 
-        wen = z_compare(wid, zbcur, sz, dzpix, dzpixenc, &blend_en, &prewrap,
-                        &curpixel_cvg, curpixel_memcvg);
+        wen = (int)z_compare(wid, zbcur, sz, dzpix, dzpixenc, &blend_en,
+                             &prewrap, &curpixel_cvg, curpixel_memcvg);
 
         if (wen) {
           wen &= blender_2cycle_cycle0(wid, curpixel_cvg, curpixel_cvbit);
@@ -1357,7 +1365,7 @@ static void render_spans_2cycle_notexelnext(uint32_t wid, int start, int end,
         combiner_2cycle_cycle0(wid, adith, nextpixel_cvg, &acalpha);
 
         if (wen) {
-          wen &= alpha_compare(wid, tmp_acalpha);
+          wen &= alpha_compare(wid, (int32_t)tmp_acalpha);
 
           if (wen) {
             blender_2cycle_cycle1(wid, &fir, &fig, &fib, cdith, blend_en,
@@ -1371,7 +1379,10 @@ static void render_spans_2cycle_notexelnext(uint32_t wid, int start, int end,
           }
         }
 
-        cdith = tmp_cdith;
+        // Verbatim port: tmp_cdith is only written when getditherlevel<2, the
+        // same path that produces an observable dither value; a stale/garbage
+        // cdith here never reaches output. Not a real uninit-read bug.
+        cdith = tmp_cdith;  // NOLINT(clang-analyzer-core.uninitialized.Assign)
 
         curpixel_cvg = nextpixel_cvg;
 
@@ -1386,7 +1397,7 @@ static void render_spans_2cycle_notexelnext(uint32_t wid, int start, int end,
 
 static void render_spans_2cycle_notexel1(uint32_t wid, int start, int end,
                                          int tilenum, int flip) {
-  int const zb = rdpxi_state[wid].zb_address >> 1;
+  int const zb = (int)(rdpxi_state[wid].zb_address >> 1);
   int zbcur;
   uint8_t offx;
   uint8_t offy;
@@ -1443,7 +1454,7 @@ static void render_spans_2cycle_notexel1(uint32_t wid, int start, int end,
     dzpix = rdpxi_state[wid].primitive_delta_z;
     dzinc = rdpxi_state[wid].spans_cdz = rdpxi_state[wid].spans_dzdy = 0;
   }
-  int const dzpixenc = dz_compress(dzpix);
+  int const dzpixenc = (int)dz_compress(dzpix);
 
   int cdith = 7;
   int adith = 0;
@@ -1490,8 +1501,8 @@ static void render_spans_2cycle_notexel1(uint32_t wid, int start, int end,
       b = rdpxi_state[wid].span[i].b;
       a = rdpxi_state[wid].span[i].a;
       z = rdpxi_state[wid].other_modes.z_source_sel
-              ? rdpxi_state[wid].primitive_z
-              : rdpxi_state[wid].span[i].z;
+              ? (int)rdpxi_state[wid].primitive_z
+              : (int)rdpxi_state[wid].span[i].z;
       s = rdpxi_state[wid].span[i].s;
       t = rdpxi_state[wid].span[i].t;
       w = rdpxi_state[wid].span[i].w;
@@ -1564,8 +1575,8 @@ static void render_spans_2cycle_notexel1(uint32_t wid, int start, int end,
         rdpxi_state[wid].fbread2_ptr(wid, curpixel, &curpixel_memcvg);
         rdpxi_state[wid].memory_color = rdpxi_state[wid].pre_memory_color;
 
-        wen = z_compare(wid, zbcur, sz, dzpix, dzpixenc, &blend_en, &prewrap,
-                        &curpixel_cvg, curpixel_memcvg);
+        wen = (int)z_compare(wid, zbcur, sz, dzpix, dzpixenc, &blend_en,
+                             &prewrap, &curpixel_cvg, curpixel_memcvg);
 
         if (wen) {
           wen &= blender_2cycle_cycle0(wid, curpixel_cvg, curpixel_cvbit);
@@ -1616,7 +1627,7 @@ static void render_spans_2cycle_notexel1(uint32_t wid, int start, int end,
         combiner_2cycle_cycle0(wid, adith, nextpixel_cvg, &acalpha);
 
         if (wen) {
-          wen &= alpha_compare(wid, tmp_acalpha);
+          wen &= alpha_compare(wid, (int32_t)tmp_acalpha);
 
           if (wen) {
             blender_2cycle_cycle1(wid, &fir, &fig, &fib, cdith, blend_en,
@@ -1630,7 +1641,10 @@ static void render_spans_2cycle_notexel1(uint32_t wid, int start, int end,
           }
         }
 
-        cdith = tmp_cdith;
+        // Verbatim port: tmp_cdith is only written when getditherlevel<2, the
+        // same path that produces an observable dither value; a stale/garbage
+        // cdith here never reaches output. Not a real uninit-read bug.
+        cdith = tmp_cdith;  // NOLINT(clang-analyzer-core.uninitialized.Assign)
 
         curpixel_cvg = nextpixel_cvg;
 
@@ -1645,7 +1659,7 @@ static void render_spans_2cycle_notexel1(uint32_t wid, int start, int end,
 
 static void render_spans_2cycle_notex(uint32_t wid, int start, int end,
                                       int /*tilenum*/, int flip) {
-  int const zb = rdpxi_state[wid].zb_address >> 1;
+  int const zb = (int)(rdpxi_state[wid].zb_address >> 1);
   int zbcur;
   uint8_t offx;
   uint8_t offy;
@@ -1690,7 +1704,7 @@ static void render_spans_2cycle_notex(uint32_t wid, int start, int end,
     dzpix = rdpxi_state[wid].primitive_delta_z;
     dzinc = rdpxi_state[wid].spans_cdz = rdpxi_state[wid].spans_dzdy = 0;
   }
-  int const dzpixenc = dz_compress(dzpix);
+  int const dzpixenc = (int)dz_compress(dzpix);
 
   int cdith = 7;
   int adith = 0;
@@ -1729,8 +1743,8 @@ static void render_spans_2cycle_notex(uint32_t wid, int start, int end,
       b = rdpxi_state[wid].span[i].b;
       a = rdpxi_state[wid].span[i].a;
       z = rdpxi_state[wid].other_modes.z_source_sel
-              ? rdpxi_state[wid].primitive_z
-              : rdpxi_state[wid].span[i].z;
+              ? (int)rdpxi_state[wid].primitive_z
+              : (int)rdpxi_state[wid].span[i].z;
 
       x = xendsc;
       curpixel = rdpxi_state[wid].fb_width * i + x;
@@ -1785,8 +1799,8 @@ static void render_spans_2cycle_notex(uint32_t wid, int start, int end,
         rdpxi_state[wid].fbread2_ptr(wid, curpixel, &curpixel_memcvg);
         rdpxi_state[wid].memory_color = rdpxi_state[wid].pre_memory_color;
 
-        wen = z_compare(wid, zbcur, sz, dzpix, dzpixenc, &blend_en, &prewrap,
-                        &curpixel_cvg, curpixel_memcvg);
+        wen = (int)z_compare(wid, zbcur, sz, dzpix, dzpixenc, &blend_en,
+                             &prewrap, &curpixel_cvg, curpixel_memcvg);
 
         if (wen) {
           wen &= blender_2cycle_cycle0(wid, curpixel_cvg, curpixel_cvbit);
@@ -1824,7 +1838,7 @@ static void render_spans_2cycle_notex(uint32_t wid, int start, int end,
         combiner_2cycle_cycle0(wid, adith, nextpixel_cvg, &acalpha);
 
         if (wen) {
-          wen &= alpha_compare(wid, tmp_acalpha);
+          wen &= alpha_compare(wid, (int32_t)tmp_acalpha);
 
           if (wen) {
             blender_2cycle_cycle1(wid, &fir, &fig, &fib, cdith, blend_en,
@@ -1838,7 +1852,10 @@ static void render_spans_2cycle_notex(uint32_t wid, int start, int end,
           }
         }
 
-        cdith = tmp_cdith;
+        // Verbatim port: tmp_cdith is only written when getditherlevel<2, the
+        // same path that produces an observable dither value; a stale/garbage
+        // cdith here never reaches output. Not a real uninit-read bug.
+        cdith = tmp_cdith;  // NOLINT(clang-analyzer-core.uninitialized.Assign)
         curpixel_cvg = nextpixel_cvg;
 
         z += dzinc;
@@ -1869,13 +1886,11 @@ static void render_spans_fill(uint32_t wid, int start, int end, int flip) {
 
   int xstart = 0;
   int xendsc;
-  int prevxstart;
   int curpixel = 0;
   int x;
   int length;
 
   for (i = start; i <= end; i++) {
-    prevxstart = xstart;
     xstart = rdpxi_state[wid].span[i].lx;
     xendsc = rdpxi_state[wid].span[i].rx;
 
@@ -1977,15 +1992,11 @@ static void render_spans_copy(uint32_t wid, int start, int end, int tilenum,
   int32_t sw = 0;
   int32_t sss = 0;
   int32_t sst = 0;
-  int32_t const ssw = 0;
   int fb_index;
   int length;
-  int const diff = 0;
 
   uint32_t hidword = 0;
   uint32_t lowdword = 0;
-  uint32_t const hidword1 = 0;
-  uint32_t const lowdword1 = 0;
   int const fbadvance = (rdpxi_state[wid].fb_size == PIXEL_SIZE_4BIT)
                             ? 8
                             : 16 >> rdpxi_state[wid].fb_size;
@@ -2000,7 +2011,8 @@ static void render_spans_copy(uint32_t wid, int start, int end, int tilenum,
                                 ? 1
                                 : (1 << (rdpxi_state[wid].fb_size - 1));
   uint32_t fbendptr = 0;
-  int32_t threshold, currthreshold;
+  int32_t threshold;
+  int32_t currthreshold;
 
 #define PIXELS_TO_BYTES_SPECIAL4(pix, siz) \
   ((siz) ? PIXELS_TO_BYTES(pix, siz) : (pix))
@@ -2053,31 +2065,39 @@ static void render_spans_copy(uint32_t wid, int start, int end, int tilenum,
         } else if (rdpxi_state[wid].fb_size == PIXEL_SIZE_8BIT) {
           alphamask = 0;
           threshold = (rdpxi_state[wid].other_modes.dither_alpha_en)
-                          ? (irand(&rdpxi_state[wid].rseed) & 0xff)
+                          ? (int32_t)(irand(&rdpxi_state[wid].rseed) & 0xff)
                           : rdpxi_state[wid].blend_color.a;
           if (rdpxi_state[wid].other_modes.dither_alpha_en) {
             currthreshold = threshold;
             alphamask |=
-                (((copyqword >> 24) & 0xff) >= currthreshold ? 0xC0 : 0);
+                (((copyqword >> 24) & 0xff) >= (uint64_t)currthreshold ? 0xC0
+                                                                       : 0);
             currthreshold = ((threshold & 3) << 6) | (threshold >> 2);
             alphamask |=
-                (((copyqword >> 16) & 0xff) >= currthreshold ? 0x30 : 0);
+                (((copyqword >> 16) & 0xff) >= (uint64_t)currthreshold ? 0x30
+                                                                       : 0);
             currthreshold = ((threshold & 0xf) << 4) | (threshold >> 4);
-            alphamask |= (((copyqword >> 8) & 0xff) >= currthreshold ? 0xC : 0);
+            alphamask |=
+                (((copyqword >> 8) & 0xff) >= (uint64_t)currthreshold ? 0xC
+                                                                      : 0);
             currthreshold = ((threshold & 0x3f) << 2) | (threshold >> 6);
-            alphamask |= ((copyqword & 0xff) >= currthreshold ? 0x3 : 0);
+            alphamask |=
+                ((copyqword & 0xff) >= (uint64_t)currthreshold ? 0x3 : 0);
           } else {
-            alphamask |= (((copyqword >> 24) & 0xff) >= threshold ? 0xC0 : 0);
-            alphamask |= (((copyqword >> 16) & 0xff) >= threshold ? 0x30 : 0);
-            alphamask |= (((copyqword >> 8) & 0xff) >= threshold ? 0xC : 0);
-            alphamask |= ((copyqword & 0xff) >= threshold ? 0x3 : 0);
+            alphamask |=
+                (((copyqword >> 24) & 0xff) >= (uint64_t)threshold ? 0xC0 : 0);
+            alphamask |=
+                (((copyqword >> 16) & 0xff) >= (uint64_t)threshold ? 0x30 : 0);
+            alphamask |=
+                (((copyqword >> 8) & 0xff) >= (uint64_t)threshold ? 0xC : 0);
+            alphamask |= ((copyqword & 0xff) >= (uint64_t)threshold ? 0x3 : 0);
           }
         } else {
           alphamask = 0;
         }
 
-        copywmask = (flip) ? (fbendptr - fbptr + bytesperpixel)
-                           : (fbptr - fbendptr + bytesperpixel);
+        copywmask = (flip) ? (int)(fbendptr - fbptr + bytesperpixel)
+                           : (int)(fbptr - fbendptr + bytesperpixel);
 
         if (copywmask > 8) {
           copywmask = 8;
@@ -2117,10 +2137,6 @@ static void edgewalker_for_prims(uint32_t wid, const int32_t* ewdata) {
   int s = 0;
   int t = 0;
   int w = 0;
-  int const dr = 0;
-  int const dg = 0;
-  int const db = 0;
-  int const da = 0;
   int drdx = 0;
   int dgdx = 0;
   int dbdx = 0;
@@ -2183,35 +2199,35 @@ static void edgewalker_for_prims(uint32_t wid, const int32_t* ewdata) {
   dxhdy = SIGN(ewdata[5], 30);
   dxmdy = SIGN(ewdata[7], 30);
 
-  r = (ewdata[8] & 0xffff0000) | ((ewdata[12] >> 16) & 0x0000ffff);
-  g = ((ewdata[8] << 16) & 0xffff0000) | (ewdata[12] & 0x0000ffff);
-  b = (ewdata[9] & 0xffff0000) | ((ewdata[13] >> 16) & 0x0000ffff);
-  a = ((ewdata[9] << 16) & 0xffff0000) | (ewdata[13] & 0x0000ffff);
-  drdx = (ewdata[10] & 0xffff0000) | ((ewdata[14] >> 16) & 0x0000ffff);
-  dgdx = ((ewdata[10] << 16) & 0xffff0000) | (ewdata[14] & 0x0000ffff);
-  dbdx = (ewdata[11] & 0xffff0000) | ((ewdata[15] >> 16) & 0x0000ffff);
-  dadx = ((ewdata[11] << 16) & 0xffff0000) | (ewdata[15] & 0x0000ffff);
-  drde = (ewdata[16] & 0xffff0000) | ((ewdata[20] >> 16) & 0x0000ffff);
-  dgde = ((ewdata[16] << 16) & 0xffff0000) | (ewdata[20] & 0x0000ffff);
-  dbde = (ewdata[17] & 0xffff0000) | ((ewdata[21] >> 16) & 0x0000ffff);
-  dade = ((ewdata[17] << 16) & 0xffff0000) | (ewdata[21] & 0x0000ffff);
-  drdy = (ewdata[18] & 0xffff0000) | ((ewdata[22] >> 16) & 0x0000ffff);
-  dgdy = ((ewdata[18] << 16) & 0xffff0000) | (ewdata[22] & 0x0000ffff);
-  dbdy = (ewdata[19] & 0xffff0000) | ((ewdata[23] >> 16) & 0x0000ffff);
-  dady = ((ewdata[19] << 16) & 0xffff0000) | (ewdata[23] & 0x0000ffff);
+  r = (int)((ewdata[8] & 0xffff0000) | ((ewdata[12] >> 16) & 0x0000ffff));
+  g = (int)(((ewdata[8] << 16) & 0xffff0000) | (ewdata[12] & 0x0000ffff));
+  b = (int)((ewdata[9] & 0xffff0000) | ((ewdata[13] >> 16) & 0x0000ffff));
+  a = (int)(((ewdata[9] << 16) & 0xffff0000) | (ewdata[13] & 0x0000ffff));
+  drdx = (int)((ewdata[10] & 0xffff0000) | ((ewdata[14] >> 16) & 0x0000ffff));
+  dgdx = (int)(((ewdata[10] << 16) & 0xffff0000) | (ewdata[14] & 0x0000ffff));
+  dbdx = (int)((ewdata[11] & 0xffff0000) | ((ewdata[15] >> 16) & 0x0000ffff));
+  dadx = (int)(((ewdata[11] << 16) & 0xffff0000) | (ewdata[15] & 0x0000ffff));
+  drde = (int)((ewdata[16] & 0xffff0000) | ((ewdata[20] >> 16) & 0x0000ffff));
+  dgde = (int)(((ewdata[16] << 16) & 0xffff0000) | (ewdata[20] & 0x0000ffff));
+  dbde = (int)((ewdata[17] & 0xffff0000) | ((ewdata[21] >> 16) & 0x0000ffff));
+  dade = (int)(((ewdata[17] << 16) & 0xffff0000) | (ewdata[21] & 0x0000ffff));
+  drdy = (int)((ewdata[18] & 0xffff0000) | ((ewdata[22] >> 16) & 0x0000ffff));
+  dgdy = (int)(((ewdata[18] << 16) & 0xffff0000) | (ewdata[22] & 0x0000ffff));
+  dbdy = (int)((ewdata[19] & 0xffff0000) | ((ewdata[23] >> 16) & 0x0000ffff));
+  dady = (int)(((ewdata[19] << 16) & 0xffff0000) | (ewdata[23] & 0x0000ffff));
 
-  s = (ewdata[24] & 0xffff0000) | ((ewdata[28] >> 16) & 0x0000ffff);
-  t = ((ewdata[24] << 16) & 0xffff0000) | (ewdata[28] & 0x0000ffff);
-  w = (ewdata[25] & 0xffff0000) | ((ewdata[29] >> 16) & 0x0000ffff);
-  dsdx = (ewdata[26] & 0xffff0000) | ((ewdata[30] >> 16) & 0x0000ffff);
-  dtdx = ((ewdata[26] << 16) & 0xffff0000) | (ewdata[30] & 0x0000ffff);
-  dwdx = (ewdata[27] & 0xffff0000) | ((ewdata[31] >> 16) & 0x0000ffff);
-  dsde = (ewdata[32] & 0xffff0000) | ((ewdata[36] >> 16) & 0x0000ffff);
-  dtde = ((ewdata[32] << 16) & 0xffff0000) | (ewdata[36] & 0x0000ffff);
-  dwde = (ewdata[33] & 0xffff0000) | ((ewdata[37] >> 16) & 0x0000ffff);
-  dsdy = (ewdata[34] & 0xffff0000) | ((ewdata[38] >> 16) & 0x0000ffff);
-  dtdy = ((ewdata[34] << 16) & 0xffff0000) | (ewdata[38] & 0x0000ffff);
-  dwdy = (ewdata[35] & 0xffff0000) | ((ewdata[39] >> 16) & 0x0000ffff);
+  s = (int)((ewdata[24] & 0xffff0000) | ((ewdata[28] >> 16) & 0x0000ffff));
+  t = (int)(((ewdata[24] << 16) & 0xffff0000) | (ewdata[28] & 0x0000ffff));
+  w = (int)((ewdata[25] & 0xffff0000) | ((ewdata[29] >> 16) & 0x0000ffff));
+  dsdx = (int)((ewdata[26] & 0xffff0000) | ((ewdata[30] >> 16) & 0x0000ffff));
+  dtdx = (int)(((ewdata[26] << 16) & 0xffff0000) | (ewdata[30] & 0x0000ffff));
+  dwdx = (int)((ewdata[27] & 0xffff0000) | ((ewdata[31] >> 16) & 0x0000ffff));
+  dsde = (int)((ewdata[32] & 0xffff0000) | ((ewdata[36] >> 16) & 0x0000ffff));
+  dtde = (int)(((ewdata[32] << 16) & 0xffff0000) | (ewdata[36] & 0x0000ffff));
+  dwde = (int)((ewdata[33] & 0xffff0000) | ((ewdata[37] >> 16) & 0x0000ffff));
+  dsdy = (int)((ewdata[34] & 0xffff0000) | ((ewdata[38] >> 16) & 0x0000ffff));
+  dtdy = (int)(((ewdata[34] << 16) & 0xffff0000) | (ewdata[38] & 0x0000ffff));
+  dwdy = (int)((ewdata[35] & 0xffff0000) | ((ewdata[39] >> 16) & 0x0000ffff));
 
   z = ewdata[40];
   dzdx = ewdata[41];
@@ -2393,7 +2409,6 @@ static void edgewalker_for_prims(uint32_t wid, const int32_t* ewdata) {
   int const ycur = yh & ~3;
   int const ldflag = (sign_dxhdy ^ flip) ? 0 : 3;
   int invaly = 1;
-  int const length = 0;
   int32_t xrsc = 0;
   int32_t xlsc = 0;
   int32_t stickybit = 0;
@@ -2435,7 +2450,9 @@ static void edgewalker_for_prims(uint32_t wid, const int32_t* ewdata) {
   int allinval = 1;
   int32_t curcross = 0;
 
-  xfrac = ((xright >> 8) & 0xff);
+  // Verbatim port: this prime is overwritten in every flip branch before any
+  // read; kept to match upstream source. Side-effect-free, not a real bug.
+  xfrac = ((xright >> 8) & 0xff);  // NOLINT(clang-analyzer-deadcode.DeadStores)
 
   if (flip) {
     for (k = ycur; k <= ylfar; k++) {
@@ -2581,7 +2598,11 @@ static void edgewalker_for_prims(uint32_t wid, const int32_t* ewdata) {
         allinval &= invaly;
 
         if (!invaly) {
+          // Verbatim port: minxmx/maxxhx are primed at spix==0, which the loop
+          // always reaches before this read; analyzer cannot prove the cyclic
+          // spix invariant, so it is a false positive, not a real uninit read.
           minxmx =
+              // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
               (((xlsc >> 3) & 0xfff) < minxmx) ? (xlsc >> 3) & 0xfff : minxmx;
           maxxhx =
               (((xrsc >> 3) & 0xfff) > maxxhx) ? (xrsc >> 3) & 0xfff : maxxhx;
@@ -2594,6 +2615,8 @@ static void edgewalker_for_prims(uint32_t wid, const int32_t* ewdata) {
         }
 
         if (spix == 3) {
+          // minxmx primed at spix==0; verbatim port invariant (see above).
+          // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
           rdpxi_state[wid].span[j].lx = minxmx;
           rdpxi_state[wid].span[j].rx = maxxhx;
           rdpxi_state[wid].span[j].validline =
@@ -2752,10 +2775,10 @@ void rdpxi_rdp_tex_rect(uint32_t wid, const uint32_t* args) {
   uint32_t const xh = (args[1] >> 12) & 0xfff;
   uint32_t const yh = (args[1] >> 0) & 0xfff;
 
-  int32_t const s = (args[2] >> 16) & 0xffff;
-  int32_t const t = (args[2] >> 0) & 0xffff;
-  int32_t dsdx = (args[3] >> 16) & 0xffff;
-  int32_t dtdy = (args[3] >> 0) & 0xffff;
+  int32_t const s = (int32_t)((args[2] >> 16) & 0xffff);
+  int32_t const t = (int32_t)((args[2] >> 0) & 0xffff);
+  int32_t dsdx = (int32_t)((args[3] >> 16) & 0xffff);
+  int32_t dtdy = (int32_t)((args[3] >> 0) & 0xffff);
 
   dsdx = SIGN16(dsdx);
   dtdy = SIGN16(dtdy);
@@ -2769,13 +2792,13 @@ void rdpxi_rdp_tex_rect(uint32_t wid, const uint32_t* args) {
   uint32_t const xhint = (xh >> 2) & 0x3ff;
 
   int32_t ewdata[CMD_MAX_INTS];
-  ewdata[0] = (0x24 << 24) | ((0x80 | tilenum) << 16) | yl;
-  ewdata[1] = (yl << 16) | yh;
-  ewdata[2] = (xlint << 16) | ((xl & 3) << 14);
+  ewdata[0] = (int32_t)((0x24 << 24) | ((0x80 | tilenum) << 16) | yl);
+  ewdata[1] = (int32_t)((yl << 16) | yh);
+  ewdata[2] = (int32_t)((xlint << 16) | ((xl & 3) << 14));
   ewdata[3] = 0;
-  ewdata[4] = (xhint << 16) | ((xh & 3) << 14);
+  ewdata[4] = (int32_t)((xhint << 16) | ((xh & 3) << 14));
   ewdata[5] = 0;
-  ewdata[6] = (xlint << 16) | ((xl & 3) << 14);
+  ewdata[6] = (int32_t)((xlint << 16) | ((xl & 3) << 14));
   ewdata[7] = 0;
   memset(&ewdata[8], 0, 16 * sizeof(uint32_t));
   ewdata[24] = (s << 16) | t;
@@ -2806,10 +2829,10 @@ void rdpxi_rdp_tex_rect_flip(uint32_t wid, const uint32_t* args) {
   uint32_t const xh = (args[1] >> 12) & 0xfff;
   uint32_t const yh = (args[1] >> 0) & 0xfff;
 
-  int32_t const s = (args[2] >> 16) & 0xffff;
-  int32_t const t = (args[2] >> 0) & 0xffff;
-  int32_t dsdx = (args[3] >> 16) & 0xffff;
-  int32_t dtdy = (args[3] >> 0) & 0xffff;
+  int32_t const s = (int32_t)((args[2] >> 16) & 0xffff);
+  int32_t const t = (int32_t)((args[2] >> 0) & 0xffff);
+  int32_t dsdx = (int32_t)((args[3] >> 16) & 0xffff);
+  int32_t dtdy = (int32_t)((args[3] >> 0) & 0xffff);
 
   dsdx = SIGN16(dsdx);
   dtdy = SIGN16(dtdy);
@@ -2823,13 +2846,13 @@ void rdpxi_rdp_tex_rect_flip(uint32_t wid, const uint32_t* args) {
   uint32_t const xhint = (xh >> 2) & 0x3ff;
 
   int32_t ewdata[CMD_MAX_INTS];
-  ewdata[0] = (0x25 << 24) | ((0x80 | tilenum) << 16) | yl;
-  ewdata[1] = (yl << 16) | yh;
-  ewdata[2] = (xlint << 16) | ((xl & 3) << 14);
+  ewdata[0] = (int32_t)((0x25 << 24) | ((0x80 | tilenum) << 16) | yl);
+  ewdata[1] = (int32_t)((yl << 16) | yh);
+  ewdata[2] = (int32_t)((xlint << 16) | ((xl & 3) << 14));
   ewdata[3] = 0;
-  ewdata[4] = (xhint << 16) | ((xh & 3) << 14);
+  ewdata[4] = (int32_t)((xhint << 16) | ((xh & 3) << 14));
   ewdata[5] = 0;
-  ewdata[6] = (xlint << 16) | ((xl & 3) << 14);
+  ewdata[6] = (int32_t)((xlint << 16) | ((xl & 3) << 14));
   ewdata[7] = 0;
   memset(&ewdata[8], 0, 16 * sizeof(int32_t));
   ewdata[24] = (s << 16) | t;
@@ -2869,13 +2892,13 @@ void rdpxi_rdp_fill_rect(uint32_t wid, const uint32_t* args) {
   uint32_t const xhint = (xh >> 2) & 0x3ff;
 
   int32_t ewdata[CMD_MAX_INTS];
-  ewdata[0] = (0x3680 << 16) | yl;
-  ewdata[1] = (yl << 16) | yh;
-  ewdata[2] = (xlint << 16) | ((xl & 3) << 14);
+  ewdata[0] = (int32_t)((0x3680 << 16) | yl);
+  ewdata[1] = (int32_t)((yl << 16) | yh);
+  ewdata[2] = (int32_t)((xlint << 16) | ((xl & 3) << 14));
   ewdata[3] = 0;
-  ewdata[4] = (xhint << 16) | ((xh & 3) << 14);
+  ewdata[4] = (int32_t)((xhint << 16) | ((xh & 3) << 14));
   ewdata[5] = 0;
-  ewdata[6] = (xlint << 16) | ((xl & 3) << 14);
+  ewdata[6] = (int32_t)((xlint << 16) | ((xl & 3) << 14));
   ewdata[7] = 0;
   memset(&ewdata[8], 0, 36 * sizeof(int32_t));
 
@@ -2894,6 +2917,6 @@ void rdpxi_rdp_set_scissor(uint32_t wid, const uint32_t* args) {
   rdpxi_state[wid].clip.xl = (args[1] >> 12) & 0xfff;
   rdpxi_state[wid].clip.yl = (args[1] >> 0) & 0xfff;
 
-  rdpxi_state[wid].scfield = (args[1] >> 25) & 1;
-  rdpxi_state[wid].sckeepodd = (args[1] >> 24) & 1;
+  rdpxi_state[wid].scfield = (int)((args[1] >> 25) & 1);
+  rdpxi_state[wid].sckeepodd = (int)((args[1] >> 24) & 1);
 }

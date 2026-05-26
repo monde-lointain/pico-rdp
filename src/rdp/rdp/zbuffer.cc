@@ -269,7 +269,7 @@ uint32_t z_compare(uint32_t wid, uint32_t zcurpixel, uint32_t sz,
 
     uint32_t const farther = force_coplanar || ((sz + dznew) >= oz);
 
-    int const overflow = (curpixel_memcvg + *curpixel_cvg) & 8;
+    int const overflow = (int)((curpixel_memcvg + *curpixel_cvg) & 8);
     *blend_en =
         rdpxi_state[wid].other_modes.force_blend ||
         (!overflow && rdpxi_state[wid].other_modes.antialias_en && farther);
@@ -302,7 +302,7 @@ uint32_t z_compare(uint32_t wid, uint32_t zcurpixel, uint32_t sz,
         }
 
         dzenc = dz_compress(dznotshift & 0xffff);
-        cvgcoeff = ((oz >> dzenc) - (sz >> dzenc)) & 0xf;
+        cvgcoeff = (int)(((oz >> dzenc) - (sz >> dzenc)) & 0xf);
         *curpixel_cvg = ((cvgcoeff * (*curpixel_cvg)) >> 3) & 0xf;
         return 1;
 
@@ -317,6 +317,8 @@ uint32_t z_compare(uint32_t wid, uint32_t zcurpixel, uint32_t sz,
         nearer = force_coplanar || (diff <= (int32_t)oz);
         max = (oz == 0x3ffff);
         return (farther && nearer && !max);
+        break;
+      default:
         break;
     }
     return 0;
@@ -342,7 +344,7 @@ uint32_t z_compare(uint32_t wid, uint32_t zcurpixel, uint32_t sz,
 
   rdpxi_state[wid].pastrawdzmem = 0xf;
 
-  int const overflow = (curpixel_memcvg + *curpixel_cvg) & 8;
+  int const overflow = (int)((curpixel_memcvg + *curpixel_cvg) & 8);
   *blend_en = rdpxi_state[wid].other_modes.force_blend ||
               (!overflow && rdpxi_state[wid].other_modes.antialias_en);
   *prewrap = overflow;

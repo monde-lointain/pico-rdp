@@ -47,6 +47,9 @@ void set_blender_input(uint32_t wid, int cycle, int which, int32_t** input_r,
       *input_b = &rdpxi_state[wid].fog_color.b;
       break;
     }
+
+    default:
+      break;
   }
 
   if (which == 0) {
@@ -63,6 +66,8 @@ void set_blender_input(uint32_t wid, int cycle, int which, int32_t** input_r,
       case 3:
         *input_a = &zero_color;
         break;
+      default:
+        break;
     }
   } else {
     switch (b & 0x3) {
@@ -77,6 +82,8 @@ void set_blender_input(uint32_t wid, int cycle, int which, int32_t** input_r,
         break;
       case 3:
         *input_a = &zero_color;
+        break;
+      default:
         break;
     }
   }

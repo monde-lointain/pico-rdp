@@ -54,9 +54,11 @@ void vi_fetch_filter32(struct Rgba* res, uint32_t fboffset, uint32_t cur_x,
   } else {
     cur_cvg = 7;
   }
-  r = RGBA32_R(pix) & 0xff;
-  g = RGBA32_G(pix) & 0xff;
-  b = RGBA32_B(pix) & 0xff;
+  // RGBA32_* macros already mask & 0xff; the extra & 0xff is redundant but
+  // kept verbatim from the upstream Angrylion source (value unchanged).
+  r = RGBA32_R(pix) & 0xff;  // NOLINT(misc-redundant-expression)
+  g = RGBA32_G(pix) & 0xff;  // NOLINT(misc-redundant-expression)
+  b = RGBA32_B(pix) & 0xff;  // NOLINT(misc-redundant-expression)
 
   if (cur_cvg == 7) {
     if (ctrl.dither_filter_enable) {

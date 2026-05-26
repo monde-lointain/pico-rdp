@@ -44,14 +44,16 @@ void rdpxi_reseed_noise(uint32_t* seed, uint32_t x, uint32_t y,
 }
 
 static int noise_get_combiner(uint32_t seed) {
-  return ((seed & 7U) << 6U) | 0x20U;
+  return (int)(((seed & 7U) << 6U) | 0x20U);
 }
 
-static int noise_get_dither_alpha(uint32_t seed) { return seed & 7U; }
+static int noise_get_dither_alpha(uint32_t seed) { return (int)(seed & 7U); }
 
-static int noise_get_dither_color(uint32_t seed) { return seed & 0x1ff; }
+static int noise_get_dither_color(uint32_t seed) { return (int)(seed & 0x1ff); }
 
-int rdpxi_noise_get_blend_threshold(uint32_t seed) { return seed & 0xffU; }
+int rdpxi_noise_get_blend_threshold(uint32_t seed) {
+  return (int)(seed & 0xffU);
+}
 
 void rgb_dither(int rgb_dither_sel, int* r, int* g, int* b, int dith) {
   int32_t newr = *r;
@@ -187,6 +189,8 @@ void get_dither_noise(uint32_t wid, int x, int y, int* cdith, int* adith) {
     case 15:
       *cdith = 7;
       *adith = 0;
+      break;
+    default:
       break;
   }
 }

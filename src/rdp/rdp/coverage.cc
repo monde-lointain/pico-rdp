@@ -77,7 +77,8 @@ void compute_cvg_flip(uint32_t wid, int32_t scanline) {
           rdpxi_state[wid].cvgbuf[majorcurint] |=
               (leftcvghex(majorcur, fmask) << maskshift);
         } else if (minorcurint == majorcurint) {
-          samecvg = rightcvghex(minorcur, fmask) & leftcvghex(majorcur, fmask);
+          samecvg = (int32_t)(rightcvghex(minorcur, fmask) &
+                              leftcvghex(majorcur, fmask));
           rdpxi_state[wid].cvgbuf[majorcurint] |= (samecvg << maskshift);
         }
       } else {
@@ -136,7 +137,8 @@ void compute_cvg_noflip(uint32_t wid, int32_t scanline) {
           rdpxi_state[wid].cvgbuf[majorcurint] |=
               (rightcvghex(majorcur, fmask) << maskshift);
         } else if (minorcurint == majorcurint) {
-          samecvg = leftcvghex(minorcur, fmask) & rightcvghex(majorcur, fmask);
+          samecvg = (int32_t)(leftcvghex(minorcur, fmask) &
+                              rightcvghex(majorcur, fmask));
           rdpxi_state[wid].cvgbuf[majorcurint] |= (samecvg << maskshift);
         }
       } else {
@@ -156,10 +158,10 @@ int finalize_spanalpha(int cvg_dest, uint32_t blend_en, uint32_t curpixel_cvg,
   switch (cvg_dest) {
     case CVG_CLAMP:
       if (!blend_en) {
-        finalcvg = curpixel_cvg - 1;
+        finalcvg = (int)(curpixel_cvg - 1);
 
       } else {
-        finalcvg = curpixel_cvg + curpixel_memcvg;
+        finalcvg = (int)(curpixel_cvg + curpixel_memcvg);
       }
 
       if (!(finalcvg & 8)) {
@@ -170,17 +172,22 @@ int finalize_spanalpha(int cvg_dest, uint32_t blend_en, uint32_t curpixel_cvg,
 
       break;
     case CVG_WRAP:
-      finalcvg = (curpixel_cvg + curpixel_memcvg) & 7;
+      finalcvg = (int)((curpixel_cvg + curpixel_memcvg) & 7);
       break;
     case CVG_ZAP:
       finalcvg = 7;
       break;
     case CVG_SAVE:
-      finalcvg = curpixel_memcvg;
+      finalcvg = (int)curpixel_memcvg;
+      break;
+    default:  // NOLINT(clang-diagnostic-sometimes-uninitialized): cvg_dest is
+              // always one of the 4 CVG_* modes; default path unreachable
       break;
   }
 
-  return finalcvg;
+  return finalcvg;  // NOLINT(clang-analyzer-core.uninitialized.UndefReturn):
+                    // cvg_dest is always one of the 4 CVG_* modes; default path
+                    // unreachable
 }
 
 static STRICTINLINE uint16_t decompress_cvmask_frombyte(uint8_t x) {
@@ -216,7 +223,7 @@ void coverage_init_lut(void) {
       cvarray[i].cvg += ((i >> k) & 1);
     }
 
-    masky = maskx = offx = offy = 0;
+    masky = 0;
     for (k = 0; k < 4; k++) {
       masky |= ((mask & (0xf000 >> (k << 2))) > 0) << k;
     }

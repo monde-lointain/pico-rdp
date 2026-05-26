@@ -107,8 +107,8 @@ struct N64videoConfig {
 extern "C" {
 #endif
 
-void rdpx_video_config_init(struct N64videoConfig* config);
-void rdpx_video_init(struct N64videoConfig* config);
+void rdpx_video_config_init(struct N64videoConfig* cfg);
+void rdpx_video_init(struct N64videoConfig* cfg);
 void rdpx_video_update_screen(struct N64videoFrameBuffer* fb);
 void rdpx_video_process_list(void);
 void rdpx_video_close(void);

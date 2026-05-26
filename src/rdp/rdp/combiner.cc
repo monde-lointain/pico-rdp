@@ -65,6 +65,8 @@ static INLINE void set_suba_rgb_input(uint32_t wid, int32_t **input_r,
       *input_b = &zero_color;
       break;
     }
+    default:
+      break;
   }
 }
 
@@ -125,6 +127,8 @@ static INLINE void set_subb_rgb_input(uint32_t wid, int32_t **input_r,
       *input_b = &zero_color;
       break;
     }
+    default:
+      break;
   }
 }
 
@@ -233,6 +237,8 @@ static INLINE void set_mul_rgb_input(uint32_t wid, int32_t **input_r,
       *input_b = &zero_color;
       break;
     }
+    default:
+      break;
   }
 }
 
@@ -280,6 +286,8 @@ static INLINE void set_add_rgb_input(uint32_t wid, int32_t **input_r,
       *input_g = &zero_color;
       *input_b = &zero_color;
       break;
+    default:
+      break;
   }
 }
 
@@ -310,6 +318,8 @@ static INLINE void set_sub_alpha_input(uint32_t wid, int32_t **input,
     case 7:
       *input = &zero_color;
       break;
+    default:
+      break;
   }
 }
 
@@ -339,6 +349,8 @@ static INLINE void set_mul_alpha_input(uint32_t wid, int32_t **input,
       break;
     case 7:
       *input = &zero_color;
+      break;
+    default:
       break;
   }
 }
@@ -450,7 +462,7 @@ void combiner_1cycle(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
   }
 
   rdpxi_state[wid].pixel_color.a =
-      special_9bit_clamptable[rdpxi_state[wid].combined_color.a];
+      (int32_t)special_9bit_clamptable[rdpxi_state[wid].combined_color.a];
   if (rdpxi_state[wid].pixel_color.a == 0xff) {
     rdpxi_state[wid].pixel_color.a = 0x100;
   }
@@ -460,17 +472,23 @@ void combiner_1cycle(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
     rdpxi_state[wid].combined_color.g >>= 8;
     rdpxi_state[wid].combined_color.b >>= 8;
     rdpxi_state[wid].pixel_color.r =
-        special_9bit_clamptable[rdpxi_state[wid].combined_color.r];
+        (int32_t)special_9bit_clamptable[rdpxi_state[wid].combined_color.r];
     rdpxi_state[wid].pixel_color.g =
-        special_9bit_clamptable[rdpxi_state[wid].combined_color.g];
+        (int32_t)special_9bit_clamptable[rdpxi_state[wid].combined_color.g];
     rdpxi_state[wid].pixel_color.b =
-        special_9bit_clamptable[rdpxi_state[wid].combined_color.b];
+        (int32_t)special_9bit_clamptable[rdpxi_state[wid].combined_color.b];
   } else {
     keyalpha = chroma_key_min(wid, &rdpxi_state[wid].combined_color);
 
-    rdpxi_state[wid].pixel_color.r = special_9bit_clamptable[chromabypass.r];
-    rdpxi_state[wid].pixel_color.g = special_9bit_clamptable[chromabypass.g];
-    rdpxi_state[wid].pixel_color.b = special_9bit_clamptable[chromabypass.b];
+    // chromabypass set above under same key_en guard.
+    // NOLINTBEGIN(clang-analyzer-core.uninitialized.ArraySubscript)
+    rdpxi_state[wid].pixel_color.r =
+        (int32_t)special_9bit_clamptable[chromabypass.r];
+    // NOLINTEND(clang-analyzer-core.uninitialized.ArraySubscript)
+    rdpxi_state[wid].pixel_color.g =
+        (int32_t)special_9bit_clamptable[chromabypass.g];
+    rdpxi_state[wid].pixel_color.b =
+        (int32_t)special_9bit_clamptable[chromabypass.b];
 
     rdpxi_state[wid].combined_color.r >>= 8;
     rdpxi_state[wid].combined_color.g >>= 8;
@@ -478,7 +496,8 @@ void combiner_1cycle(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
   }
 
   if (rdpxi_state[wid].other_modes.cvg_times_alpha) {
-    temp = (rdpxi_state[wid].pixel_color.a * (*curpixel_cvg) + 4) >> 3;
+    temp =
+        (int32_t)((rdpxi_state[wid].pixel_color.a * (*curpixel_cvg) + 4) >> 3);
     *curpixel_cvg = (temp >> 5) & 0xf;
   }
 
@@ -489,13 +508,17 @@ void combiner_1cycle(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
         rdpxi_state[wid].pixel_color.a = 0xff;
       }
     } else {
+      // keyalpha set above under same key_en guard.
+      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
       rdpxi_state[wid].pixel_color.a = keyalpha;
     }
   } else {
     if (rdpxi_state[wid].other_modes.cvg_times_alpha) {
+      // temp set above under same cvg_times_alpha guard.
+      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
       rdpxi_state[wid].pixel_color.a = temp;
     } else {
-      rdpxi_state[wid].pixel_color.a = (*curpixel_cvg) << 5;
+      rdpxi_state[wid].pixel_color.a = (int32_t)((*curpixel_cvg) << 5);
     }
     if (rdpxi_state[wid].pixel_color.a > 0xff) {
       rdpxi_state[wid].pixel_color.a = 0xff;
@@ -555,7 +578,7 @@ void combiner_2cycle_cycle0(uint32_t wid, int adseed, uint32_t cvg,
 
   if (rdpxi_state[wid].other_modes.alpha_compare_en) {
     int32_t preacalpha =
-        special_9bit_clamptable[rdpxi_state[wid].combined_color.a];
+        (int32_t)special_9bit_clamptable[rdpxi_state[wid].combined_color.a];
     if (preacalpha == 0xff) {
       preacalpha = 0x100;
     }
@@ -567,9 +590,9 @@ void combiner_2cycle_cycle0(uint32_t wid, int adseed, uint32_t cvg,
       }
     } else {
       if (rdpxi_state[wid].other_modes.cvg_times_alpha) {
-        preacalpha = (preacalpha * cvg + 4) >> 3;
+        preacalpha = (int32_t)((preacalpha * cvg + 4) >> 3);
       } else {
-        preacalpha = cvg << 5;
+        preacalpha = (int32_t)(cvg << 5);
       }
 
       if (preacalpha > 0xff) {
@@ -654,17 +677,23 @@ void combiner_2cycle_cycle1(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
     rdpxi_state[wid].combined_color.b >>= 8;
 
     rdpxi_state[wid].pixel_color.r =
-        special_9bit_clamptable[rdpxi_state[wid].combined_color.r];
+        (int32_t)special_9bit_clamptable[rdpxi_state[wid].combined_color.r];
     rdpxi_state[wid].pixel_color.g =
-        special_9bit_clamptable[rdpxi_state[wid].combined_color.g];
+        (int32_t)special_9bit_clamptable[rdpxi_state[wid].combined_color.g];
     rdpxi_state[wid].pixel_color.b =
-        special_9bit_clamptable[rdpxi_state[wid].combined_color.b];
+        (int32_t)special_9bit_clamptable[rdpxi_state[wid].combined_color.b];
   } else {
     keyalpha = chroma_key_min(wid, &rdpxi_state[wid].combined_color);
 
-    rdpxi_state[wid].pixel_color.r = special_9bit_clamptable[chromabypass.r];
-    rdpxi_state[wid].pixel_color.g = special_9bit_clamptable[chromabypass.g];
-    rdpxi_state[wid].pixel_color.b = special_9bit_clamptable[chromabypass.b];
+    // chromabypass set above under same key_en guard.
+    // NOLINTBEGIN(clang-analyzer-core.uninitialized.ArraySubscript)
+    rdpxi_state[wid].pixel_color.r =
+        (int32_t)special_9bit_clamptable[chromabypass.r];
+    // NOLINTEND(clang-analyzer-core.uninitialized.ArraySubscript)
+    rdpxi_state[wid].pixel_color.g =
+        (int32_t)special_9bit_clamptable[chromabypass.g];
+    rdpxi_state[wid].pixel_color.b =
+        (int32_t)special_9bit_clamptable[chromabypass.b];
 
     rdpxi_state[wid].combined_color.r >>= 8;
     rdpxi_state[wid].combined_color.g >>= 8;
@@ -672,13 +701,14 @@ void combiner_2cycle_cycle1(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
   }
 
   rdpxi_state[wid].pixel_color.a =
-      special_9bit_clamptable[rdpxi_state[wid].combined_color.a];
+      (int32_t)special_9bit_clamptable[rdpxi_state[wid].combined_color.a];
   if (rdpxi_state[wid].pixel_color.a == 0xff) {
     rdpxi_state[wid].pixel_color.a = 0x100;
   }
 
   if (rdpxi_state[wid].other_modes.cvg_times_alpha) {
-    temp = (rdpxi_state[wid].pixel_color.a * (*curpixel_cvg) + 4) >> 3;
+    temp =
+        (int32_t)((rdpxi_state[wid].pixel_color.a * (*curpixel_cvg) + 4) >> 3);
 
     *curpixel_cvg = (temp >> 5) & 0xf;
   }
@@ -690,13 +720,17 @@ void combiner_2cycle_cycle1(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
         rdpxi_state[wid].pixel_color.a = 0xff;
       }
     } else {
+      // keyalpha set above under same key_en guard.
+      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
       rdpxi_state[wid].pixel_color.a = keyalpha;
     }
   } else {
     if (rdpxi_state[wid].other_modes.cvg_times_alpha) {
+      // temp set above under same cvg_times_alpha guard.
+      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
       rdpxi_state[wid].pixel_color.a = temp;
     } else {
-      rdpxi_state[wid].pixel_color.a = (*curpixel_cvg) << 5;
+      rdpxi_state[wid].pixel_color.a = (int32_t)((*curpixel_cvg) << 5);
     }
     if (rdpxi_state[wid].pixel_color.a > 0xff) {
       rdpxi_state[wid].pixel_color.a = 0xff;
@@ -725,6 +759,8 @@ void combiner_init_lut(void) {
         break;
       case 3:
         special_9bit_clamptable[i] = 0;
+        break;
+      default:
         break;
     }
   }
@@ -772,8 +808,8 @@ void combiner_init(uint32_t wid) {
 }
 
 void rdpxi_rdp_set_prim_color(uint32_t wid, const uint32_t *args) {
-  rdpxi_state[wid].min_level = (args[0] >> 8) & 0x1f;
-  rdpxi_state[wid].primitive_lod_frac = args[0] & 0xff;
+  rdpxi_state[wid].min_level = (int32_t)((args[0] >> 8) & 0x1f);
+  rdpxi_state[wid].primitive_lod_frac = (int32_t)(args[0] & 0xff);
   rdpxi_state[wid].prim_color.r = RGBA32_R(args[1]);
   rdpxi_state[wid].prim_color.g = RGBA32_G(args[1]);
   rdpxi_state[wid].prim_color.b = RGBA32_B(args[1]);
@@ -788,23 +824,23 @@ void rdpxi_rdp_set_env_color(uint32_t wid, const uint32_t *args) {
 }
 
 void rdpxi_rdp_set_combine(uint32_t wid, const uint32_t *args) {
-  rdpxi_state[wid].combine.sub_a_rgb0 = (args[0] >> 20) & 0xf;
-  rdpxi_state[wid].combine.mul_rgb0 = (args[0] >> 15) & 0x1f;
-  rdpxi_state[wid].combine.sub_a_a0 = (args[0] >> 12) & 0x7;
-  rdpxi_state[wid].combine.mul_a0 = (args[0] >> 9) & 0x7;
-  rdpxi_state[wid].combine.sub_a_rgb1 = (args[0] >> 5) & 0xf;
-  rdpxi_state[wid].combine.mul_rgb1 = (args[0] >> 0) & 0x1f;
+  rdpxi_state[wid].combine.sub_a_rgb0 = (int)((args[0] >> 20) & 0xf);
+  rdpxi_state[wid].combine.mul_rgb0 = (int)((args[0] >> 15) & 0x1f);
+  rdpxi_state[wid].combine.sub_a_a0 = (int)((args[0] >> 12) & 0x7);
+  rdpxi_state[wid].combine.mul_a0 = (int)((args[0] >> 9) & 0x7);
+  rdpxi_state[wid].combine.sub_a_rgb1 = (int)((args[0] >> 5) & 0xf);
+  rdpxi_state[wid].combine.mul_rgb1 = (int)((args[0] >> 0) & 0x1f);
 
-  rdpxi_state[wid].combine.sub_b_rgb0 = (args[1] >> 28) & 0xf;
-  rdpxi_state[wid].combine.sub_b_rgb1 = (args[1] >> 24) & 0xf;
-  rdpxi_state[wid].combine.sub_a_a1 = (args[1] >> 21) & 0x7;
-  rdpxi_state[wid].combine.mul_a1 = (args[1] >> 18) & 0x7;
-  rdpxi_state[wid].combine.add_rgb0 = (args[1] >> 15) & 0x7;
-  rdpxi_state[wid].combine.sub_b_a0 = (args[1] >> 12) & 0x7;
-  rdpxi_state[wid].combine.add_a0 = (args[1] >> 9) & 0x7;
-  rdpxi_state[wid].combine.add_rgb1 = (args[1] >> 6) & 0x7;
-  rdpxi_state[wid].combine.sub_b_a1 = (args[1] >> 3) & 0x7;
-  rdpxi_state[wid].combine.add_a1 = (args[1] >> 0) & 0x7;
+  rdpxi_state[wid].combine.sub_b_rgb0 = (int)((args[1] >> 28) & 0xf);
+  rdpxi_state[wid].combine.sub_b_rgb1 = (int)((args[1] >> 24) & 0xf);
+  rdpxi_state[wid].combine.sub_a_a1 = (int)((args[1] >> 21) & 0x7);
+  rdpxi_state[wid].combine.mul_a1 = (int)((args[1] >> 18) & 0x7);
+  rdpxi_state[wid].combine.add_rgb0 = (int)((args[1] >> 15) & 0x7);
+  rdpxi_state[wid].combine.sub_b_a0 = (int)((args[1] >> 12) & 0x7);
+  rdpxi_state[wid].combine.add_a0 = (int)((args[1] >> 9) & 0x7);
+  rdpxi_state[wid].combine.add_rgb1 = (int)((args[1] >> 6) & 0x7);
+  rdpxi_state[wid].combine.sub_b_a1 = (int)((args[1] >> 3) & 0x7);
+  rdpxi_state[wid].combine.add_a1 = (int)((args[1] >> 0) & 0x7);
 
   set_suba_rgb_input(wid, &rdpxi_state[wid].combiner_rgbsub_a_r[0],
                      &rdpxi_state[wid].combiner_rgbsub_a_g[0],
@@ -860,16 +896,16 @@ void rdpxi_rdp_set_combine(uint32_t wid, const uint32_t *args) {
 }
 
 void rdpxi_rdp_set_key_gb(uint32_t wid, const uint32_t *args) {
-  rdpxi_state[wid].key_width.g = (args[0] >> 12) & 0xfff;
-  rdpxi_state[wid].key_width.b = args[0] & 0xfff;
-  rdpxi_state[wid].key_center.g = (args[1] >> 24) & 0xff;
-  rdpxi_state[wid].key_scale.g = (args[1] >> 16) & 0xff;
-  rdpxi_state[wid].key_center.b = (args[1] >> 8) & 0xff;
-  rdpxi_state[wid].key_scale.b = args[1] & 0xff;
+  rdpxi_state[wid].key_width.g = (int32_t)((args[0] >> 12) & 0xfff);
+  rdpxi_state[wid].key_width.b = (int32_t)(args[0] & 0xfff);
+  rdpxi_state[wid].key_center.g = (int32_t)((args[1] >> 24) & 0xff);
+  rdpxi_state[wid].key_scale.g = (int32_t)((args[1] >> 16) & 0xff);
+  rdpxi_state[wid].key_center.b = (int32_t)((args[1] >> 8) & 0xff);
+  rdpxi_state[wid].key_scale.b = (int32_t)(args[1] & 0xff);
 }
 
 void rdpxi_rdp_set_key_r(uint32_t wid, const uint32_t *args) {
-  rdpxi_state[wid].key_width.r = (args[1] >> 16) & 0xfff;
-  rdpxi_state[wid].key_center.r = (args[1] >> 8) & 0xff;
-  rdpxi_state[wid].key_scale.r = args[1] & 0xff;
+  rdpxi_state[wid].key_width.r = (int32_t)((args[1] >> 16) & 0xfff);
+  rdpxi_state[wid].key_center.r = (int32_t)((args[1] >> 8) & 0xff);
+  rdpxi_state[wid].key_scale.r = (int32_t)(args[1] & 0xff);
 }

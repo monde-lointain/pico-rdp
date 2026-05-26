@@ -177,8 +177,6 @@ void deduce_derivatives(uint32_t wid) {
   int texel0_used_in_cc1 = 0;
   int texel0_used_in_cc0 = 0;
   int texel1_used_in_cc0 = 0;
-  int texels_in_cc0 = 0;
-  int texels_in_cc1 = 0;
   int lod_frac_used_in_cc1 = 0;
   int lod_frac_used_in_cc0 = 0;
   int texels_or_lf_used_in_ac0 = 0;
@@ -283,8 +281,6 @@ void deduce_derivatives(uint32_t wid) {
   texels_or_lf_used_in_ac0 =
       texel0_used_in_ac0 || texel1_used_in_ac0 ||
       (rdpxi_state[wid].combiner_alphamul[0] == &rdpxi_state[wid].lod_frac);
-  texels_in_cc0 = texel0_used_in_cc0 || texel1_used_in_cc0;
-  texels_in_cc1 = texel0_used_in_cc1 || texel1_used_in_cc1;
 
   if (texel1_used_in_cc1) {
     rdpxi_state[wid].other_modes.f.textureuselevel0 = 0;
@@ -341,15 +337,15 @@ void rdpxi_rdp_init(uint32_t wid, uint32_t num_workers) {
   rdp_set_other_modes(wid, tmp);
 }
 
-static void rdp_invalid(uint32_t wid, const uint32_t* args) {}
+static void rdp_invalid(uint32_t /*wid*/, const uint32_t* /*args*/) {}
 
-static void rdp_noop(uint32_t wid, const uint32_t* args) {}
+static void rdp_noop(uint32_t /*wid*/, const uint32_t* /*args*/) {}
 
-static void rdp_sync_load(uint32_t wid, const uint32_t* args) {}
+static void rdp_sync_load(uint32_t /*wid*/, const uint32_t* /*args*/) {}
 
-static void rdp_sync_pipe(uint32_t wid, const uint32_t* args) {}
+static void rdp_sync_pipe(uint32_t /*wid*/, const uint32_t* /*args*/) {}
 
-static void rdp_sync_tile(uint32_t wid, const uint32_t* args) {}
+static void rdp_sync_tile(uint32_t /*wid*/, const uint32_t* /*args*/) {}
 
 static void rdp_sync_full(uint32_t /*wid*/, const uint32_t* /*args*/) {
   // signal DP interrupt
@@ -358,42 +354,42 @@ static void rdp_sync_full(uint32_t /*wid*/, const uint32_t* /*args*/) {
 }
 
 static void rdp_set_other_modes(uint32_t wid, const uint32_t* args) {
-  rdpxi_state[wid].other_modes.cycle_type = (args[0] >> 20) & 3;
-  rdpxi_state[wid].other_modes.persp_tex_en = (args[0] >> 19) & 1;
-  rdpxi_state[wid].other_modes.detail_tex_en = (args[0] >> 18) & 1;
-  rdpxi_state[wid].other_modes.sharpen_tex_en = (args[0] >> 17) & 1;
-  rdpxi_state[wid].other_modes.tex_lod_en = (args[0] >> 16) & 1;
-  rdpxi_state[wid].other_modes.en_tlut = (args[0] >> 15) & 1;
-  rdpxi_state[wid].other_modes.tlut_type = (args[0] >> 14) & 1;
-  rdpxi_state[wid].other_modes.sample_type = (args[0] >> 13) & 1;
-  rdpxi_state[wid].other_modes.mid_texel = (args[0] >> 12) & 1;
-  rdpxi_state[wid].other_modes.bi_lerp0 = (args[0] >> 11) & 1;
-  rdpxi_state[wid].other_modes.bi_lerp1 = (args[0] >> 10) & 1;
-  rdpxi_state[wid].other_modes.convert_one = (args[0] >> 9) & 1;
-  rdpxi_state[wid].other_modes.key_en = (args[0] >> 8) & 1;
-  rdpxi_state[wid].other_modes.rgb_dither_sel = (args[0] >> 6) & 3;
-  rdpxi_state[wid].other_modes.alpha_dither_sel = (args[0] >> 4) & 3;
-  rdpxi_state[wid].other_modes.blend_m1a_0 = (args[1] >> 30) & 3;
-  rdpxi_state[wid].other_modes.blend_m1a_1 = (args[1] >> 28) & 3;
-  rdpxi_state[wid].other_modes.blend_m1b_0 = (args[1] >> 26) & 3;
-  rdpxi_state[wid].other_modes.blend_m1b_1 = (args[1] >> 24) & 3;
-  rdpxi_state[wid].other_modes.blend_m2a_0 = (args[1] >> 22) & 3;
-  rdpxi_state[wid].other_modes.blend_m2a_1 = (args[1] >> 20) & 3;
-  rdpxi_state[wid].other_modes.blend_m2b_0 = (args[1] >> 18) & 3;
-  rdpxi_state[wid].other_modes.blend_m2b_1 = (args[1] >> 16) & 3;
-  rdpxi_state[wid].other_modes.force_blend = (args[1] >> 14) & 1;
-  rdpxi_state[wid].other_modes.alpha_cvg_select = (args[1] >> 13) & 1;
-  rdpxi_state[wid].other_modes.cvg_times_alpha = (args[1] >> 12) & 1;
-  rdpxi_state[wid].other_modes.z_mode = (args[1] >> 10) & 3;
-  rdpxi_state[wid].other_modes.cvg_dest = (args[1] >> 8) & 3;
-  rdpxi_state[wid].other_modes.color_on_cvg = (args[1] >> 7) & 1;
-  rdpxi_state[wid].other_modes.image_read_en = (args[1] >> 6) & 1;
-  rdpxi_state[wid].other_modes.z_update_en = (args[1] >> 5) & 1;
-  rdpxi_state[wid].other_modes.z_compare_en = (args[1] >> 4) & 1;
-  rdpxi_state[wid].other_modes.antialias_en = (args[1] >> 3) & 1;
-  rdpxi_state[wid].other_modes.z_source_sel = (args[1] >> 2) & 1;
-  rdpxi_state[wid].other_modes.dither_alpha_en = (args[1] >> 1) & 1;
-  rdpxi_state[wid].other_modes.alpha_compare_en = (args[1] >> 0) & 1;
+  rdpxi_state[wid].other_modes.cycle_type = (int)((args[0] >> 20) & 3);
+  rdpxi_state[wid].other_modes.persp_tex_en = (int)((args[0] >> 19) & 1);
+  rdpxi_state[wid].other_modes.detail_tex_en = (int)((args[0] >> 18) & 1);
+  rdpxi_state[wid].other_modes.sharpen_tex_en = (int)((args[0] >> 17) & 1);
+  rdpxi_state[wid].other_modes.tex_lod_en = (int)((args[0] >> 16) & 1);
+  rdpxi_state[wid].other_modes.en_tlut = (int)((args[0] >> 15) & 1);
+  rdpxi_state[wid].other_modes.tlut_type = (int)((args[0] >> 14) & 1);
+  rdpxi_state[wid].other_modes.sample_type = (int)((args[0] >> 13) & 1);
+  rdpxi_state[wid].other_modes.mid_texel = (int)((args[0] >> 12) & 1);
+  rdpxi_state[wid].other_modes.bi_lerp0 = (int)((args[0] >> 11) & 1);
+  rdpxi_state[wid].other_modes.bi_lerp1 = (int)((args[0] >> 10) & 1);
+  rdpxi_state[wid].other_modes.convert_one = (int)((args[0] >> 9) & 1);
+  rdpxi_state[wid].other_modes.key_en = (int)((args[0] >> 8) & 1);
+  rdpxi_state[wid].other_modes.rgb_dither_sel = (int)((args[0] >> 6) & 3);
+  rdpxi_state[wid].other_modes.alpha_dither_sel = (int)((args[0] >> 4) & 3);
+  rdpxi_state[wid].other_modes.blend_m1a_0 = (int)((args[1] >> 30) & 3);
+  rdpxi_state[wid].other_modes.blend_m1a_1 = (int)((args[1] >> 28) & 3);
+  rdpxi_state[wid].other_modes.blend_m1b_0 = (int)((args[1] >> 26) & 3);
+  rdpxi_state[wid].other_modes.blend_m1b_1 = (int)((args[1] >> 24) & 3);
+  rdpxi_state[wid].other_modes.blend_m2a_0 = (int)((args[1] >> 22) & 3);
+  rdpxi_state[wid].other_modes.blend_m2a_1 = (int)((args[1] >> 20) & 3);
+  rdpxi_state[wid].other_modes.blend_m2b_0 = (int)((args[1] >> 18) & 3);
+  rdpxi_state[wid].other_modes.blend_m2b_1 = (int)((args[1] >> 16) & 3);
+  rdpxi_state[wid].other_modes.force_blend = (int)((args[1] >> 14) & 1);
+  rdpxi_state[wid].other_modes.alpha_cvg_select = (int)((args[1] >> 13) & 1);
+  rdpxi_state[wid].other_modes.cvg_times_alpha = (int)((args[1] >> 12) & 1);
+  rdpxi_state[wid].other_modes.z_mode = (int)((args[1] >> 10) & 3);
+  rdpxi_state[wid].other_modes.cvg_dest = (int)((args[1] >> 8) & 3);
+  rdpxi_state[wid].other_modes.color_on_cvg = (int)((args[1] >> 7) & 1);
+  rdpxi_state[wid].other_modes.image_read_en = (int)((args[1] >> 6) & 1);
+  rdpxi_state[wid].other_modes.z_update_en = (int)((args[1] >> 5) & 1);
+  rdpxi_state[wid].other_modes.z_compare_en = (int)((args[1] >> 4) & 1);
+  rdpxi_state[wid].other_modes.antialias_en = (int)((args[1] >> 3) & 1);
+  rdpxi_state[wid].other_modes.z_source_sel = (int)((args[1] >> 2) & 1);
+  rdpxi_state[wid].other_modes.dither_alpha_en = (int)((args[1] >> 1) & 1);
+  rdpxi_state[wid].other_modes.alpha_compare_en = (int)((args[1] >> 0) & 1);
 
   set_blender_input(wid, 0, 0, &rdpxi_state[wid].blender1a_r[0],
                     &rdpxi_state[wid].blender1a_g[0],

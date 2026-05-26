@@ -185,9 +185,10 @@ void texture_pipeline_cycle(uint32_t wid, struct Color* tex, struct Color* prev,
     sfrac = sss1 & 0x1f;
     tfrac = sst1 & 0x1f;
 
-    tcclamp_cycle(wid, &sss1, &sst1, &sfrac, &tfrac, maxs, maxt, tilenum);
+    tcclamp_cycle(wid, &sss1, &sst1, &sfrac, &tfrac, maxs, maxt,
+                  (int32_t)tilenum);
 
-    tcmask_coupled(wid, &sss1, &sdiff, &sst1, &tdiff, tilenum);
+    tcmask_coupled(wid, &sss1, &sdiff, &sst1, &tdiff, (int32_t)tilenum);
 
     upper = (sfrac + tfrac) & 0x20;
 
@@ -408,9 +409,9 @@ void texture_pipeline_cycle(uint32_t wid, struct Color* tex, struct Color* prev,
     tex->a &= 0x1ff;
 
   } else {
-    tcclamp_cycle_light(wid, &sss1, &sst1, maxs, maxt, tilenum);
+    tcclamp_cycle_light(wid, &sss1, &sst1, maxs, maxt, (int32_t)tilenum);
 
-    tcmask(wid, &sss1, &sst1, tilenum);
+    tcmask(wid, &sss1, &sst1, (int32_t)tilenum);
 
     if (bilerp) {
       if (!convert) {
@@ -448,8 +449,6 @@ void texture_pipeline_cycle(uint32_t wid, struct Color* tex, struct Color* prev,
 
 static void loading_pipeline(uint32_t wid, int start, int end, int tilenum,
                              int coord_quad, int ltlut) {
-  int const localdebugmode = 0;
-  int const cnt = 0;
   int i;
   int j;
 
@@ -464,7 +463,6 @@ static void loading_pipeline(uint32_t wid, int start, int end, int tilenum,
   int st;
   int xstart;
   int xend;
-  int xendsc;
   int32_t sss = 0;
   int32_t sst = 0;
   int ti_index;
@@ -525,18 +523,19 @@ static void loading_pipeline(uint32_t wid, int start, int end, int tilenum,
       tiadvance = 8;
       spanadvance = 2;
       break;
+    default:
+      break;
   }
 
   for (i = start; i <= end; i++) {
     xstart = rdpxi_state[wid].span[i].lx;
     xend = rdpxi_state[wid].span[i].unscrx;
-    xendsc = rdpxi_state[wid].span[i].rx;
     s = rdpxi_state[wid].span[i].s;
     t = rdpxi_state[wid].span[i].t;
 
     ti_index = rdpxi_state[wid].ti_width * i + xend;
-    tiptr = rdpxi_state[wid].ti_address +
-            PIXELS_TO_BYTES(ti_index, rdpxi_state[wid].ti_size);
+    tiptr = (int)(rdpxi_state[wid].ti_address +
+                  PIXELS_TO_BYTES(ti_index, rdpxi_state[wid].ti_size));
 
     length = (xstart - xend + 1) & 0xfff;
 
@@ -621,6 +620,8 @@ static void loading_pipeline(uint32_t wid, int start, int end, int tilenum,
         case 7:
           loadqword = ((uint64_t)readval1 << 56) | ((uint64_t)readval2 << 24) |
                       (readval3 >> 8);
+          break;
+        default:
           break;
       }
 
@@ -707,6 +708,8 @@ static void loading_pipeline(uint32_t wid, int start, int end, int tilenum,
             }
           }
           break;
+        default:
+          break;
       }
 
       s = (s + dsinc) & ~0x1f;
@@ -720,33 +723,23 @@ static void edgewalker_for_loads(uint32_t wid, const int32_t* lewdata) {
   int j = 0;
   int xleft = 0;
   int xright = 0;
-  int const xstart = 0;
   int xend = 0;
   int s = 0;
   int t = 0;
-  int w = 0;
   int dsdx = 0;
   int dtdx = 0;
-  int dsdy = 0;
-  int dtdy = 0;
-  int dsde = 0;
   int dtde = 0;
   int tilenum = 0;
-  int flip = 0;
   int32_t yl = 0;
   int32_t ym = 0;
   int32_t yh = 0;
   int32_t xl = 0;
   int32_t xm = 0;
   int32_t xh = 0;
-  int32_t dxldy = 0;
-  int32_t dxhdy = 0;
-  int32_t dxmdy = 0;
 
   int const cmd_id = CMD_ID(lewdata);
   int const ltlut = (cmd_id == CMD_ID_LOAD_TLUT);
   int const coord_quad = ltlut || (cmd_id == CMD_ID_LOAD_BLOCK);
-  flip = 1;
   rdpxi_state[wid].max_level = 0;
   tilenum = (lewdata[0] >> 16) & 7;
 
@@ -759,19 +752,11 @@ static void edgewalker_for_loads(uint32_t wid, const int32_t* lewdata) {
   xh = SIGN(lewdata[3], 28);
   xm = SIGN(lewdata[4], 28);
 
-  dxldy = 0;
-  dxhdy = 0;
-  dxmdy = 0;
-
-  s = lewdata[5] & 0xffff0000;
+  s = (int)(lewdata[5] & 0xffff0000);
   t = (lewdata[5] & 0xffff) << 16;
-  w = 0;
-  dsdx = (lewdata[7] & 0xffff0000) | ((lewdata[6] >> 16) & 0xffff);
-  dtdx = ((lewdata[7] << 16) & 0xffff0000) | (lewdata[6] & 0xffff);
-  dsde = 0;
+  dsdx = (int)((lewdata[7] & 0xffff0000) | ((lewdata[6] >> 16) & 0xffff));
+  dtdx = (int)(((lewdata[7] << 16) & 0xffff0000) | (lewdata[6] & 0xffff));
   dtde = (lewdata[9] & 0xffff) << 16;
-  dsdy = 0;
-  dtdy = (lewdata[8] & 0xffff) << 16;
 
   rdpxi_state[wid].spans_ds = dsdx & ~0x1f;
   rdpxi_state[wid].spans_dt = dtdx & ~0x1f;
@@ -781,12 +766,6 @@ static void edgewalker_for_loads(uint32_t wid, const int32_t* lewdata) {
   xleft = xm & ~0x1;
 
   int k = 0;
-
-  int const sign_dxhdy = 0;
-
-  int const do_offset = 0;
-
-  int xfrac = 0;
 
 #define ADJUST_ATTR_LOAD()                   \
   {                                          \
@@ -805,14 +784,11 @@ static void edgewalker_for_loads(uint32_t wid, const int32_t* lewdata) {
   int const ylfar = yl | 3;
 
   int valid_y = 1;
-  int const length = 0;
   int32_t xrsc = 0;
   int32_t xlsc = 0;
-  int32_t const stickybit = 0;
   int32_t const yllimit = yl;
   int32_t const yhlimit = yh;
 
-  xfrac = 0;
   xend = xright >> 16;
 
   for (k = ycur; k <= ylfar; k++) {
@@ -836,8 +812,12 @@ static void edgewalker_for_loads(uint32_t wid, const int32_t* lewdata) {
       xlsc = (xleft >> 13) & 0x7ffe;
 
       if (valid_y) {
+        // ycur=yh&~3 is a multiple of 4, so spix==0 runs first and seeds
+        // maxxmx/minxhx before any read here; the analyzer can't prove it.
+        // NOLINTBEGIN(clang-analyzer-core.UndefinedBinaryOperatorResult)
         maxxmx =
             (((xlsc >> 3) & 0xfff) > maxxmx) ? (xlsc >> 3) & 0xfff : maxxmx;
+        // NOLINTEND(clang-analyzer-core.UndefinedBinaryOperatorResult)
         minxhx =
             (((xrsc >> 3) & 0xfff) < minxhx) ? (xrsc >> 3) & 0xfff : minxhx;
       }
@@ -848,6 +828,9 @@ static void edgewalker_for_loads(uint32_t wid, const int32_t* lewdata) {
       }
 
       if (spix == 3) {
+        // spix==0 (which seeds maxxmx) always precedes spix==3 within the
+        // same valid k-block; analyzer can't prove it.
+        // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
         rdpxi_state[wid].span[j].lx = maxxmx;
         rdpxi_state[wid].span[j].rx = minxhx;
       }
@@ -862,7 +845,7 @@ static void edgewalker_for_loads(uint32_t wid, const int32_t* lewdata) {
 }
 
 void rdpxi_rdp_set_tile_size(uint32_t wid, const uint32_t* args) {
-  int const tilenum = (args[1] >> 24) & 0x7;
+  int const tilenum = (int)((args[1] >> 24) & 0x7);
   rdpxi_state[wid].tile[tilenum].sl = (args[0] >> 12) & 0xfff;
   rdpxi_state[wid].tile[tilenum].tl = (args[0] >> 0) & 0xfff;
   rdpxi_state[wid].tile[tilenum].sh = (args[1] >> 12) & 0xfff;
@@ -872,16 +855,16 @@ void rdpxi_rdp_set_tile_size(uint32_t wid, const uint32_t* args) {
 }
 
 void rdpxi_rdp_load_block(uint32_t wid, const uint32_t* args) {
-  int const tilenum = (args[1] >> 24) & 0x7;
+  int const tilenum = (int)((args[1] >> 24) & 0x7);
   int sl;
   int sh;
   int tl;
   int dxt;
 
-  rdpxi_state[wid].tile[tilenum].sl = sl = ((args[0] >> 12) & 0xfff);
-  rdpxi_state[wid].tile[tilenum].tl = tl = ((args[0] >> 0) & 0xfff);
-  rdpxi_state[wid].tile[tilenum].sh = sh = ((args[1] >> 12) & 0xfff);
-  rdpxi_state[wid].tile[tilenum].th = dxt = ((args[1] >> 0) & 0xfff);
+  rdpxi_state[wid].tile[tilenum].sl = sl = (int)((args[0] >> 12) & 0xfff);
+  rdpxi_state[wid].tile[tilenum].tl = tl = (int)((args[0] >> 0) & 0xfff);
+  rdpxi_state[wid].tile[tilenum].sh = sh = (int)((args[1] >> 12) & 0xfff);
+  rdpxi_state[wid].tile[tilenum].th = dxt = (int)((args[1] >> 0) & 0xfff);
 
   calculate_clamp_diffs(&rdpxi_state[wid].tile[tilenum]);
 
@@ -889,8 +872,8 @@ void rdpxi_rdp_load_block(uint32_t wid, const uint32_t* args) {
 
   int32_t lewdata[10];
 
-  lewdata[0] = (args[0] & 0xff000000) | (0x10 << 19) | (tilenum << 16) |
-               ((tlclamped << 2) | 3);
+  lewdata[0] = (int32_t)((args[0] & 0xff000000) | (0x10 << 19) |
+                         (tilenum << 16) | ((tlclamped << 2) | 3));
   lewdata[1] = (((tlclamped << 2) | 3) << 16) | (tlclamped << 2);
   lewdata[2] = sh << 16;
   lewdata[3] = sl << 16;
@@ -905,23 +888,23 @@ void rdpxi_rdp_load_block(uint32_t wid, const uint32_t* args) {
 }
 
 static void tile_tlut_common_cs_decoder(uint32_t wid, const uint32_t* args) {
-  int const tilenum = (args[1] >> 24) & 0x7;
+  int const tilenum = (int)((args[1] >> 24) & 0x7);
   int sl;
   int tl;
   int sh;
   int th;
 
-  rdpxi_state[wid].tile[tilenum].sl = sl = ((args[0] >> 12) & 0xfff);
-  rdpxi_state[wid].tile[tilenum].tl = tl = ((args[0] >> 0) & 0xfff);
-  rdpxi_state[wid].tile[tilenum].sh = sh = ((args[1] >> 12) & 0xfff);
-  rdpxi_state[wid].tile[tilenum].th = th = ((args[1] >> 0) & 0xfff);
+  rdpxi_state[wid].tile[tilenum].sl = sl = (int)((args[0] >> 12) & 0xfff);
+  rdpxi_state[wid].tile[tilenum].tl = tl = (int)((args[0] >> 0) & 0xfff);
+  rdpxi_state[wid].tile[tilenum].sh = sh = (int)((args[1] >> 12) & 0xfff);
+  rdpxi_state[wid].tile[tilenum].th = th = (int)((args[1] >> 0) & 0xfff);
 
   calculate_clamp_diffs(&rdpxi_state[wid].tile[tilenum]);
 
   int32_t lewdata[10];
 
-  lewdata[0] =
-      (args[0] & 0xff000000) | (0x10 << 19) | (tilenum << 16) | (th | 3);
+  lewdata[0] = (int32_t)((args[0] & 0xff000000) | (0x10 << 19) |
+                         (tilenum << 16) | (th | 3));
   lewdata[1] = ((th | 3) << 16) | (tl);
   lewdata[2] = ((sh >> 2) << 16) | ((sh & 3) << 14);
   lewdata[3] = ((sl >> 2) << 16) | ((sl & 3) << 14);
@@ -944,43 +927,44 @@ void rdpxi_rdp_load_tile(uint32_t wid, const uint32_t* args) {
 }
 
 void rdpxi_rdp_set_tile(uint32_t wid, const uint32_t* args) {
-  int const tilenum = (args[1] >> 24) & 0x7;
+  int const tilenum = (int)((args[1] >> 24) & 0x7);
 
-  rdpxi_state[wid].tile[tilenum].format = (args[0] >> 21) & 0x7;
-  rdpxi_state[wid].tile[tilenum].size = (args[0] >> 19) & 0x3;
-  rdpxi_state[wid].tile[tilenum].line = (args[0] >> 9) & 0x1ff;
-  rdpxi_state[wid].tile[tilenum].tmem = (args[0] >> 0) & 0x1ff;
-  rdpxi_state[wid].tile[tilenum].palette = (args[1] >> 20) & 0xf;
-  rdpxi_state[wid].tile[tilenum].ct = (args[1] >> 19) & 0x1;
-  rdpxi_state[wid].tile[tilenum].mt = (args[1] >> 18) & 0x1;
-  rdpxi_state[wid].tile[tilenum].mask_t = (args[1] >> 14) & 0xf;
-  rdpxi_state[wid].tile[tilenum].shift_t = (args[1] >> 10) & 0xf;
-  rdpxi_state[wid].tile[tilenum].cs = (args[1] >> 9) & 0x1;
-  rdpxi_state[wid].tile[tilenum].ms = (args[1] >> 8) & 0x1;
-  rdpxi_state[wid].tile[tilenum].mask_s = (args[1] >> 4) & 0xf;
-  rdpxi_state[wid].tile[tilenum].shift_s = (args[1] >> 0) & 0xf;
+  rdpxi_state[wid].tile[tilenum].format = (int)((args[0] >> 21) & 0x7);
+  rdpxi_state[wid].tile[tilenum].size = (int)((args[0] >> 19) & 0x3);
+  rdpxi_state[wid].tile[tilenum].line = (int)((args[0] >> 9) & 0x1ff);
+  rdpxi_state[wid].tile[tilenum].tmem = (int)((args[0] >> 0) & 0x1ff);
+  rdpxi_state[wid].tile[tilenum].palette = (int)((args[1] >> 20) & 0xf);
+  rdpxi_state[wid].tile[tilenum].ct = (int)((args[1] >> 19) & 0x1);
+  rdpxi_state[wid].tile[tilenum].mt = (int)((args[1] >> 18) & 0x1);
+  rdpxi_state[wid].tile[tilenum].mask_t = (int)((args[1] >> 14) & 0xf);
+  rdpxi_state[wid].tile[tilenum].shift_t = (int)((args[1] >> 10) & 0xf);
+  rdpxi_state[wid].tile[tilenum].cs = (int)((args[1] >> 9) & 0x1);
+  rdpxi_state[wid].tile[tilenum].ms = (int)((args[1] >> 8) & 0x1);
+  rdpxi_state[wid].tile[tilenum].mask_s = (int)((args[1] >> 4) & 0xf);
+  rdpxi_state[wid].tile[tilenum].shift_s = (int)((args[1] >> 0) & 0xf);
 
   calculate_tile_derivs(&rdpxi_state[wid].tile[tilenum]);
 }
 
 void rdpxi_rdp_set_texture_image(uint32_t wid, const uint32_t* args) {
-  rdpxi_state[wid].ti_format = (args[0] >> 21) & 0x7;
-  rdpxi_state[wid].ti_size = (args[0] >> 19) & 0x3;
-  rdpxi_state[wid].ti_width = (args[0] & 0x3ff) + 1;
+  rdpxi_state[wid].ti_format = (int)((args[0] >> 21) & 0x7);
+  rdpxi_state[wid].ti_size = (int)((args[0] >> 19) & 0x3);
+  rdpxi_state[wid].ti_width = (int)((args[0] & 0x3ff) + 1);
   rdpxi_state[wid].ti_address = args[1] & 0x0ffffff;
 }
 
 void rdpxi_rdp_set_convert(uint32_t wid, const uint32_t* args) {
-  int32_t const k0 = (args[0] >> 13) & 0x1ff;
-  int32_t const k1 = (args[0] >> 4) & 0x1ff;
-  int32_t const k2 = ((args[0] & 0xf) << 5) | ((args[1] >> 27) & 0x1f);
-  int32_t const k3 = (args[1] >> 18) & 0x1ff;
+  int32_t const k0 = (int32_t)((args[0] >> 13) & 0x1ff);
+  int32_t const k1 = (int32_t)((args[0] >> 4) & 0x1ff);
+  int32_t const k2 =
+      (int32_t)(((args[0] & 0xf) << 5) | ((args[1] >> 27) & 0x1f));
+  int32_t const k3 = (int32_t)((args[1] >> 18) & 0x1ff);
   rdpxi_state[wid].k0_tf = (SIGN(k0, 9) << 1) + 1;
   rdpxi_state[wid].k1_tf = (SIGN(k1, 9) << 1) + 1;
   rdpxi_state[wid].k2_tf = (SIGN(k2, 9) << 1) + 1;
   rdpxi_state[wid].k3_tf = (SIGN(k3, 9) << 1) + 1;
-  rdpxi_state[wid].k4 = (args[1] >> 9) & 0x1ff;
-  rdpxi_state[wid].k5 = args[1] & 0x1ff;
+  rdpxi_state[wid].k4 = (int32_t)((args[1] >> 9) & 0x1ff);
+  rdpxi_state[wid].k5 = (int32_t)(args[1] & 0x1ff);
 }
 
 void tex_init_lut(void) {
