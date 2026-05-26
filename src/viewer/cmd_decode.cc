@@ -106,8 +106,7 @@ static const char *cycle_type_name(uint8_t c) {
 }
 
 // Fill `out->summary` with the decoded fields. Caller has set id/name/etc.
-static void decode_summary(uint8_t id, uint32_t w0, uint32_t w1,
-                           const uint32_t *words, uint32_t avail,
+static void decode_summary(uint8_t id, uint32_t w0, uint32_t w1, uint32_t avail,
                            struct CmdRecord *out) {
   char *b = out->summary;
   size_t cap = sizeof out->summary;
@@ -235,7 +234,6 @@ static void decode_summary(uint8_t id, uint32_t w0, uint32_t w1,
                (unsigned)need);
     }
   }
-  (void)words;
 }
 
 uint32_t cmd_decode(const uint32_t *words, uint32_t avail,
@@ -263,6 +261,6 @@ uint32_t cmd_decode(const uint32_t *words, uint32_t avail,
   out->is_triangle = (uint8_t)is_triangle_id(id);
   out->known = (uint8_t)(strcmp(out->name, "UNKNOWN") != 0);
 
-  decode_summary(id, w0, w1, words, avail, out);
+  decode_summary(id, w0, w1, avail, out);
   return out->word_count;
 }
