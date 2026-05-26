@@ -24,10 +24,12 @@ FetchContent_MakeAvailable(SDL3)
 
 # ---- Dear ImGui (no upstream CMake; hand-rolled target + SDL3 backends) ---
 # ImGui ships no CMakeLists, so fetch the source then build it ourselves.
+# Docking branch tag: the viewer uses docking (ImGuiConfigFlags_DockingEnable is
+# a runtime flag set by the viewer, NOT here). Multi-viewport is NOT enabled.
 FetchContent_Declare(
   imgui
   GIT_REPOSITORY https://github.com/ocornut/imgui.git
-  GIT_TAG v1.92.8
+  GIT_TAG v1.92.8-docking
   GIT_SHALLOW TRUE
 )
 FetchContent_GetProperties(imgui)
