@@ -92,15 +92,16 @@ uint64_t rdpxi_pixel_count = 0;
 //     our public n64video_pixel / n64video_frame_buffer). Local POD types:
 //     types have no linkage, so no collision with the oracle's
 //     identically-named ones.
-//   * vdac_* — static shims. vdac_write/sync route the finished prescale buffer
+//   * vdac_* — static shims. rdpxi_vdac_write/sync route the finished prescale
+//   buffer
 //     to the rdpx_vdac_write / rdpx_vdac_sync sink (which forwards to the test
-//     adapter), exactly as the oracle's vdac_write calls update_screen().
+//     adapter), exactly as the oracle's rdpxi_vdac_write calls update_screen().
 //   * parallel_* — single-host-worker stubs. rdpxi_config.parallel is always
 //   false in
 //     the conformance adapter, so the parallel branches in vi.c are dead; the
 //     stubs exist only so the dead branches link.
 //
-// Every VI external (vi_update_screen, vi_set_zbuffer_address,
+// Every VI external (vi_update_screen, rdpxi_vi_set_zbuffer_address,
 // rdpxi_vi_gamma_init, rdpxi_vi_restore_init, vi_init, vi_close) was made
 // `static` in the ported vi/*.c so nothing collides with the oracle's original
 // VI symbol names at link.
@@ -109,15 +110,15 @@ uint64_t rdpxi_pixel_count = 0;
 // vi/vi_internal.h (shared with the VI stage TUs).
 
 // Adapter-installed scanout callback. data is RGBA8888 (struct Rgba) pixels;
-// mirrors the oracle's vdac_write -> update_screen(pixels, width, height,
+// mirrors the oracle's rdpxi_vdac_write -> update_screen(pixels, width, height,
 // pitch). Installed by the conformance adapter via rdpx_vdac_set_scanout_cb
 // (below).
 static void (*rdpx_scanout_cb)(const void* data, uint32_t width,
                                uint32_t height, uint32_t pitch);
 
 // Internal bridges: the static vdac_* shims forward the finished prescale frame
-// here. On an invalid frame (vdac_sync(true)) we forward a null/zero frame, as
-// the oracle's vdac_sync does.
+// here. On an invalid frame (rdpxi_vdac_sync(true)) we forward a null/zero
+// frame, as the oracle's rdpxi_vdac_sync does.
 static void rdpx_vdac_write_fb(struct FrameBuffer* fb) {
   if (rdpx_scanout_cb) {
     rdpx_scanout_cb(fb->pixels, fb->width, fb->height, fb->pitch);
@@ -130,24 +131,23 @@ static void rdpx_vdac_sync_internal(bool invalid) {
   }
 }
 
-// vdac sink shims — see comment above. vi_init calls vdac_init; vi_process_*
-// call vdac_write; vi_update_screen calls vdac_sync; vi_close calls vdac_close.
-static void vdac_init(struct N64videoConfig* cfg) { (void)cfg; }
+// vdac sink shims — see comment above. vi_init calls rdpxi_vdac_init;
+// vi_process_* call rdpxi_vdac_write; vi_update_screen calls rdpxi_vdac_sync;
+// vi_close calls rdpxi_vdac_close.
+void rdpxi_vdac_init(struct N64videoConfig* cfg) { (void)cfg; }
 
-static void vdac_write(struct FrameBuffer* fb) { rdpx_vdac_write_fb(fb); }
+void rdpxi_vdac_write(struct FrameBuffer* fb) { rdpx_vdac_write_fb(fb); }
 
-static void vdac_sync(bool invalid) { rdpx_vdac_sync_internal(invalid); }
+void rdpxi_vdac_sync(bool invalid) { rdpx_vdac_sync_internal(invalid); }
 
-static void vdac_close(void) {}
+void rdpxi_vdac_close(void) {}
 
 // parallel_* stubs — single host worker. rdpxi_config.parallel is false in the
-// adapter, so vi.c's parallel_run / parallel_num_workers branches never
-// execute; these only satisfy the linker for the dead code path.
-static uint32_t parallel_num_workers(void) { return 1; }
+// adapter, so vi.c's rdpxi_parallel_run / rdpxi_parallel_num_workers branches
+// never execute; these only satisfy the linker for the dead code path.
+uint32_t rdpxi_parallel_num_workers(void) { return 1; }
 
-static void parallel_run(void (*task)(uint32_t)) { task(0); }
-
-#include "vi/vi.c"
+void rdpxi_parallel_run(void (*task)(uint32_t)) { task(0); }
 
 #undef N64VIDEO_C
 
@@ -221,9 +221,9 @@ void rdpx_rdp_cmd(uint32_t wid, const uint32_t* args) {
 void rdpx_video_update_screen(struct N64videoFrameBuffer* fb) {
   // M8: run the VI. Reads VI registers from rdpxi_config.gfx.vi_reg, fetches +
   // filters the framebuffer into the prescale buffer, and emits the finished
-  // frame through the vdac sink (vdac_write -> rdpx_vdac_write callback ->
-  // adapter -> iface.update_screen). The argument is unused: the harness reads
-  // scanout via the event interface, not this struct.
+  // frame through the vdac sink (rdpxi_vdac_write -> rdpx_vdac_write callback
+  // -> adapter -> iface.update_screen). The argument is unused: the harness
+  // reads scanout via the event interface, not this struct.
   (void)fb;
   vi_update_screen();
 }
@@ -236,13 +236,13 @@ void rdpx_video_close(void) {
 }
 
 // ---- rdpx_vdac_* scanout sink --------------------------------------------
-// The VI emits the finished prescale buffer through the static vdac_write /
-// vdac_sync shims (above), which forward here. The conformance adapter installs
-// a scanout callback (rdpx_vdac_set_scanout_cb) that mirrors the oracle's
-// vdac_write -> update_screen(pixels, width, height, pitch) path; on an invalid
-// frame (vdac_sync(true)) it forwards a null/zero frame, exactly like the
-// oracle's vdac_sync. Pixels are RGBA8888 (struct Rgba), which is what
-// compare_image checks.
+// The VI emits the finished prescale buffer through the static rdpxi_vdac_write
+// / rdpxi_vdac_sync shims (above), which forward here. The conformance adapter
+// installs a scanout callback (rdpx_vdac_set_scanout_cb) that mirrors the
+// oracle's rdpxi_vdac_write -> update_screen(pixels, width, height, pitch)
+// path; on an invalid frame (rdpxi_vdac_sync(true)) it forwards a null/zero
+// frame, exactly like the oracle's rdpxi_vdac_sync. Pixels are RGBA8888 (struct
+// Rgba), which is what compare_image checks.
 
 struct RdpxFrameBuffer {
   uint32_t* pixels;

@@ -1,5 +1,13 @@
-#ifdef N64VIDEO_C
+// vi.cc — VI controller: register parse + per-line fetch/filter/scanout (TU).
+// Ported VERBATIM from the fork 31bdb1f. vi_init/update_screen/close are the
+// entry points (vi_set_zbuffer_address collides -> rdpxi_); vi_process_* stay
+// file-static. Calls the VI leaf filters + the vdac/parallel shims (in
+// n64video.cc). See vi_internal.h.
 
+#include <string.h>
+
+#include "rdp/dither_internal.h"  // rdpxi_reseed_noise
+#include "rdp/rdram_internal.h"   // rdram_read_* helpers
 #include "vi_internal.h"
 
 // states
@@ -39,8 +47,8 @@ static int32_t h_start;
 static int32_t v_current_line;
 static uint32_t vi_frame_count;
 
-static void vi_init(void) {
-  vdac_init(&rdpxi_config);
+void vi_init(void) {
+  rdpxi_vdac_init(&rdpxi_config);
 
   rdpxi_vi_gamma_init();
   rdpxi_vi_restore_init();
@@ -111,7 +119,7 @@ static void vi_process_full_parallel(uint32_t worker_id) {
 
   if (rdpxi_config.parallel) {
     y_begin = worker_id;
-    y_inc = parallel_num_workers();
+    y_inc = rdpxi_parallel_num_workers();
   }
 
   /* Fixup buffer overflow. */
@@ -431,7 +439,7 @@ static bool vi_process_full(void) {
 
   // run filter update in parallel if enabled
   if (rdpxi_config.parallel) {
-    parallel_run(vi_process_full_parallel);
+    rdpxi_parallel_run(vi_process_full_parallel);
   } else {
     vi_process_full_parallel(0);
   }
@@ -462,7 +470,7 @@ static bool vi_process_full(void) {
     fb.height_out = fb.height_out * 3 / 4;
   }
 
-  vdac_write(&fb);
+  rdpxi_vdac_write(&fb);
 
   return fb.width > 0 && fb.height > 0;
 }
@@ -484,7 +492,7 @@ static void vi_process_fast_parallel(uint32_t worker_id) {
 
   if (rdpxi_config.parallel) {
     y_begin = worker_id;
-    y_inc = parallel_num_workers();
+    y_inc = rdpxi_parallel_num_workers();
   }
 
   for (y = y_begin; y < y_end; y += y_inc) {
@@ -567,7 +575,7 @@ static bool vi_process_fast(void) {
 
   // run filter update in parallel if enabled
   if (rdpxi_config.parallel) {
-    parallel_run(vi_process_fast_parallel);
+    rdpxi_parallel_run(vi_process_fast_parallel);
   } else {
     vi_process_fast_parallel(0);
   }
@@ -596,14 +604,14 @@ static bool vi_process_fast(void) {
     fb.height_out = fb.height_out * 3 / 4;
   }
 
-  vdac_write(&fb);
+  rdpxi_vdac_write(&fb);
 
   return fb.width > 0 && fb.height > 0;
 }
 
-static void vi_set_zbuffer_address(uint32_t address) { zb_address = address; }
+void rdpxi_vi_set_zbuffer_address(uint32_t address) { zb_address = address; }
 
-static void vi_update_screen(void) {
+void vi_update_screen(void) {
   // check for configuration errors
   if (rdpxi_config.vi.mode >= VI_MODE_NUM) {
     rdpxi_msg_error("Invalid VI mode: %d", rdpxi_config.vi.mode);
@@ -635,7 +643,7 @@ static void vi_update_screen(void) {
 
   // cancel if the frame buffer contains no valid address
   if (!frame_buffer) {
-    vdac_sync(true);
+    rdpxi_vdac_sync(true);
     return;
   }
 
@@ -740,10 +748,8 @@ static void vi_update_screen(void) {
   }
 
   // render frame to screen or blank screen if the frame is invalid
-  vdac_sync(!valid);
+  rdpxi_vdac_sync(!valid);
   vi_frame_count++;
 }
 
-static void vi_close(void) { vdac_close(); }
-
-#endif  // N64VIDEO_C
+void vi_close(void) { rdpxi_vdac_close(); }

@@ -34,6 +34,7 @@ add_library(rdp_core STATIC
     vi/video.cc
     vi/restore.cc
     vi/fetch.cc
+    vi/vi.cc
 )
 add_library(Rdp::rdp ALIAS rdp_core)
 

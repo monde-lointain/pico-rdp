@@ -99,3 +99,19 @@ void vi_fetch_filter16(struct Rgba* res, uint32_t fboffset, uint32_t cur_x,
 void vi_fetch_filter32(struct Rgba* res, uint32_t fboffset, uint32_t cur_x,
                        struct ViRegCtrl ctrl, uint32_t hres,
                        uint32_t fetchstate);
+
+// vi.cc entry points (vi_set_zbuffer_address collides -> rdpxi_).
+void vi_init(void);
+void vi_update_screen(void);
+void vi_close(void);
+void rdpxi_vi_set_zbuffer_address(uint32_t address);
+
+// vdac / parallel shims (defined in n64video.cc; vi.cc calls them). They
+// collide with the oracle's externally-linked vdac_*/parallel_* -> rdpxi_.
+struct N64videoConfig;
+void rdpxi_vdac_init(struct N64videoConfig* cfg);
+void rdpxi_vdac_write(struct FrameBuffer* fb);
+void rdpxi_vdac_sync(bool invalid);
+void rdpxi_vdac_close(void);
+uint32_t rdpxi_parallel_num_workers(void);
+void rdpxi_parallel_run(void (*task)(uint32_t));
