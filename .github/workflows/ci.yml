@@ -7,7 +7,12 @@
 #
 # Host deps (SDL3, Dear ImGui, GoogleTest) come from FetchContent at configure
 # time, so the runners need network access (default on GitHub-hosted runners).
-# The PicoSystem (embedded) target is not built here.
+#
+# A separate `pico-build` job cross-compiles the renderer library (rdp_core) for
+# the PicoSystem (arm-none-eabi / ILP32) so the device build can't silently
+# regress: the renderer is a single C++ TU, and int/int32_t ABI mismatches only
+# surface on ARM (host x86-64 has int32_t==int, so they compile there). It builds
+# the library, not a .uf2, and runs no tests (no device in CI).
 #
 # NOTE: authored ahead of the GitHub remote existing; harmless until then.
 
@@ -139,3 +144,39 @@ jobs:
       # enforcement is active. Other OSes run the regular unit suite.
       - name: Test
         run: ctest --preset host --build-config Debug
+
+  # ---- PicoSystem cross-compile (renderer lib only; no device, no tests) ----
+  # Guards against ARM/ILP32-only C++ build regressions in the renderer TU.
+  pico-build:
+    name: pico-arm-rdp_core
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # arm-none-eabi toolchain + build tools. libusb/pkg-config are needed
+      # because configuring the pico preset builds picotool from source (the
+      # SDK's pico_add_extra_outputs on the demo exe triggers it at configure).
+      - name: Install ARM toolchain + build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-arm-none-eabi libnewlib-arm-none-eabi \
+            cmake ninja-build git \
+            libusb-1.0-0-dev pkg-config
+
+      # pico-sdk (with submodules — pico_sdk_init pulls in tinyusb etc.).
+      - name: Fetch pico-sdk
+        run: |
+          git clone --depth 1 --recurse-submodules --shallow-submodules \
+            https://github.com/raspberrypi/pico-sdk.git "${RUNNER_TEMP}/pico-sdk"
+          echo "PICO_SDK_PATH=${RUNNER_TEMP}/pico-sdk" >> "$GITHUB_ENV"
+
+      # Configure the pico preset (PLATFORM=picosystem, Release) and build ONLY
+      # the renderer library for ARM. That is the artifact that must not regress;
+      # the demo .uf2 (template scaffold) is out of scope until sub-project 3.
+      - name: Configure (pico preset)
+        run: cmake --preset pico
+
+      - name: Build rdp_core for ARM
+        run: cmake --build build-pico --target rdp_core --parallel
