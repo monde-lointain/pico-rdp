@@ -85,7 +85,8 @@ emitting RDP commands through the libultra GBI (`gbi.h`) idioms. No console-unsu
 features (no mouse drag, etc.). This is where the template's software gfx is superseded by
 the RDP renderer for the demo path.
 
-**Depends on**: sub-project 1 (the renderer + its command/output seams).
+**Depends on**: sub-project 1 (the renderer + its command/output seams). Detailed in
+`2026-05-26-pc-app-demo-design.md`.
 
 ### Sub-project 3 — PicoSystem device port
 
