@@ -19,6 +19,7 @@ add_library(rdp_core STATIC
     # Split-out stage TUs (formerly #included into n64video.c's unity build).
     rdp/rdram.cc
     rdp/dither.cc
+    rdp/coverage.cc
 )
 add_library(Rdp::rdp ALIAS rdp_core)
 

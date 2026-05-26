@@ -1,4 +1,11 @@
-#ifdef N64VIDEO_C
+// coverage.cc — pixel coverage compute + cvmask LUT (standalone TU).
+// Ported VERBATIM from the fork 31bdb1f. Cross-TU exports (none collide with
+// the oracle) are declared in coverage_internal.h; per-pixel helpers
+// de-inlined.
+
+#include <string.h>
+
+#include "coverage_internal.h"
 
 #define CVG_CLAMP 0
 #define CVG_WRAP 1
@@ -25,7 +32,7 @@ static STRICTINLINE uint32_t leftcvghex(uint32_t x, uint32_t fmask) {
   return (covered & fmask);
 }
 
-static STRICTINLINE void compute_cvg_flip(uint32_t wid, int32_t scanline) {
+void compute_cvg_flip(uint32_t wid, int32_t scanline) {
   int32_t purgestart;
   int32_t purgeend;
   int i;
@@ -83,7 +90,7 @@ static STRICTINLINE void compute_cvg_flip(uint32_t wid, int32_t scanline) {
   }
 }
 
-static STRICTINLINE void compute_cvg_noflip(uint32_t wid, int32_t scanline) {
+void compute_cvg_noflip(uint32_t wid, int32_t scanline) {
   int32_t purgestart;
   int32_t purgeend;
   int i;
@@ -142,9 +149,8 @@ static STRICTINLINE void compute_cvg_noflip(uint32_t wid, int32_t scanline) {
   }
 }
 
-static STRICTINLINE int finalize_spanalpha(int cvg_dest, uint32_t blend_en,
-                                           uint32_t curpixel_cvg,
-                                           uint32_t curpixel_memcvg) {
+int finalize_spanalpha(int cvg_dest, uint32_t blend_en, uint32_t curpixel_cvg,
+                       uint32_t curpixel_memcvg) {
   int finalcvg;
 
   switch (cvg_dest) {
@@ -182,17 +188,16 @@ static STRICTINLINE uint16_t decompress_cvmask_frombyte(uint8_t x) {
   return y;
 }
 
-static STRICTINLINE void lookup_cvmask_derivatives(uint8_t mask, uint8_t* offx,
-                                                   uint8_t* offy,
-                                                   uint32_t* curpixel_cvg,
-                                                   uint32_t* curpixel_cvbit) {
+void lookup_cvmask_derivatives(uint8_t mask, uint8_t* offx, uint8_t* offy,
+                               uint32_t* curpixel_cvg,
+                               uint32_t* curpixel_cvbit) {
   *curpixel_cvg = cvarray[mask].cvg;
   *curpixel_cvbit = cvarray[mask].cvbit;
   *offx = cvarray[mask].xoff;
   *offy = cvarray[mask].yoff;
 }
 
-static void coverage_init_lut(void) {
+void coverage_init_lut(void) {
   int i = 0;
   int k = 0;
   uint16_t mask = 0;
@@ -226,5 +231,3 @@ static void coverage_init_lut(void) {
     cvarray[i].yoff = offy;
   }
 }
-
-#endif  // N64VIDEO_C

@@ -164,7 +164,7 @@ static void deduce_derivatives(uint32_t wid);
 // clang-format off
 #include "rdp/blender.c"
 #include "rdp/combiner.c"
-#include "rdp/coverage.c"
+#include "rdp/coverage_internal.h"
 #include "rdp/zbuffer.c"
 #include "rdp/fbuffer.c"
 #include "rdp/tmem.c"
