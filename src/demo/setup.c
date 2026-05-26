@@ -172,7 +172,8 @@ static void attr_coeffs(int64_t q0, int64_t q1, int64_t q2,
                                : -(((-num_dy) + signed_area / 2) / signed_area);
 
   /* dcde = dcdy + dcdx * dxdy_a (dxdy_a is Q16.16 screen-X per screen-Y). */
-  int64_t dcde = dcdy + (int64_t)((dcdx * (int64_t)e->dxdy_a) >> DEMO_FIX_SHIFT);
+  int64_t dcde =
+      dcdy + (int64_t)((dcdx * (int64_t)e->dxdy_a) >> DEMO_FIX_SHIFT);
 
   /* c = q0 - yfrac * dcde (yfrac Q16.16). */
   int64_t c = q0 - (int64_t)((dcde * (int64_t)e->yfrac) >> DEMO_FIX_SHIFT);
@@ -282,8 +283,8 @@ static int setup_one(struct DemoPrimSetup *setup, const struct WorkTri *in,
   demo_fix yfrac = (demo_fix)(((int32_t)(y_lo & (SUBPIXELS - 1)))
                               << (DEMO_FIX_SHIFT - SUBPIXELS_LOG2));
 
-  struct AttrEdge edge = {ab_x,        bc_x,    ca_x, ab_y, bc_y,
-                          ca_y,        signed_area, dxdy_a,    yfrac};
+  struct AttrEdge edge = {ab_x, bc_x,        ca_x,   ab_y, bc_y,
+                          ca_y, signed_area, dxdy_a, yfrac};
 
   /* Color (4 channels). */
   for (int c = 0; c < 4; ++c) {
