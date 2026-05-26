@@ -332,7 +332,7 @@ static void vi_process_full_parallel(uint32_t worker_id) {
 
       if (x >= minhpass && x < maxhpass) {
         *pixel = color;
-        reseed_noise(&noise_seed, x, y, vi_frame_count);
+        rdpxi_reseed_noise(&noise_seed, x, y, vi_frame_count);
         gamma_filters(pixel, ctrl.gamma_enable, ctrl.gamma_dither_enable,
                       noise_seed);
       } else {
@@ -578,7 +578,7 @@ static void vi_process_fast_parallel(uint32_t worker_id) {
               return;
           }
 
-          reseed_noise(&noise_seed, x, y, vi_frame_count);
+          rdpxi_reseed_noise(&noise_seed, x, y, vi_frame_count);
           gamma_filters(pixel, ctrl.gamma_enable, false, noise_seed);
           break;
 

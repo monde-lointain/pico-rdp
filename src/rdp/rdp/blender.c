@@ -85,7 +85,7 @@ static STRICTINLINE int alpha_compare(uint32_t wid, int32_t comb_alpha) {
   if (!rdpxi_state[wid].other_modes.dither_alpha_en) {
     threshold = rdpxi_state[wid].blend_color.a;
   } else {
-    threshold = noise_get_blend_threshold(rdpxi_state[wid].noise_seed);
+    threshold = rdpxi_noise_get_blend_threshold(rdpxi_state[wid].noise_seed);
   }
 
   if (comb_alpha >= threshold) {

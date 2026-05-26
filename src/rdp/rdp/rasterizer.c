@@ -359,8 +359,8 @@ static void render_spans_1cycle_complete(uint32_t wid, int start, int end,
         sw = w >> 16;
         sz = (z >> 10) & 0x3fffff;
 
-        reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
-                     rdpxi_state[wid].primitive_count);
+        rdpxi_reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
+                           rdpxi_state[wid].primitive_count);
 
         sigs.endspan = (j == length);
         sigs.preendspan = (j == (length - 1));
@@ -585,8 +585,8 @@ static void render_spans_1cycle_notexel1(uint32_t wid, int start, int end,
         sw = w >> 16;
         sz = (z >> 10) & 0x3fffff;
 
-        reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
-                     rdpxi_state[wid].primitive_count);
+        rdpxi_reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
+                           rdpxi_state[wid].primitive_count);
 
         sigs.endspan = (j == length);
         sigs.preendspan = (j == (length - 1));
@@ -756,8 +756,8 @@ static void render_spans_1cycle_notex(uint32_t wid, int start, int end,
         sa = a >> 14;
         sz = (z >> 10) & 0x3fffff;
 
-        reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
-                     rdpxi_state[wid].primitive_count);
+        rdpxi_reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
+                           rdpxi_state[wid].primitive_count);
 
         lookup_cvmask_derivatives(rdpxi_state[wid].cvgbuf[x], &offx, &offy,
                                   &curpixel_cvg, &curpixel_cvbit);
@@ -942,8 +942,8 @@ static void render_spans_2cycle_complete(uint32_t wid, int start, int end,
       }
 
       lodlength = length + scdiff;
-      reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
-                   rdpxi_state[wid].primitive_count);
+      rdpxi_reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
+                         rdpxi_state[wid].primitive_count);
 
       for (j = 0; j <= length; j++) {
         sz = (z >> 10) & 0x3fffff;
@@ -1040,8 +1040,8 @@ static void render_spans_2cycle_complete(uint32_t wid, int start, int end,
         }
 
         x += xinc;
-        reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
-                     rdpxi_state[wid].primitive_count);
+        rdpxi_reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
+                           rdpxi_state[wid].primitive_count);
         update_combiner_noise(wid);
 
         r += drinc;
@@ -1239,8 +1239,8 @@ static void render_spans_2cycle_notexelnext(uint32_t wid, int start, int end,
         w += (dwinc * scdiff);
       }
 
-      reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
-                   rdpxi_state[wid].primitive_count);
+      rdpxi_reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
+                         rdpxi_state[wid].primitive_count);
 
       for (j = 0; j <= length; j++) {
         sz = (z >> 10) & 0x3fffff;
@@ -1295,8 +1295,8 @@ static void render_spans_2cycle_notexelnext(uint32_t wid, int start, int end,
         }
 
         x += xinc;
-        reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
-                     rdpxi_state[wid].primitive_count);
+        rdpxi_reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
+                           rdpxi_state[wid].primitive_count);
         update_combiner_noise(wid);
 
         r += drinc;
@@ -1505,8 +1505,8 @@ static void render_spans_2cycle_notexel1(uint32_t wid, int start, int end,
         w += (dwinc * scdiff);
       }
 
-      reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
-                   rdpxi_state[wid].primitive_count);
+      rdpxi_reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
+                         rdpxi_state[wid].primitive_count);
       for (j = 0; j <= length; j++) {
         sz = (z >> 10) & 0x3fffff;
 
@@ -1557,8 +1557,8 @@ static void render_spans_2cycle_notexel1(uint32_t wid, int start, int end,
         }
 
         x += xinc;
-        reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
-                     rdpxi_state[wid].primitive_count);
+        rdpxi_reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
+                           rdpxi_state[wid].primitive_count);
         update_combiner_noise(wid);
 
         r += drinc;
@@ -1738,8 +1738,8 @@ static void render_spans_2cycle_notex(uint32_t wid, int start, int end,
         z += (dzinc * scdiff);
       }
 
-      reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
-                   rdpxi_state[wid].primitive_count);
+      rdpxi_reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
+                         rdpxi_state[wid].primitive_count);
       for (j = 0; j <= length; j++) {
         sz = (z >> 10) & 0x3fffff;
 
@@ -1778,8 +1778,8 @@ static void render_spans_2cycle_notex(uint32_t wid, int start, int end,
         }
 
         x += xinc;
-        reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
-                     rdpxi_state[wid].primitive_count);
+        rdpxi_reseed_noise(&rdpxi_state[wid].noise_seed, x, i,
+                           rdpxi_state[wid].primitive_count);
         update_combiner_noise(wid);
 
         r += drinc;

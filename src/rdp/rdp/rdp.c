@@ -75,15 +75,8 @@ static void rdp_cmd(uint32_t wid, const uint32_t* args);
 static uint8_t* get_tmem(void);
 static void z_init_lut(void);
 
-// dither.c's noise helpers are external in the fork (shared with the
-// parallel-rdp wrapper); here they collide with the oracle, so force internal
-// linkage.
-static void reseed_noise(uint32_t* seed, uint32_t x, uint32_t y,
-                         uint32_t offset);
-static int noise_get_combiner(uint32_t seed);
-static int noise_get_dither_alpha(uint32_t seed);
-static int noise_get_dither_color(uint32_t seed);
-static int noise_get_blend_threshold(uint32_t seed);
+// dither (reseed_noise/noise_get_*/rgb_dither/get_dither_noise) is now a
+// standalone TU — see rdp/dither_internal.h.
 
 // clang-format off
 static const struct {
@@ -166,9 +159,9 @@ static void deduce_derivatives(uint32_t wid);
 // macros fbuffer uses; dither defines rgb_dither used by blender; tcoord/tmem
 // define tc_pipeline_copy/read_tmem_copy used by rasterizer. clang-format must
 // NOT alphabetize these (doing so broke the build — undeclared identifiers).
-#include "rdp/rdram_internal.h"  // rdram is now a standalone TU (rdram.cc)
+#include "rdp/dither_internal.h"  // dither is now a standalone TU (dither.cc)
+#include "rdp/rdram_internal.h"   // rdram is now a standalone TU (rdram.cc)
 // clang-format off
-#include "rdp/dither.c"
 #include "rdp/blender.c"
 #include "rdp/combiner.c"
 #include "rdp/coverage.c"
