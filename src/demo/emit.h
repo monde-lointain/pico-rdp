@@ -4,9 +4,9 @@
 //
 // Turns the demo's fixed-point triangle setup IR (struct DemoPrimSetup) and the
 // surrounding render state into RAW RDP command words, emitted one command at a
-// time into a CmdSink. The word stream is bit-for-bit what the N64 RDP consumes:
-// each command is N 32-bit words, word[0] carrying the high 32 bits of the
-// 64-bit command (so word[0] holds the 6-bit command id in bits 31..24).
+// time into a CmdSink. The word stream is bit-for-bit what the N64 RDP
+// consumes: each command is N 32-bit words, word[0] carrying the high 32 bits
+// of the 64-bit command (so word[0] holds the 6-bit command id in bits 31..24).
 //
 // The triangle encoding is bit-exact with the vendored test oracle
 // RDP::CommandBuilder::submit_clipped_primitive (tests/conformance/vendor/
@@ -72,9 +72,10 @@ enum DemoTileFlagBits {
   DEMO_TILE_CLAMP_T_BIT = 1 << 3
 };
 
-// SET_TILE descriptor. shift_s/shift_t are the 4-bit shift fields, mask_s/mask_t
-// the 4-bit wrap-mask fields, palette the 4-bit CI palette index. stride/offset
-// are TMEM line stride / tile base IN BYTES (both must be 8-byte aligned).
+// SET_TILE descriptor. shift_s/shift_t are the 4-bit shift fields,
+// mask_s/mask_t the 4-bit wrap-mask fields, palette the 4-bit CI palette index.
+// stride/offset are TMEM line stride / tile base IN BYTES (both must be 8-byte
+// aligned).
 struct DemoTileDesc {
   uint32_t fmt;     // enum DemoTexFormat
   uint32_t size;    // enum DemoTexSize
@@ -91,23 +92,23 @@ struct DemoTileDesc {
 // oracle's default flush_default_state for an all-false / Cycle1 state, except
 // the two blender cycles which the oracle defaults non-zero — see emit.c).
 struct DemoOtherModes {
-  uint32_t cycle_type;   // enum DemoCycleType
-  uint32_t rgb_dither;   // 2-bit RGB dither mode (3 = Off)
-  uint32_t alpha_dither; // 2-bit alpha dither mode (3 = Off)
-  int perspective;       // tex perspective correction
-  int tlut;             // TLUT enable
-  int tlut_ia_type;     // TLUT IA (vs RGBA)
-  int sample_quad;      // 2x2 bilinear sample
+  uint32_t cycle_type;    // enum DemoCycleType
+  uint32_t rgb_dither;    // 2-bit RGB dither mode (3 = Off)
+  uint32_t alpha_dither;  // 2-bit alpha dither mode (3 = Off)
+  int perspective;        // tex perspective correction
+  int TLUT;               // TLUT enable
+  int tlut_ia_type;       // TLUT IA (vs RGBA)
+  int sample_quad;        // 2x2 bilinear sample
   int bilerp_0, bilerp_1;
-  int z_compare;     // depth test
-  int z_update;      // depth write
-  int aa;            // antialias / coverage
-  int z_source_prim; // primitive depth source
-  int alpha_compare; // alpha test
-  int blend_en;      // force blend enable
+  int z_compare;      // depth test
+  int z_update;       // depth write
+  int aa;             // antialias / coverage
+  int z_source_prim;  // primitive depth source
+  int alpha_compare;  // alpha test
+  int blend_en;       // force blend enable
 };
 
-// --- Triangle -----------------------------------------------------------------
+// --- Triangle ----------------------------------------------------------------
 
 // Emit one SHADE_TEXTURE_Z_BUFFER_TRIANGLE (0x0f) command: 44 words, bit-exact
 // with RDP::CommandBuilder::submit_clipped_primitive for the same setup. Does
@@ -115,7 +116,7 @@ struct DemoOtherModes {
 // the demo manages render state explicitly, so callers emit modes themselves).
 void emit_triangle(struct CmdSink *sink, const struct DemoPrimSetup *setup);
 
-// --- Image / framebuffer ------------------------------------------------------
+// --- Image / framebuffer -----------------------------------------------------
 
 void emit_set_color_image(struct CmdSink *sink, uint32_t fmt, uint32_t size,
                           uint32_t addr, uint32_t width_pixels);
@@ -123,7 +124,7 @@ void emit_set_depth_image(struct CmdSink *sink, uint32_t addr);
 void emit_set_texture_image(struct CmdSink *sink, uint32_t fmt, uint32_t size,
                             uint32_t addr, uint32_t width_pixels);
 
-// --- Render state -------------------------------------------------------------
+// --- Render state ------------------------------------------------------------
 
 // SET_COMBINE (0x3c). Takes the two packed 32-bit combiner words directly; the
 // demo bakes its (few) combiner modes as constants, so this stays a thin pass-
@@ -134,7 +135,7 @@ void emit_set_combine(struct CmdSink *sink, uint32_t combine_hi,
 void emit_set_other_modes(struct CmdSink *sink,
                           const struct DemoOtherModes *modes);
 
-// --- Tile / texture load ------------------------------------------------------
+// --- Tile / texture load -----------------------------------------------------
 
 void emit_set_tile(struct CmdSink *sink, uint32_t tile,
                    const struct DemoTileDesc *desc);
@@ -145,7 +146,7 @@ void emit_load_tile(struct CmdSink *sink, uint32_t tile, uint32_t x, uint32_t y,
 void emit_load_tlut(struct CmdSink *sink, uint32_t tile, uint32_t x, uint32_t y,
                     uint32_t width, uint32_t height);
 
-// --- Clear / fill -------------------------------------------------------------
+// --- Clear / fill ------------------------------------------------------------
 
 // SET_FILL_COLOR (0x37): packed 32-bit fill value (two RGBA5551 pixels, or a
 // 32-bit RGBA8888 pixel) passed through unchanged.
@@ -160,7 +161,7 @@ void emit_set_scissor(struct CmdSink *sink, uint32_t x, uint32_t y,
 void emit_fill_rectangle(struct CmdSink *sink, uint32_t x, uint32_t y,
                          uint32_t width, uint32_t height);
 
-// --- Sync ---------------------------------------------------------------------
+// --- Sync --------------------------------------------------------------------
 
 void emit_sync_full(struct CmdSink *sink);
 void emit_sync_pipe(struct CmdSink *sink);

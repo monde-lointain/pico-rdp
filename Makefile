@@ -24,7 +24,7 @@ OPTIONS ?=
 CONFIGURE_OPTS := $(if $(BUILD_TYPE),-DCMAKE_BUILD_TYPE=$(BUILD_TYPE)) $(OPTIONS)
 
 # Files clang-format touches: all engine/game/test sources minus the generated table.
-FORMAT_FILES := $(shell find src tests \( -name '*.cc' -o -name '*.h' \) -not -name 'assets_gen.*')
+FORMAT_FILES := $(shell find src tests \( -name '*.cc' -o -name '*.c' -o -name '*.h' \) -not -name 'assets_gen.*')
 
 .DEFAULT_GOAL := help
 

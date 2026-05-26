@@ -4,6 +4,7 @@
  * the generator is a separate GPLv3 work (tools/gen_n64_assets.py).
  */
 
+// clang-format off
 #ifndef DEMO_GENERATED_BAKED_MATRICES_H
 #define DEMO_GENERATED_BAKED_MATRICES_H
 
@@ -471,3 +472,4 @@ static const int32_t demo_cube_model[DEMO_CUBE_PERIOD][16] = {
 };
 
 #endif /* DEMO_GENERATED_BAKED_MATRICES_H */
+// clang-format on

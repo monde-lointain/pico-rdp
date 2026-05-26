@@ -73,15 +73,15 @@ static SDL_Texture* s_tex_cvg;    // coverage heatmap
 static uint32_t s_stage[TEX_FB_W * TEX_FB_H];
 
 // ---- z-decode table (mirrors zbuffer.c z_dec_table) ------------------------
-static const uint32_t kZShift[8] = {6, 5, 4, 3, 2, 1, 0, 0};
-static const uint32_t kZAdd[8] = {0x00000, 0x20000, 0x30000, 0x38000,
+static const uint32_t Z_SHIFT[8] = {6, 5, 4, 3, 2, 1, 0, 0};
+static const uint32_t Z_ADD[8] = {0x00000, 0x20000, 0x30000, 0x38000,
                                   0x3c000, 0x3e000, 0x3f000, 0x3f800};
 
 static uint32_t z_decode18(uint16_t zb) {
-  uint32_t idx = ((uint32_t)zb >> 2) & 0x3fffu;
-  uint32_t exp = (idx >> 11) & 7u;
-  uint32_t man = idx & 0x7ffu;
-  return ((man << kZShift[exp]) + kZAdd[exp]) & 0x3ffffu;
+  uint32_t const idx = ((uint32_t)zb >> 2) & 0x3fffU;
+  uint32_t const exp = (idx >> 11) & 7U;
+  uint32_t const man = idx & 0x7ffU;
+  return ((man << Z_SHIFT[exp]) + Z_ADD[exp]) & 0x3ffffU;
 }
 
 // ---- RGBA5551 -> RGBA8888 (byte order R,G,B,A = SDL_PIXELFORMAT_RGBA32) -----
@@ -89,7 +89,8 @@ static uint32_t rgba5551_to_rgba8(uint16_t p) {
   uint32_t r = (p >> 11) & 0x1f;
   uint32_t g = (p >> 6) & 0x1f;
   uint32_t b = (p >> 1) & 0x1f;
-  uint32_t a = 0xff;  // force opaque for display (RGBA5551 alpha bit ignored)
+  uint32_t const a =
+      0xff;  // force opaque for display (RGBA5551 alpha bit ignored)
   r = (r << 3) | (r >> 2);
   g = (g << 3) | (g >> 2);
   b = (b << 3) | (b >> 2);
@@ -97,20 +98,24 @@ static uint32_t rgba5551_to_rgba8(uint16_t p) {
 }
 
 static uint32_t gray_rgba8(uint8_t v) {
-  return (uint32_t)v | ((uint32_t)v << 8) | ((uint32_t)v << 16) | 0xff000000u;
+  return (uint32_t)v | ((uint32_t)v << 8) | ((uint32_t)v << 16) | 0xff000000U;
 }
 
 // ---- lifecycle -------------------------------------------------------------
 static SDL_Texture* make_tex(int w, int h) {
   SDL_Texture* t = SDL_CreateTexture(s_renderer, SDL_PIXELFORMAT_RGBA32,
                                      SDL_TEXTUREACCESS_STREAMING, w, h);
-  if (t) SDL_SetTextureScaleMode(t, SDL_SCALEMODE_NEAREST);
+  if (t) {
+    SDL_SetTextureScaleMode(t, SDL_SCALEMODE_NEAREST);
+  }
   return t;
 }
 
 void panel_memory_init(struct SDL_Renderer* renderer) {
   s_renderer = renderer;
-  if (!s_renderer) return;
+  if (!s_renderer) {
+    return;
+  }
   s_tex_tmem = make_tex(TEX_TMEM_W, TEX_TMEM_H);
   s_tex_raw = make_tex(TEX_RAW_W, TEX_RAW_H);
   s_tex_color = make_tex(TEX_FB_W, TEX_FB_H);
@@ -119,11 +124,21 @@ void panel_memory_init(struct SDL_Renderer* renderer) {
 }
 
 void panel_memory_shutdown(void) {
-  if (s_tex_tmem) SDL_DestroyTexture(s_tex_tmem);
-  if (s_tex_raw) SDL_DestroyTexture(s_tex_raw);
-  if (s_tex_color) SDL_DestroyTexture(s_tex_color);
-  if (s_tex_depth) SDL_DestroyTexture(s_tex_depth);
-  if (s_tex_cvg) SDL_DestroyTexture(s_tex_cvg);
+  if (s_tex_tmem) {
+    SDL_DestroyTexture(s_tex_tmem);
+  }
+  if (s_tex_raw) {
+    SDL_DestroyTexture(s_tex_raw);
+  }
+  if (s_tex_color) {
+    SDL_DestroyTexture(s_tex_color);
+  }
+  if (s_tex_depth) {
+    SDL_DestroyTexture(s_tex_depth);
+  }
+  if (s_tex_cvg) {
+    SDL_DestroyTexture(s_tex_cvg);
+  }
   s_tex_tmem = NULL;
   s_tex_raw = NULL;
   s_tex_color = NULL;
@@ -137,17 +152,20 @@ void panel_memory_shutdown(void) {
 // tmem[0x800] into s_stage as RGBA8, then upload.
 static void refresh_tmem(void) {
   const uint8_t* tmem = rdpx_get_tmem();
-  if (!tmem || !s_tex_tmem) return;
+  if (!tmem || !s_tex_tmem) {
+    return;
+  }
   const uint16_t* tlut = (const uint16_t*)(tmem + 0x800);  // tmem.c base
   for (int y = 0; y < TEX_TMEM_H; ++y) {
-    const uint8_t* row = tmem + (size_t)y * 32u;  // 32 bytes / CI4 row
+    const uint8_t* row = tmem + (size_t)y * 32U;  // 32 bytes / CI4 row
     for (int x = 0; x < TEX_TMEM_W; ++x) {
-      uint8_t byte = row[x >> 1];
-      uint8_t idx = (x & 1) ? (byte & 0x0f) : (byte >> 4);  // hi nibble first
-      // tlut[] is stored as N64 big-endian halfwords in the host buffer; the
+      uint8_t const byte = row[x >> 1];
+      uint8_t const idx =
+          (x & 1) ? (byte & 0x0f) : (byte >> 4);  // hi nibble first
+      // TLUT[] is stored as N64 big-endian halfwords in the host buffer; the
       // renderer's tmem holds them in native order after LOAD_TLUT, so read
       // directly. Index 0..15 (CI4); the demo's TLUT is 16 entries.
-      uint16_t entry = tlut[idx & 0x0f];
+      uint16_t const entry = tlut[idx & 0x0f];
       s_stage[(size_t)y * TEX_TMEM_W + x] = rgba5551_to_rgba8(entry);
     }
   }
@@ -157,12 +175,12 @@ static void refresh_tmem(void) {
   // Raw heatmap of the low 2 KB as halfwords (1024 halfwords -> 64x16 used).
   if (s_tex_raw) {
     for (int i = 0; i < TEX_RAW_W * TEX_RAW_H; ++i) {
-      uint32_t off = (uint32_t)i * 2u;
-      uint16_t hw = (uint16_t)((tmem[off] << 8) | tmem[off + 1]);
+      uint32_t const off = (uint32_t)i * 2U;
+      uint16_t const hw = (uint16_t)((tmem[off] << 8) | tmem[off + 1]);
       // map the halfword to a blue->yellow heat by its magnitude.
-      uint8_t v = (uint8_t)(hw >> 8);
+      uint8_t const v = (uint8_t)(hw >> 8);
       s_stage[i] = (uint32_t)v | ((uint32_t)v << 8) |
-                   ((uint32_t)(255 - v) << 16) | 0xff000000u;
+                   ((uint32_t)(255 - v) << 16) | 0xff000000U;
     }
     SDL_UpdateTexture(s_tex_raw, NULL, s_stage,
                       TEX_RAW_W * (int)sizeof(uint32_t));
@@ -170,15 +188,19 @@ static void refresh_tmem(void) {
 }
 
 static void refresh_color(void) {
-  if (!s_tex_color) return;
+  if (!s_tex_color) {
+    return;
+  }
   uint32_t rsz = 0;
   const uint8_t* rdram = renderer_host_rdram(&rsz);
-  if (!rdram) return;
+  if (!rdram) {
+    return;
+  }
   const uint32_t base = demo_color_fb_addr();
   for (int y = 0; y < TEX_FB_H; ++y) {
     for (int x = 0; x < TEX_FB_W; ++x) {
-      uint32_t off = base + ((uint32_t)y * TEX_FB_W + x) * 2u;
-      uint16_t p = (off + 1u < rsz) ? rdram_read16(rdram, off) : 0u;
+      uint32_t const off = base + ((uint32_t)y * TEX_FB_W + x) * 2U;
+      uint16_t const p = (off + 1U < rsz) ? rdram_read16(rdram, off) : 0U;
       s_stage[(size_t)y * TEX_FB_W + x] = rgba5551_to_rgba8(p);
     }
   }
@@ -187,16 +209,21 @@ static void refresh_color(void) {
 }
 
 static void refresh_depth(void) {
-  if (!s_tex_depth) return;
+  if (!s_tex_depth) {
+    return;
+  }
   uint32_t rsz = 0;
   const uint8_t* rdram = renderer_host_rdram(&rsz);
-  if (!rdram) return;
+  if (!rdram) {
+    return;
+  }
   for (int y = 0; y < TEX_FB_H; ++y) {
     for (int x = 0; x < TEX_FB_W; ++x) {
-      uint32_t off = DEMO_RDRAM_Z_BUF_ADDR + ((uint32_t)y * TEX_FB_W + x) * 2u;
-      uint16_t zb = (off + 1u < rsz) ? rdram_read16(rdram, off) : 0u;
-      uint32_t z18 = z_decode18(zb);
-      uint8_t v = (uint8_t)((z18 * 255u) / 0x3ffffu);
+      uint32_t const off =
+          DEMO_RDRAM_Z_BUF_ADDR + ((uint32_t)y * TEX_FB_W + x) * 2U;
+      uint16_t const zb = (off + 1U < rsz) ? rdram_read16(rdram, off) : 0U;
+      uint32_t const z18 = z_decode18(zb);
+      uint8_t const v = (uint8_t)((z18 * 255U) / 0x3ffffU);
       s_stage[(size_t)y * TEX_FB_W + x] = gray_rgba8(v);
     }
   }
@@ -205,19 +232,23 @@ static void refresh_depth(void) {
 }
 
 static void refresh_coverage(void) {
-  if (!s_tex_cvg) return;
+  if (!s_tex_cvg) {
+    return;
+  }
   const uint8_t* hid = rdpx_get_hidden_rdram();
-  uint32_t hsz = rdpx_get_hidden_rdram_size();
-  if (!hid) return;
+  uint32_t const hsz = rdpx_get_hidden_rdram_size();
+  if (!hid) {
+    return;
+  }
   // Hidden RDRAM holds the per-RDRAM-halfword hidden/coverage bits, indexed by
   // the same halfword offset as the color FB. Each entry is the low 3 cvg bits
   // (0..7); scale to 0..255. Index by the color-FB halfword offset.
   const uint32_t base_hw = demo_color_fb_addr() >> 1;  // halfword index
   for (int y = 0; y < TEX_FB_H; ++y) {
     for (int x = 0; x < TEX_FB_W; ++x) {
-      uint32_t hwi = base_hw + (uint32_t)y * TEX_FB_W + x;
-      uint8_t c = (hwi < hsz) ? (uint8_t)(hid[hwi] & 0x07u) : 0u;
-      uint8_t v = (uint8_t)(c * 36u);  // 7*36 ~= 252
+      uint32_t const hwi = base_hw + (uint32_t)y * TEX_FB_W + x;
+      uint8_t const c = (hwi < hsz) ? (uint8_t)(hid[hwi] & 0x07U) : 0U;
+      uint8_t const v = (uint8_t)(c * 36U);  // 7*36 ~= 252
       s_stage[(size_t)y * TEX_FB_W + x] = gray_rgba8(v);
     }
   }
@@ -230,11 +261,15 @@ static void image_fit(SDL_Texture* tex, int native_w, int native_h) {
     ImGui::TextUnformatted("(texture unavailable)");
     return;
   }
-  ImVec2 avail = ImGui::GetContentRegionAvail();
+  ImVec2 const avail = ImGui::GetContentRegionAvail();
   float scale = avail.x / (float)native_w;
-  float maxh = avail.y > 1.0f ? avail.y : (float)native_h;
-  if (scale * native_h > maxh) scale = maxh / (float)native_h;
-  if (scale < 1.0f) scale = 1.0f;
+  float const maxh = avail.y > 1.0F ? avail.y : (float)native_h;
+  if (scale * native_h > maxh) {
+    scale = maxh / (float)native_h;
+  }
+  if (scale < 1.0F) {
+    scale = 1.0F;
+  }
   ImGui::Image((ImTextureID)(intptr_t)tex,
                ImVec2(native_w * scale, native_h * scale));
 }

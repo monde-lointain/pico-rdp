@@ -8,7 +8,7 @@
  * Config setup mirrors tests/conformance/replayer_driver_ours.cpp: caller-owned
  * RDRAM, VI/DP register pointer arrays, a no-op mi_intr, VI_MODE_NORMAL /
  * VI_INTERP_LINEAR / DP_COMPAT_HIGH. The scanout callback copies the RGBA8888
- * prescale (struct rgba = bytes r,g,b,a -> SDL_PIXELFORMAT_RGBA32) into a host
+ * prescale (struct Rgba = bytes r,g,b,a -> SDL_PIXELFORMAT_RGBA32) into a host
  * buffer, forcing alpha to 0xff for opaque display.
  */
 
@@ -96,7 +96,7 @@ static int s_scanout_valid;
 static void mi_intr_noop(void) {}
 
 // ---- scanout callback ------------------------------------------------------
-// data is RGBA8888 (struct rgba = bytes r,g,b,a). Copy row by row honoring the
+// data is RGBA8888 (struct Rgba = bytes r,g,b,a). Copy row by row honoring the
 // source pitch (in pixels) and force alpha to 0xff so SDL renders it opaque.
 static void renderer_host_scanout_cb(const void* data, uint32_t width,
                                      uint32_t height, uint32_t pitch) {
@@ -106,8 +106,12 @@ static void renderer_host_scanout_cb(const void* data, uint32_t width,
     s_scanout_valid = 0;
     return;
   }
-  if (width > SCANOUT_MAX_W) width = SCANOUT_MAX_W;
-  if (height > SCANOUT_MAX_H) height = SCANOUT_MAX_H;
+  if (width > SCANOUT_MAX_W) {
+    width = SCANOUT_MAX_W;
+  }
+  if (height > SCANOUT_MAX_H) {
+    height = SCANOUT_MAX_H;
+  }
 
   const uint32_t* src = (const uint32_t*)data;  // pitch is in pixels
   for (uint32_t y = 0; y < height; ++y) {
@@ -115,7 +119,7 @@ static void renderer_host_scanout_cb(const void* data, uint32_t width,
     uint32_t* drow = s_scanout + (size_t)y * width;
     for (uint32_t x = 0; x < width; ++x) {
       drow[x] =
-          srow[x] | 0xff000000u;  // force opaque alpha (top byte = A in RGBA32)
+          srow[x] | 0xff000000U;  // force opaque alpha (top byte = A in RGBA32)
     }
   }
   s_scanout_w = width;
@@ -160,38 +164,48 @@ static void renderer_host_emit(void* ctx, const uint32_t* words, uint32_t n) {
 static void renderer_host_program_vi(void) {
   memset(s_vi_regs, 0, sizeof(s_vi_regs));
 
-  s_vi_regs[VI_STATUS] = (2u) | (3u << 8);  // RGBA5551 | AA replicate (0x302)
+  s_vi_regs[VI_STATUS] = (2U) | (3U << 8);  // RGBA5551 | AA replicate (0x302)
   s_vi_regs[VI_ORIGIN] =
       CLEAR_FB_ADDR;  // color FB byte addr (non-zero; see macro)
   s_vi_regs[VI_WIDTH] = CLEAR_FB_DIM;  // 256 (FB row stride in pixels)
-  s_vi_regs[VI_V_SYNC] = 525u;         // NTSC
+  s_vi_regs[VI_V_SYNC] = 525U;         // NTSC
   s_vi_regs[VI_H_START] =
-      ((108u & 0x3ff) << 16) | ((108u + 255u) & 0x3ff);  // 0x006C016B
+      ((108U & 0x3ff) << 16) | ((108U + 255U) & 0x3ff);  // 0x006C016B
   s_vi_regs[VI_V_START] =
-      ((34u & 0x3ff) << 16) | ((34u + 480u) & 0x3ff);              // 0x00220202
-  s_vi_regs[VI_X_SCALE] = ((0u & 0xfff) << 16) | (1024u & 0xfff);  // 0x00000400
-  s_vi_regs[VI_Y_SCALE] = ((0u & 0xfff) << 16) | (1024u & 0xfff);  // 0x00000400
+      ((34U & 0x3ff) << 16) | ((34U + 480U) & 0x3ff);              // 0x00220202
+  s_vi_regs[VI_X_SCALE] = ((0U & 0xfff) << 16) | (1024U & 0xfff);  // 0x00000400
+  s_vi_regs[VI_Y_SCALE] = ((0U & 0xfff) << 16) | (1024U & 0xfff);  // 0x00000400
 }
 
 // ---- lifecycle -------------------------------------------------------------
 static int renderer_host_init_sized(uint32_t rdram_size) {
-  if (s_initialized) return 0;
-  if (rdram_size == 0) rdram_size = RENDERER_HOST_RDRAM_SIZE;
+  if (s_initialized) {
+    return 0;
+  }
+  if (rdram_size == 0) {
+    rdram_size = RENDERER_HOST_RDRAM_SIZE;
+  }
 
   s_rdram = (uint8_t*)calloc(1, rdram_size);
-  if (!s_rdram) return 1;
+  if (!s_rdram) {
+    return 1;
+  }
   s_rdram_size = rdram_size;
 
   // V1 leaves RDRAM zeroed: the hardcoded clear's FILL_RECTANGLE writes the
   // color FB itself, and no command references the demo asset segments. The
   // future demo source will demo_init() the arena (via the submission seam)
   // once demo_core ships its bodies.
-  for (uint32_t i = 0; i < VI_NUM_REG; ++i) s_p_vi_regs[i] = &s_vi_regs[i];
-  for (uint32_t i = 0; i < DP_NUM_REG; ++i) s_p_dp_regs[i] = &s_dp_regs[i];
+  for (uint32_t i = 0; i < VI_NUM_REG; ++i) {
+    s_p_vi_regs[i] = &s_vi_regs[i];
+  }
+  for (uint32_t i = 0; i < DP_NUM_REG; ++i) {
+    s_p_dp_regs[i] = &s_dp_regs[i];
+  }
 
   renderer_host_program_vi();
 
-  struct n64video_config config;
+  struct N64videoConfig config;
   memset(&config, 0, sizeof(config));
   config.gfx.rdram = s_rdram;
   config.gfx.rdram_size = s_rdram_size;
@@ -227,7 +241,9 @@ static int renderer_host_init_sized(uint32_t rdram_size) {
 int renderer_host_init(void) { return renderer_host_init_sized(0); }
 
 void renderer_host_close(void) {
-  if (!s_initialized) return;
+  if (!s_initialized) {
+    return;
+  }
   rdpx_video_close();  // also resets rdp_core's internal crash latch
   rdpx_vdac_set_scanout_cb(NULL);
   free(s_rdram);
@@ -249,14 +265,22 @@ int renderer_host_reset_with_size(uint32_t rdram_size) {
 }
 
 const uint32_t* renderer_host_vi_regs(uint32_t* out_count) {
-  if (!s_initialized) return NULL;
-  if (out_count) *out_count = VI_NUM_REG;
+  if (!s_initialized) {
+    return NULL;
+  }
+  if (out_count) {
+    *out_count = VI_NUM_REG;
+  }
   return s_vi_regs;
 }
 
 void renderer_host_set_vi_register(uint32_t index, uint32_t value) {
-  if (!s_initialized) return;
-  if (index >= VI_NUM_REG) return;
+  if (!s_initialized) {
+    return;
+  }
+  if (index >= VI_NUM_REG) {
+    return;
+  }
   s_vi_regs[index] = value;
 }
 
@@ -265,7 +289,9 @@ struct CmdSink* renderer_host_cmd_sink(void) {
 }
 
 void renderer_host_present(void) {
-  if (!s_initialized) return;
+  if (!s_initialized) {
+    return;
+  }
   rdpx_video_update_screen(NULL);  // runs VI -> scanout callback fires
 }
 
@@ -276,7 +302,9 @@ static void emit_cmd2(uint32_t w0, uint32_t w1) {
 }
 
 void renderer_host_submit_clear(uint16_t rgba5551) {
-  if (!s_initialized) return;
+  if (!s_initialized) {
+    return;
+  }
 
   // Fill the full CLEAR_FB_DIM-square source (see renderer_host_program_vi):
   // the visible 240x240 window crops from inside it, so the output is uniform.
@@ -286,18 +314,20 @@ void renderer_host_submit_clear(uint16_t rgba5551) {
 
   // SET_COLOR_IMAGE: fmt RGBA(0) << 21, size 16b(2) << 19, (width-1) in [9:0].
   emit_cmd2((CMD_SET_COLOR_IMAGE << 24) | (IMG_FMT_RGBA << 21) |
-                (IMG_SIZE_16B << 19) | ((w - 1u) & 0x3ffu),
+                (IMG_SIZE_16B << 19) | ((w - 1U) & 0x3ffU),
             addr);
 
   // SET_OTHER_MODES: select FILL cycle type so FILL_RECTANGLE writes fill
   // color.
-  emit_cmd2((CMD_SET_OTHER_MODES << 24) | (CYCLE_TYPE_FILL << 20), 0u);
+  emit_cmd2((CMD_SET_OTHER_MODES << 24) | (CYCLE_TYPE_FILL << 20), 0U);
 
   // SET_SCISSOR: full 240x240, subpixel coords (<<2). xh/yh in word0, xl/yl
   // word1.
   {
-    const uint32_t xh = 0u, yh = 0u;
-    const uint32_t xl = (w << 2), yl = (h << 2);
+    const uint32_t xh = 0U;
+    const uint32_t yh = 0U;
+    const uint32_t xl = (w << 2);
+    const uint32_t yl = (h << 2);
     emit_cmd2((CMD_SET_SCISSOR << 24) | (xh << 12) | yh, (xl << 12) | yl);
   }
 
@@ -311,43 +341,53 @@ void renderer_host_submit_clear(uint16_t rgba5551) {
   // FILL_RECTANGLE over the whole framebuffer. Subpixel: word0 holds (xl,yl) as
   // (x+width-4, y+height-4); word1 holds (xh,yh) = (x,y). Here x=y=0.
   {
-    const uint32_t xl = (w << 2) - 4u;  // inclusive lower-right, subpixel
-    const uint32_t yl = (h << 2) - 4u;
+    const uint32_t xl = (w << 2) - 4U;  // inclusive lower-right, subpixel
+    const uint32_t yl = (h << 2) - 4U;
     emit_cmd2(
-        (CMD_FILL_RECTANGLE << 24) | ((xl & 0xfffu) << 12) | (yl & 0xfffu), 0u);
+        (CMD_FILL_RECTANGLE << 24) | ((xl & 0xfffU) << 12) | (yl & 0xfffU), 0U);
   }
 
   // SYNC_FULL: flush the pipeline (raises the DP interrupt in real HW).
-  emit_cmd2((CMD_SYNC_FULL << 24), 0u);
+  emit_cmd2((CMD_SYNC_FULL << 24), 0U);
 }
 
 // ---- demo driving ----------------------------------------------------------
 uint8_t* renderer_host_rdram(uint32_t* out_size) {
-  if (!s_initialized) return NULL;
-  if (out_size) *out_size = s_rdram_size;
+  if (!s_initialized) {
+    return NULL;
+  }
+  if (out_size) {
+    *out_size = s_rdram_size;
+  }
   return s_rdram;
 }
 
 void renderer_host_present_demo(uint32_t src_fb_addr, uint32_t src_w,
                                 uint32_t src_h) {
-  if (!s_initialized) return;
+  if (!s_initialized) {
+    return;
+  }
 
   // Blit the demo color FB (RGBA5551, src_w-wide rows) into the 256-wide
   // staging FB the VI scans out, shifting +8 columns so the VI's fixed +8 crop
   // recovers source columns [0, src_w). Both buffers live in the renderer's
   // RDRAM under the byte-swizzle, so copy via the XOR-correct halfword helpers.
   const uint32_t dst_stride_px = CLEAR_FB_DIM;  // 256 (staging row stride)
-  const uint32_t dst_col_off = 8u;              // matches the VI crop offset
-  if (src_w > dst_stride_px - dst_col_off) src_w = dst_stride_px - dst_col_off;
-  if (src_h > CLEAR_FB_DIM) src_h = CLEAR_FB_DIM;
+  const uint32_t dst_col_off = 8U;              // matches the VI crop offset
+  if (src_w > dst_stride_px - dst_col_off) {
+    src_w = dst_stride_px - dst_col_off;
+  }
+  if (src_h > CLEAR_FB_DIM) {
+    src_h = CLEAR_FB_DIM;
+  }
 
   for (uint32_t y = 0; y < src_h; ++y) {
-    const uint32_t src_row_off = src_fb_addr + (y * src_w) * 2u;
+    const uint32_t src_row_off = src_fb_addr + (y * src_w) * 2U;
     const uint32_t dst_row_off =
-        CLEAR_FB_ADDR + (y * dst_stride_px + dst_col_off) * 2u;
+        CLEAR_FB_ADDR + (y * dst_stride_px + dst_col_off) * 2U;
     for (uint32_t x = 0; x < src_w; ++x) {
-      uint16_t px = rdram_read16(s_rdram, src_row_off + x * 2u);
-      rdram_write16(s_rdram, dst_row_off + x * 2u, px);
+      uint16_t const px = rdram_read16(s_rdram, src_row_off + x * 2U);
+      rdram_write16(s_rdram, dst_row_off + x * 2U, px);
     }
   }
 
@@ -357,10 +397,18 @@ void renderer_host_present_demo(uint32_t src_fb_addr, uint32_t src_w,
 // ---- accessors -------------------------------------------------------------
 const uint32_t* renderer_host_scanout(uint32_t* out_w, uint32_t* out_h,
                                       uint32_t* out_pitch_px) {
-  if (!s_scanout_valid) return NULL;
-  if (out_w) *out_w = s_scanout_w;
-  if (out_h) *out_h = s_scanout_h;
-  if (out_pitch_px) *out_pitch_px = s_scanout_w;  // captured tightly packed
+  if (!s_scanout_valid) {
+    return NULL;
+  }
+  if (out_w) {
+    *out_w = s_scanout_w;
+  }
+  if (out_h) {
+    *out_h = s_scanout_h;
+  }
+  if (out_pitch_px) {
+    *out_pitch_px = s_scanout_w;  // captured tightly packed
+  }
   return s_scanout;
 }
 

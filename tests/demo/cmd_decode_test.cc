@@ -1,18 +1,21 @@
 // Stream C.2 — RDP command decoder + shadow-state tests.
 //
-// The demo_cmd_decode_test target links demo_core + gtest_main (it does not link
-// the host-only rdp_viewer target, where these sources also compile). To exercise
-// the viewer-side decoder/shadow here we compile their TUs directly into the test
-// via #include — they are self-contained (only <stdint.h>/<string.h>/<stdio.h>),
-// so this needs no extra link deps and no cmake change.
+// The demo_cmd_decode_test target links demo_core + gtest_main (it does not
+// link the host-only rdp_viewer target, where these sources also compile). To
+// exercise the viewer-side decoder/shadow here we compile their TUs directly
+// into the test via #include — they are self-contained (only
+// <stdint.h>/<string.h>/<stdio.h>), so this needs no extra link deps and no
+// cmake change.
 //
 // Field expectations are cross-checked against the renderer's own handlers in
-// src/rdp/rdp/*.c (the source of truth), per the design's shadow-state contract.
+// src/rdp/rdp/*.c (the source of truth), per the design's shadow-state
+// contract.
+
+#include "../../src/viewer/cmd_decode.h"
 
 #include <gtest/gtest.h>
 #include <stdint.h>
 
-#include "../../src/viewer/cmd_decode.h"
 #include "../../src/viewer/shadow_state.h"
 
 // Compile the implementations directly (see header note above).
@@ -21,13 +24,19 @@
 
 namespace {
 
-// --- helpers: build raw command words exactly as the renderer parses them -----
+// --- helpers: build raw command words exactly as the renderer parses them
+// -----
 
-static uint32_t hdr(uint8_t id, uint32_t lo24) { return ((uint32_t)id << 24) | (lo24 & 0x0ffffff); }
+static uint32_t hdr(uint8_t id, uint32_t lo24) {
+  return ((uint32_t)id << 24) | (lo24 & 0x0ffffff);
+}
 
 // SET_COLOR_IMAGE 0x3f: w0 = [format<<21|size<<19|(width-1)], w1=addr
-static void set_color_image(uint32_t *w, uint8_t fmt, uint8_t size, uint16_t width, uint32_t addr) {
-  w[0] = hdr(RDPCMD_SET_COLOR_IMAGE, ((uint32_t)fmt << 21) | ((uint32_t)size << 19) | ((width - 1) & 0x3ff));
+static void set_color_image(uint32_t *w, uint8_t fmt, uint8_t size,
+                            uint16_t width, uint32_t addr) {
+  w[0] = hdr(RDPCMD_SET_COLOR_IMAGE, ((uint32_t)fmt << 21) |
+                                         ((uint32_t)size << 19) |
+                                         ((width - 1) & 0x3ff));
   w[1] = addr & 0x0ffffff;
 }
 
@@ -41,11 +50,11 @@ static void set_fill_color(uint32_t *w, uint32_t raw) {
 
 TEST(CmdDecodeWordCount, MatchesRdpCommandsTable) {
   EXPECT_EQ(rdp_cmd_word_count(RDPCMD_NO_OP), 2u);
-  EXPECT_EQ(rdp_cmd_word_count(RDPCMD_FILL_TRIANGLE), 8u);       // 32 bytes
+  EXPECT_EQ(rdp_cmd_word_count(RDPCMD_FILL_TRIANGLE), 8u);           // 32 bytes
   EXPECT_EQ(rdp_cmd_word_count(RDPCMD_FILL_ZBUFFER_TRIANGLE), 12u);  // 48
-  EXPECT_EQ(rdp_cmd_word_count(RDPCMD_TEXTURE_TRIANGLE), 24u);   // 96
+  EXPECT_EQ(rdp_cmd_word_count(RDPCMD_TEXTURE_TRIANGLE), 24u);       // 96
   EXPECT_EQ(rdp_cmd_word_count(RDPCMD_SHADE_TEXTURE_Z_TRIANGLE), 44u);  // 176
-  EXPECT_EQ(rdp_cmd_word_count(RDPCMD_TEXTURE_RECTANGLE), 4u);   // 16 bytes
+  EXPECT_EQ(rdp_cmd_word_count(RDPCMD_TEXTURE_RECTANGLE), 4u);  // 16 bytes
   EXPECT_EQ(rdp_cmd_word_count(RDPCMD_SET_COMBINE), 2u);
   EXPECT_EQ(rdp_cmd_word_count(RDPCMD_SET_COLOR_IMAGE), 2u);
   // Unknown opcode still advances by a word pair.
@@ -56,7 +65,8 @@ TEST(CmdDecodeWordCount, MatchesRdpCommandsTable) {
 
 TEST(CmdDecode, SetColorImageFields) {
   uint32_t w[2];
-  set_color_image(w, /*fmt=*/0 /*RGBA*/, /*size=*/2 /*16b*/, /*width=*/240, /*addr=*/0x123456);
+  set_color_image(w, /*fmt=*/0 /*RGBA*/, /*size=*/2 /*16b*/, /*width=*/240,
+                  /*addr=*/0x123456);
   CmdRecord rec;
   uint32_t consumed = cmd_decode(w, 2, &rec);
   EXPECT_EQ(consumed, 2u);
@@ -148,7 +158,8 @@ TEST(ShadowState, ScriptedStreamReflectsAllThree) {
   set_fill_color(fc, 0x0001ffff);
   shadow_apply(&s, fc, 2);
 
-  // 3) SET_COMBINE (sub_a_rgb0=0xc, mul_rgb0=0x10, add_a1=0x7 chosen as markers)
+  // 3) SET_COMBINE (sub_a_rgb0=0xc, mul_rgb0=0x10, add_a1=0x7 chosen as
+  // markers)
   uint32_t cw0 = (0xcu << 20) | (0x10u << 15);
   uint32_t cw1 = 0x7u;  // add_a1
   uint32_t cm[2] = {hdr(RDPCMD_SET_COMBINE, cw0 & 0x0ffffff), cw1};
@@ -190,7 +201,8 @@ TEST(ShadowState, OtherModesBitsDecoded) {
 TEST(ShadowState, TileDescriptorAndSize) {
   ShadowState s;
   shadow_reset(&s);
-  // SET_TILE tile=2, format=2 (CI), size=0 (4b), line=8, tmem=0, palette=5, cs=1.
+  // SET_TILE tile=2, format=2 (CI), size=0 (4b), line=8, tmem=0, palette=5,
+  // cs=1.
   uint32_t sw0 = (2u << 21) | (0u << 19) | (8u << 9) | 0u;
   uint32_t sw1 = (2u << 24) | (5u << 20) | (1u << 9);
   uint32_t st[2] = {hdr(RDPCMD_SET_TILE, sw0 & 0x0ffffff), sw1};
@@ -230,7 +242,8 @@ TEST(ShadowState, ColorsAndImagesAndScissor) {
   EXPECT_EQ(s.env_color.a, 0xddu);
 
   uint32_t ti[2];
-  ti[0] = hdr(RDPCMD_SET_TEXTURE_IMAGE, (2u << 21) | (0u << 19) | (63u & 0x3ff));
+  ti[0] =
+      hdr(RDPCMD_SET_TEXTURE_IMAGE, (2u << 21) | (0u << 19) | (63u & 0x3ff));
   ti[1] = 0x200000u;
   shadow_apply(&s, ti, 2);
   EXPECT_EQ(s.tex_format, 2u);

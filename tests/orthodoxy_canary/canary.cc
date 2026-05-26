@@ -12,10 +12,10 @@
 // comment; a suppression would defeat the canary.
 
 int canary() {
-  auto x = 1;             // Auto: forbidden
+  auto x = 1;                  // Auto: forbidden
   return static_cast<int>(x);  // NamedCast: forbidden
 }
 
-class Forbidden {        // Class: forbidden
+class Forbidden {  // Class: forbidden
   int value;
 };

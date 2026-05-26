@@ -65,8 +65,8 @@ TEST(App, ObjectStaysOnScreen) {
   for (int i = 0; i < 200; ++i) {
     app_tick(&a, &rd, (uint32_t)i, &fb);
   }
-  EXPECT_LE(app_obj_x(&a), kScreenW);
-  EXPECT_LE(app_obj_y(&a), kScreenH);
+  EXPECT_LE(app_obj_x(&a), SCREEN_W);
+  EXPECT_LE(app_obj_y(&a), SCREEN_H);
 }
 
 TEST(App, NoInputEmitsNoCue) {

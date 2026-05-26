@@ -1,7 +1,8 @@
 // Stream B.3: RDP command emitter (src/demo/emit.c) word-level tests.
 //
 // Triangle bit-exactness: this TU contains an independent reference copy of the
-// oracle's triangle word packing (RDP::CommandBuilder::submit_clipped_primitive,
+// oracle's triangle word packing
+// (RDP::CommandBuilder::submit_clipped_primitive,
 // tests/conformance/vendor/rdp_command_builder.cpp), transcribed directly from
 // that source. We feed several DemoPrimSetup inputs (fill / shade / Z /
 // textured-perspective) through emit_triangle and assert word-for-word equality
@@ -13,7 +14,6 @@
 // expected values (cross-checked against the RDP register layouts).
 
 #include <gtest/gtest.h>
-
 #include <stdint.h>
 #include <string.h>
 
@@ -23,7 +23,8 @@
 
 namespace {
 
-// --- Capture sink -------------------------------------------------------------
+// --- Capture sink
+// -------------------------------------------------------------
 
 struct Capture {
   uint32_t words[64];
@@ -44,7 +45,8 @@ CmdSink make_sink(Capture *c) {
   return s;
 }
 
-// --- Reference triangle packer (transcribed from the oracle) ------------------
+// --- Reference triangle packer (transcribed from the oracle)
+// ------------------
 
 uint32_t ref_mask(int32_t val, unsigned bits) {
   return (uint32_t)val & (((uint32_t)1 << bits) - 1u);
@@ -55,8 +57,8 @@ void ref_triangle(const DemoPrimSetup &s, uint32_t cmd[44]) {
   for (int i = 0; i < 44; ++i) cmd[i] = 0;
   cmd[0] |= uint32_t(0x0f) << 24;
   if (!(s.pos.flags & DEMO_PRIMITIVE_RIGHT_MAJOR_BIT)) cmd[0] |= 1u << 23;
-  cmd[0] |= 0u << 16;       // tile
-  cmd[0] |= 6u << 19;       // max_level
+  cmd[0] |= 0u << 16;  // tile
+  cmd[0] |= 6u << 19;  // max_level
   cmd[1] |= ref_mask(s.pos.y_lo, 14);
   cmd[0] |= ref_mask(s.pos.y_hi, 14);
   cmd[1] |= ref_mask(s.pos.y_mid, 14) << 16;
@@ -230,7 +232,8 @@ TEST(EmitTriangle, AttrSplitLayout) {
   EXPECT_EQ(c.words[12] & 0xffff0000u, 0xbbbb0000u);
 }
 
-// --- Non-triangle commands ----------------------------------------------------
+// --- Non-triangle commands
+// ----------------------------------------------------
 
 TEST(EmitState, SetColorImage) {
   Capture c;
@@ -340,15 +343,15 @@ TEST(EmitState, SetTile) {
   EXPECT_EQ(c.words[0] >> 24, 0x35u);
   EXPECT_EQ((c.words[0] >> 21) & 7u, (uint32_t)DEMO_TEXFMT_CI);
   EXPECT_EQ((c.words[0] >> 19) & 3u, (uint32_t)DEMO_TEXSIZE_4BPP);
-  EXPECT_EQ((c.words[0] >> 9) & 0x1ffu, 8u);  // stride/8
-  EXPECT_EQ(c.words[0] & 0x1ffu, 16u);        // offset/8
-  EXPECT_EQ(c.words[1] & 0xfu, 1u);           // shift_s
-  EXPECT_EQ((c.words[1] >> 4) & 0xfu, 6u);    // mask_s
-  EXPECT_TRUE(c.words[1] & (1u << 9));        // clamp_s
-  EXPECT_EQ((c.words[1] >> 10) & 0xfu, 2u);   // shift_t
-  EXPECT_TRUE(c.words[1] & (1u << 19));       // clamp_t
-  EXPECT_EQ((c.words[1] >> 20) & 0xfu, 0xau); // palette
-  EXPECT_EQ((c.words[1] >> 24) & 7u, 3u);     // tile
+  EXPECT_EQ((c.words[0] >> 9) & 0x1ffu, 8u);   // stride/8
+  EXPECT_EQ(c.words[0] & 0x1ffu, 16u);         // offset/8
+  EXPECT_EQ(c.words[1] & 0xfu, 1u);            // shift_s
+  EXPECT_EQ((c.words[1] >> 4) & 0xfu, 6u);     // mask_s
+  EXPECT_TRUE(c.words[1] & (1u << 9));         // clamp_s
+  EXPECT_EQ((c.words[1] >> 10) & 0xfu, 2u);    // shift_t
+  EXPECT_TRUE(c.words[1] & (1u << 19));        // clamp_t
+  EXPECT_EQ((c.words[1] >> 20) & 0xfu, 0xau);  // palette
+  EXPECT_EQ((c.words[1] >> 24) & 7u, 3u);      // tile
 }
 
 TEST(EmitLoad, SetTileSizeSubpixelBias) {
@@ -398,9 +401,9 @@ TEST(EmitClear, SetScissor) {
   emit_set_scissor(&sink, 0, 0, 240, 240);
   ASSERT_EQ(c.n, 2u);
   EXPECT_EQ(c.words[0] >> 24, 0x2du);
-  EXPECT_EQ((c.words[0] >> 12) & 0xfffu, 0u);     // xh
-  EXPECT_EQ((c.words[1] >> 12) & 0xfffu, 960u);   // xl = 240*4
-  EXPECT_EQ(c.words[1] & 0xfffu, 960u);           // yl
+  EXPECT_EQ((c.words[0] >> 12) & 0xfffu, 0u);    // xh
+  EXPECT_EQ((c.words[1] >> 12) & 0xfffu, 960u);  // xl = 240*4
+  EXPECT_EQ(c.words[1] & 0xfffu, 960u);          // yl
 }
 
 TEST(EmitClear, FillRectangle) {
@@ -409,9 +412,9 @@ TEST(EmitClear, FillRectangle) {
   emit_fill_rectangle(&sink, 0, 0, 240, 240);
   ASSERT_EQ(c.n, 2u);
   EXPECT_EQ(c.words[0] >> 24, 0x36u);
-  EXPECT_EQ((c.words[1] >> 12) & 0xfffu, 0u);     // xl (low corner)
-  EXPECT_EQ((c.words[0] >> 12) & 0xfffu, 956u);   // xh = 240*4-4
-  EXPECT_EQ(c.words[0] & 0xfffu, 956u);           // yh
+  EXPECT_EQ((c.words[1] >> 12) & 0xfffu, 0u);    // xl (low corner)
+  EXPECT_EQ((c.words[0] >> 12) & 0xfffu, 956u);  // xh = 240*4-4
+  EXPECT_EQ(c.words[0] & 0xfffu, 956u);          // yh
 }
 
 TEST(EmitSync, AllFour) {

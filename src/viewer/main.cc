@@ -25,15 +25,15 @@ int main(int argc, char** argv) {
       return headless_dump(argv[i + 1]);
     }
     if (strcmp(argv[i], "--headless-demo-frame") == 0 && i + 2 < argc) {
-      uint32_t n = (uint32_t)strtoul(argv[i + 1], nullptr, 10);
+      uint32_t const n = (uint32_t)strtoul(argv[i + 1], nullptr, 10);
       return headless_demo_frame(n, argv[i + 2]);
     }
     if (strcmp(argv[i], "--headless-perf") == 0 && i + 1 < argc) {
-      uint32_t n = (uint32_t)strtoul(argv[i + 1], nullptr, 10);
+      uint32_t const n = (uint32_t)strtoul(argv[i + 1], nullptr, 10);
       return headless_perf(n);
     }
     if (strcmp(argv[i], "--headless-capture-roundtrip") == 0 && i + 1 < argc) {
-      uint32_t n = (uint32_t)strtoul(argv[i + 1], nullptr, 10);
+      uint32_t const n = (uint32_t)strtoul(argv[i + 1], nullptr, 10);
       return headless_capture_roundtrip(n);
     }
   }

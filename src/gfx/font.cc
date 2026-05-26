@@ -8,9 +8,9 @@
 #include "gfx/sprite.h"
 
 /* Charmap: 39 entries laid out row-major, 13/row.
- * Index = row * kFontCols + col.
+ * Index = row * FONT_COLS + col.
  * Entry 0 = space (blank cell). */
-static const char kCharmap[kFontCols * kFontRows] = {
+static const char CHARMAP[FONT_COLS * FONT_ROWS] = {
     /* row 0 */
     ' ', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
     /* row 1 */
@@ -20,10 +20,10 @@ static const char kCharmap[kFontCols * kFontRows] = {
 
 void font_cell_for(char c, int *col, int *row) {
   int i;
-  for (i = 0; i < kFontCols * kFontRows; ++i) {
-    if (kCharmap[i] == c) {
-      *col = i % kFontCols;
-      *row = i / kFontCols;
+  for (i = 0; i < FONT_COLS * FONT_ROWS; ++i) {
+    if (CHARMAP[i] == c) {
+      *col = i % FONT_COLS;
+      *row = i / FONT_COLS;
       return;
     }
   }
@@ -41,24 +41,24 @@ static void blit_glyph(struct Framebuffer *fb, const struct Sprite *atlas,
    * Strategy: iterate over the glyph cell and mask-blit each pixel
    * individually. This avoids needing a sub-sprite blit function while staying
    * Orthodox. */
-  const int src_x0 = cell_col * kFontCellW;
-  const int src_y0 = cell_row * kFontCellH;
+  const int src_x0 = cell_col * FONT_CELL_W;
+  const int src_y0 = cell_row * FONT_CELL_H;
   int sy;
   int sx;
-  for (sy = 0; sy < kFontCellH; ++sy) {
+  for (sy = 0; sy < FONT_CELL_H; ++sy) {
     const int dy_abs = dy + sy;
-    if (dy_abs < 0 || dy_abs >= kScreenH) {
+    if (dy_abs < 0 || dy_abs >= SCREEN_H) {
       continue;
     }
-    for (sx = 0; sx < kFontCellW; ++sx) {
+    for (sx = 0; sx < FONT_CELL_W; ++sx) {
       const int dx_abs = dx + sx;
-      if (dx_abs < 0 || dx_abs >= kScreenW) {
+      if (dx_abs < 0 || dx_abs >= SCREEN_W) {
         continue;
       }
 
       const int sidx = (src_y0 + sy) * (int)atlas->w + (src_x0 + sx);
       if (atlas->mask[sidx >> 3] & (uint8_t)(0x80 >> (sidx & 7))) {
-        fb->px[dy_abs * kScreenW + dx_abs] = fg;
+        fb->px[dy_abs * SCREEN_W + dx_abs] = fg;
       }
     }
   }
@@ -77,6 +77,6 @@ void text(struct Framebuffer *fb, const char *s, int x, int y, color_t fg) {
     int row;
     font_cell_for(*p, &col, &row);
     blit_glyph(fb, atlas, col, row, cx, y, fg);
-    cx += kFontCellW;
+    cx += FONT_CELL_W;
   }
 }

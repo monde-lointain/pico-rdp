@@ -26,7 +26,7 @@ static demo_fix scene_pos_to_fix(int16_t v) {
 
 // 8-bit color channel [0,255] -> [0,1] Q16.16: round(c/255 * 2^16).
 static demo_fix scene_color_to_fix(uint8_t c) {
-  return (demo_fix)(((uint32_t)c * DEMO_FIX_ONE + 127u) / 255u);
+  return (demo_fix)(((uint32_t)c * DEMO_FIX_ONE + 127U) / 255U);
 }
 
 // int16 texel coordinate [0,64] -> texel-unit Q16.16 (value << 16).
@@ -36,13 +36,17 @@ static demo_fix scene_uv_to_fix(int16_t v) {
 
 void scene_build_mvp(struct DemoMat4 *out, const int32_t *model16,
                      const int32_t *view16, const int32_t *proj16) {
-  struct DemoMat4 model, view, proj, mv;
+  struct DemoMat4 model;
+  struct DemoMat4 view;
+  struct DemoMat4 proj;
+  struct DemoMat4 mv;
   for (int32_t i = 0; i < 16; ++i) {
     model.m[i] = (demo_fix)model16[i];
     view.m[i] = (demo_fix)view16[i];
     proj.m[i] = (demo_fix)proj16[i];
   }
-  // mv = model * view ; out = mv * proj. Row-vector clip = v . MODEL . VIEW . PROJ.
+  // mv = model * view ; out = mv * proj. Row-vector clip = v . MODEL . VIEW .
+  // PROJ.
   demo_mat4_mul(&mv, &model, &view);
   demo_mat4_mul(out, &mv, &proj);
 }

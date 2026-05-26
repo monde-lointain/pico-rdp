@@ -4,11 +4,12 @@
 // matrices and the setup+emit pipeline). Internal to demo_core: demo.c is the
 // only consumer. Freestanding / Orthodox (plain C, POD, no heap, no float).
 //
-// Each helper transforms one object's vertices through its model-view-projection
-// matrix into clip space (Q16.16), builds per-triangle DemoClipTri records, runs
-// demo_setup_triangle (backface cull), and emits the resulting RDP triangle
-// commands into the sink. Render state (combine / other-modes / image / tile)
-// is set by demo.c before calling these; the helpers emit geometry only.
+// Each helper transforms one object's vertices through its
+// model-view-projection matrix into clip space (Q16.16), builds per-triangle
+// DemoClipTri records, runs demo_setup_triangle (backface cull), and emits the
+// resulting RDP triangle commands into the sink. Render state (combine /
+// other-modes / image / tile) is set by demo.c before calling these; the
+// helpers emit geometry only.
 
 #include <stdint.h>
 

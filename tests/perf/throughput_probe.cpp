@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
   for (unsigned i = 0; i < VI_NUM_REG; i++) p_vi[i] = &vi_regs[i];
   for (unsigned i = 0; i < DP_NUM_REG; i++) p_dp[i] = &dp_regs[i];
 
-  struct n64video_config config = {};
+  struct N64videoConfig config = {};
   config.gfx.rdram = rdram.data();
   config.gfx.rdram_size = uint32_t(rdram.size());
   config.gfx.vi_reg = p_vi;

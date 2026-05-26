@@ -15,7 +15,7 @@
 
 // Minimal stand-in for the renderer's static `config` global. rdram.c reads
 // config.gfx.rdram / config.gfx.rdram_size in rdram_init().
-static struct n64video_config config;
+static struct N64videoConfig config;
 
 #define N64VIDEO_C
 #include "rdp/rdram.c"

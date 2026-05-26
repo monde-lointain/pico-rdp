@@ -10,14 +10,14 @@
 
 /* Button bitmask. Console maps GPIO; PC maps keys (arrows + Z/X/A/S). */
 enum Button {
-  BTN_UP = 1u << 0,
-  BTN_DOWN = 1u << 1,
-  BTN_LEFT = 1u << 2,
-  BTN_RIGHT = 1u << 3,
-  BTN_A = 1u << 4,
-  BTN_B = 1u << 5,
-  BTN_X = 1u << 6,
-  BTN_Y = 1u << 7
+  BTN_UP = 1U << 0,
+  BTN_DOWN = 1U << 1,
+  BTN_LEFT = 1U << 2,
+  BTN_RIGHT = 1U << 3,
+  BTN_A = 1U << 4,
+  BTN_B = 1U << 5,
+  BTN_X = 1U << 6,
+  BTN_Y = 1U << 7
 };
 
 struct Input {

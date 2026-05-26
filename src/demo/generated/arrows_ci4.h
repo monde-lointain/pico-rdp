@@ -4,6 +4,7 @@
  * the generator is a separate GPLv3 work (tools/gen_n64_assets.py).
  */
 
+// clang-format off
 #ifndef DEMO_GENERATED_ARROWS_CI4_H
 #define DEMO_GENERATED_ARROWS_CI4_H
 
@@ -198,3 +199,4 @@ static const uint16_t arrows_tlut[16] = {
 };
 
 #endif /* DEMO_GENERATED_ARROWS_CI4_H */
+// clang-format on

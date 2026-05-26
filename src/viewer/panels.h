@@ -48,6 +48,6 @@ void playback_init(struct Playback* pb);
 void playback_tick(struct Playback* pb);
 
 // The three docked panels (call inside the ImGui frame).
-void playback_panel(struct Playback* pb);   // play/pause/step/reset controls
-void panel_log_draw(struct Playback* pb);   // decoded command log
-void panel_state_draw(struct Playback* pb); // shadow-state inspector
+void playback_panel(struct Playback* pb);    // play/pause/step/reset controls
+void panel_log_draw(struct Playback* pb);    // decoded command log
+void panel_state_draw(struct Playback* pb);  // shadow-state inspector

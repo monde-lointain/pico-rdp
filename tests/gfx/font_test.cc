@@ -16,12 +16,12 @@
 #include "gfx/framebuffer.h"
 
 static color_t fb_get(const Framebuffer *fb, int x, int y) {
-  return fb->px[y * kScreenW + x];
+  return fb->px[y * SCREEN_W + x];
 }
 
 static void fb_clear(Framebuffer *fb, color_t c) {
   int i;
-  for (i = 0; i < kScreenPixels; ++i) fb->px[i] = c;
+  for (i = 0; i < SCREEN_PIXELS; ++i) fb->px[i] = c;
 }
 
 /* ---- cell index helpers -------------------------------------------------- */

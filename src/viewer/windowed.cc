@@ -41,7 +41,7 @@ int run_windowed(void) {
     return 1;
   }
 
-  // Streaming texture for the 240x240 scanout (RGBA32 matches struct rgba
+  // Streaming texture for the 240x240 scanout (RGBA32 matches struct Rgba
   // bytes).
   SDL_Texture* scanout_tex = SDL_CreateTexture(
       renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING,
@@ -58,7 +58,9 @@ int run_windowed(void) {
     fprintf(stderr, "renderer_host_init failed\n");
     return 1;
   }
-  if (seed_demo() != 0) return 1;
+  if (seed_demo() != 0) {
+    return 1;
+  }
 
   // C.4 memory viewers own SDL textures against this renderer.
   panel_memory_init(renderer);
@@ -85,7 +87,9 @@ int run_windowed(void) {
     SDL_Event ev;
     while (SDL_PollEvent(&ev)) {
       ImGui_ImplSDL3_ProcessEvent(&ev);
-      if (ev.type == SDL_EVENT_QUIT) running = false;
+      if (ev.type == SDL_EVENT_QUIT) {
+        running = false;
+      }
     }
 
     // Advance the demo / feed buffered commands, then refresh the scanout.
@@ -95,12 +99,14 @@ int run_windowed(void) {
     // the dump's last replay owns the renderer scanout.
     if (!source_is_dump) {
       const bool will_present = pb.dirty || pb.playing;
-      if (will_present) rdpx_reset_pixel_count();
-      uint64_t t0 = SDL_GetPerformanceCounter();
+      if (will_present) {
+        rdpx_reset_pixel_count();
+      }
+      uint64_t const t0 = SDL_GetPerformanceCounter();
       playback_tick(&pb);
       if (will_present) {
-        uint64_t t1 = SDL_GetPerformanceCounter();
-        double freq = (double)SDL_GetPerformanceFrequency();
+        uint64_t const t1 = SDL_GetPerformanceCounter();
+        double const freq = (double)SDL_GetPerformanceFrequency();
         perf.build_present_ms = (double)(t1 - t0) / freq * 1000.0;
         perf.pixel_count = rdpx_get_pixel_count();
       }
@@ -108,11 +114,14 @@ int run_windowed(void) {
 
     // Upload the latest scanout into the SDL texture.
     {
-      uint32_t w = 0, h = 0, pitch = 0;
+      uint32_t w = 0;
+      uint32_t h = 0;
+      uint32_t pitch = 0;
       const uint32_t* px = renderer_host_scanout(&w, &h, &pitch);
-      if (px && w == RENDERER_HOST_OUT_WIDTH && h == RENDERER_HOST_OUT_HEIGHT)
+      if (px && w == RENDERER_HOST_OUT_WIDTH && h == RENDERER_HOST_OUT_HEIGHT) {
         SDL_UpdateTexture(scanout_tex, nullptr, px,
                           (int)(pitch * sizeof(uint32_t)));
+      }
     }
 
     ImGui_ImplSDLRenderer3_NewFrame();
@@ -124,18 +133,18 @@ int run_windowed(void) {
     ImGui::SetNextWindowPos(vp->WorkPos);
     ImGui::SetNextWindowSize(vp->WorkSize);
     ImGui::SetNextWindowViewport(vp->ID);
-    ImGuiWindowFlags host_flags =
+    ImGuiWindowFlags const host_flags =
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
         ImGuiWindowFlags_MenuBar;
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0F);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0F);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::Begin("##DockHost", nullptr, host_flags);
     ImGui::PopStyleVar(3);
 
-    ImGuiID dockspace_id = ImGui::GetID("ViewerDockspace");
+    ImGuiID const dockspace_id = ImGui::GetID("ViewerDockspace");
     ImGui::DockSpace(dockspace_id, ImVec2(0, 0), ImGuiDockNodeFlags_None);
     if (first_layout) {
       viewer_build_default_dock_layout(dockspace_id);
@@ -205,10 +214,12 @@ int run_windowed(void) {
 
     // Scanout panel (docked into the central node).
     if (ImGui::Begin(VIEWER_DOCK_SCANOUT)) {
-      ImVec2 avail = ImGui::GetContentRegionAvail();
+      ImVec2 const avail = ImGui::GetContentRegionAvail();
       float side =
           avail.x < avail.y ? avail.x : avail.y;  // keep the 1:1 square
-      if (side < 1.0f) side = 1.0f;
+      if (side < 1.0F) {
+        side = 1.0F;
+      }
       ImGui::Image((ImTextureID)(intptr_t)scanout_tex, ImVec2(side, side));
     }
     ImGui::End();

@@ -9,21 +9,21 @@
 
 extern "C" {
 
-#define RDRAM_TEST_DECL(P)                                                     \
-    void     P##init(uint8_t* backing, uint32_t size_bytes);                   \
-    uint8_t  P##read_idx8(uint32_t in);                                        \
-    uint16_t P##read_idx16(uint32_t in);                                       \
-    uint32_t P##read_idx32(uint32_t in);                                       \
-    void     P##write_idx8(uint32_t in, uint8_t v);                            \
-    void     P##write_idx16(uint32_t in, uint16_t v);                          \
-    void     P##write_idx32(uint32_t in, uint32_t v);                          \
-    void     P##read_pair16(uint16_t* rdst, uint8_t* hdst, uint32_t in);       \
-    void     P##write_pair8(uint32_t in, uint8_t rval, uint8_t hval);          \
-    void     P##write_pair16(uint32_t in, uint16_t rval, uint8_t hval);        \
-    void     P##write_pair32(uint32_t in, uint32_t rval, uint8_t hval0,        \
-                             uint8_t hval1);                                   \
-    uint8_t  P##backing_byte(uint32_t byte_off);                               \
-    uint8_t  P##hidden(uint32_t hidx);
+#define RDRAM_TEST_DECL(P)                                         \
+  void P##init(uint8_t* backing, uint32_t size_bytes);             \
+  uint8_t P##read_idx8(uint32_t in);                               \
+  uint16_t P##read_idx16(uint32_t in);                             \
+  uint32_t P##read_idx32(uint32_t in);                             \
+  void P##write_idx8(uint32_t in, uint8_t v);                      \
+  void P##write_idx16(uint32_t in, uint16_t v);                    \
+  void P##write_idx32(uint32_t in, uint32_t v);                    \
+  void P##read_pair16(uint16_t* rdst, uint8_t* hdst, uint32_t in); \
+  void P##write_pair8(uint32_t in, uint8_t rval, uint8_t hval);    \
+  void P##write_pair16(uint32_t in, uint16_t rval, uint8_t hval);  \
+  void P##write_pair32(uint32_t in, uint32_t rval, uint8_t hval0,  \
+                       uint8_t hval1);                             \
+  uint8_t P##backing_byte(uint32_t byte_off);                      \
+  uint8_t P##hidden(uint32_t hidx);
 
 RDRAM_TEST_DECL(rdram_full_)
 RDRAM_TEST_DECL(rdram_bounded_)
@@ -33,4 +33,4 @@ void rdram_bounded_set_hidden_base(uint32_t base);
 
 #undef RDRAM_TEST_DECL
 
-} // extern "C"
+}  // extern "C"

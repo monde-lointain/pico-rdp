@@ -18,7 +18,6 @@
 // -fno-strict-aliasing (see CMakeLists).
 
 #include <gtest/gtest.h>
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,7 +74,7 @@ void render_frame0_fb(std::vector<uint16_t> *out) {
   for (uint32_t i = 0; i < VI_NUM_REG; ++i) p_vi[i] = &vi_regs[i];
   for (uint32_t i = 0; i < DP_NUM_REG; ++i) p_dp[i] = &dp_regs[i];
 
-  struct n64video_config config;
+  struct N64videoConfig config;
   memset(&config, 0, sizeof(config));
   config.gfx.rdram = rdram.data();
   config.gfx.rdram_size = (uint32_t)rdram.size();
@@ -99,8 +98,7 @@ void render_frame0_fb(std::vector<uint16_t> *out) {
   // Read the color FB straight out of RDRAM as native big-endian halfwords.
   out->resize(kPixels);
   for (uint32_t i = 0; i < kPixels; ++i) {
-    (*out)[i] =
-        rdram_read16(rdram.data(), DEMO_RDRAM_COLOR_FB_ADDR + i * 2u);
+    (*out)[i] = rdram_read16(rdram.data(), DEMO_RDRAM_COLOR_FB_ADDR + i * 2u);
   }
 
   rdpx_video_close();

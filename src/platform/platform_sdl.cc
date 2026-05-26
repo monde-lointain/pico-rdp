@@ -27,7 +27,7 @@
 static SDL_Window *s_window = nullptr;
 static SDL_Renderer *s_renderer = nullptr;
 static SDL_Texture *s_texture =
-    nullptr; /* RGB565 streaming, kScreenW×kScreenH */
+    nullptr; /* RGB565 streaming, SCREEN_W×SCREEN_H */
 
 static int s_scale = 3; /* current integer scale 1–4 */
 static bool s_quit = false;
@@ -68,8 +68,8 @@ void plat_init(void) {
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
   /* Window size: scale*240 × scale*240 + room for menu bar (~20px) */
-  const int win_w = kScreenW * s_scale;
-  const int win_h = kScreenH * s_scale + 20;
+  const int win_w = SCREEN_W * s_scale;
+  const int win_h = SCREEN_H * s_scale + 20;
 
   s_window = SDL_CreateWindow("PicoSystem Template", win_w, win_h,
                               SDL_WINDOW_RESIZABLE);
@@ -83,7 +83,7 @@ void plat_init(void) {
    * SDL_TEXTUREACCESS_STREAMING (SDL_render.h line 104) */
   s_texture =
       SDL_CreateTexture(s_renderer, SDL_PIXELFORMAT_RGB565,
-                        SDL_TEXTUREACCESS_STREAMING, kScreenW, kScreenH);
+                        SDL_TEXTUREACCESS_STREAMING, SCREEN_W, SCREEN_H);
 
   /* Nearest-neighbour scaling so integer upscale stays crisp
    * SDL_SCALEMODE_NEAREST (SDL_surface.h line 90) */
@@ -129,10 +129,10 @@ bool plat_poll_input(struct Input *out) {
 /* ---- plat_present -------------------------------------------------------- */
 void plat_present(const struct Framebuffer *fb) {
   /* Upload framebuffer to streaming texture.
-   * pitch = kScreenW * 2 (2 bytes per RGB565 pixel)
+   * pitch = SCREEN_W * 2 (2 bytes per RGB565 pixel)
    * SDL_render.h line 1324 */
   SDL_UpdateTexture(s_texture, nullptr, fb->px,
-                    kScreenW * (int)sizeof(color_t));
+                    SCREEN_W * (int)sizeof(color_t));
 
   /* --- ImGui frame --- */
   ImGui_ImplSDLRenderer3_NewFrame();
@@ -148,8 +148,8 @@ void plat_present(const struct Framebuffer *fb) {
         const bool sel = (s_scale == s);
         if (ImGui::MenuItem(label, nullptr, sel)) {
           s_scale = s;
-          SDL_SetWindowSize(s_window, kScreenW * s_scale,
-                            kScreenH * s_scale + 20);
+          SDL_SetWindowSize(s_window, SCREEN_W * s_scale,
+                            SCREEN_H * s_scale + 20);
         }
       }
       ImGui::EndMenu();
@@ -169,8 +169,8 @@ void plat_present(const struct Framebuffer *fb) {
   SDL_GetRenderOutputSize(s_renderer, &out_w, &out_h);
 
   /* Integer-scaled destination rect, centered */
-  const int fb_w = kScreenW * s_scale;
-  const int fb_h = kScreenH * s_scale;
+  const int fb_w = SCREEN_W * s_scale;
+  const int fb_h = SCREEN_H * s_scale;
   const int off_x = (out_w - fb_w) / 2;
   /* Leave room for menu bar (~20px at logical coords, but we just push down) */
   const int off_y = out_h - fb_h - (out_h - fb_h) / 2;

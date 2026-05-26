@@ -66,8 +66,7 @@ TEST(RdramXor, RoundTripBlock) {
       memset(back, 0xCC, sizeof(back));
       rdram_read_block(a.mem, off, back, n);
 
-      EXPECT_EQ(0, memcmp(src, back, n))
-          << "off=" << off << " n=" << n;
+      EXPECT_EQ(0, memcmp(src, back, n)) << "off=" << off << " n=" << n;
     }
   }
 }

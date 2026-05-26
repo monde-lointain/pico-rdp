@@ -5,25 +5,27 @@
 // expected values ARE the generated arrows_ci4 / arrows_tlut tables, which are
 // themselves checked in under src/demo/generated):
 //
-//   1. SEEDING (locks demo_init + rdram_io BYTE_ADDR_XOR=3): demo_init seeds the
+//   1. SEEDING (locks demo_init + rdram_io BYTE_ADDR_XOR=3): demo_init seeds
+//   the
 //      64x64 CI4 texture (byte block) and the 16-entry RGBA5551 TLUT (native
 //      big-endian halfwords) into the RDRAM arena. We read both straight back
 //      through the XOR-correct rdram_io helpers and assert they recover the
 //      generated source tables byte-for-byte.
 //
-//   2. LOAD PATH (locks LOAD_TLUT end-to-end through OUR renderer): we drive the
+//   2. LOAD PATH (locks LOAD_TLUT end-to-end through OUR renderer): we drive
+//   the
 //      demo's full frame 0 (which includes the texture-load command sequence)
-//      through rdp_core, then read TMEM via the RDPX_TESTING accessor and assert
-//      the 16 arrows palette entries landed at the TLUT base (tmem[0x800]). On
-//      N64 LOAD_TLUT replicates each 16-bit entry 4x within its 64-bit slot, so
-//      entry k sits at tmem16[0x400 + k*16] (verified against rdp_core's own
-//      tmem.c tlut base + the empirically-confirmed replication stride).
+//      through rdp_core, then read TMEM via the RDPX_TESTING accessor and
+//      assert the 16 arrows palette entries landed at the TLUT base
+//      (tmem[0x800]). On N64 LOAD_TLUT replicates each 16-bit entry 4x within
+//      its 64-bit slot, so entry k sits at TMEM16[0x400 + k*16] (verified
+//      against rdp_core's own tmem.c TLUT base + the empirically-confirmed
+//      replication stride).
 //
 // Not orthodox-enforced (gtest / C++ idioms). RDRAM byte aliasing => built with
 // -fno-strict-aliasing (see CMakeLists).
 
 #include <gtest/gtest.h>
-
 #include <stdint.h>
 #include <string.h>
 
@@ -46,7 +48,7 @@ namespace {
 
 // LOAD_TLUT TMEM layout (rdp_core tmem.c): TLUT base is byte 0x800 => uint16
 // index 0x400. Each 16-bit entry is replicated across its 64-bit slot (4 u16),
-// so entry k is at tmem16[0x400 + k*16].
+// so entry k is at TMEM16[0x400 + k*16].
 const uint32_t kTlutBaseU16 = 0x800u / 2u;  // 0x400
 const uint32_t kTlutStrideU16 = 16u;        // one 64-bit slot per entry, 4x rep
 
@@ -99,7 +101,7 @@ TEST(DemoSeedLoadSample, Frame0LoadsArrowsPaletteIntoTmem) {
   for (uint32_t i = 0; i < VI_NUM_REG; ++i) p_vi[i] = &vi_regs[i];
   for (uint32_t i = 0; i < DP_NUM_REG; ++i) p_dp[i] = &dp_regs[i];
 
-  struct n64video_config config;
+  struct N64videoConfig config;
   memset(&config, 0, sizeof(config));
   config.gfx.rdram = rdram.data();
   config.gfx.rdram_size = (uint32_t)rdram.size();
@@ -119,9 +121,9 @@ TEST(DemoSeedLoadSample, Frame0LoadsArrowsPaletteIntoTmem) {
   sink.ctx = nullptr;
   demo_build_frame(0, &sink);
 
-  const uint16_t *tmem16 = (const uint16_t *)rdpx_get_tmem();
+  const uint16_t *TMEM16 = (const uint16_t *)rdpx_get_tmem();
   for (uint32_t k = 0; k < DEMO_TLUT_ENTRIES; ++k) {
-    uint16_t got = tmem16[kTlutBaseU16 + k * kTlutStrideU16];
+    uint16_t got = TMEM16[kTlutBaseU16 + k * kTlutStrideU16];
     ASSERT_EQ(got, arrows_tlut[k])
         << "TLUT entry " << k << " not in TMEM after LOAD_TLUT";
   }

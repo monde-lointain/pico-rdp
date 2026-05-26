@@ -14,13 +14,13 @@
 
 static void fb_clear(Framebuffer *fb, color_t fill) {
   int i;
-  for (i = 0; i < kScreenPixels; ++i) {
+  for (i = 0; i < SCREEN_PIXELS; ++i) {
     fb->px[i] = fill;
   }
 }
 
 static color_t fb_get(const Framebuffer *fb, int x, int y) {
-  return fb->px[y * kScreenW + x];
+  return fb->px[y * SCREEN_W + x];
 }
 
 /* ---- rgb565 pack --------------------------------------------------------- */
@@ -42,7 +42,7 @@ TEST(Blit, HlineWritesCorrectPixels) {
   color_t red = rgb565(0xFF, 0, 0);
   hline(&fb, 5, 10, 4, red); /* x=5..8, y=10 */
   int x;
-  for (x = 0; x < kScreenW; ++x) {
+  for (x = 0; x < SCREEN_W; ++x) {
     color_t pix = fb_get(&fb, x, 10);
     if (x >= 5 && x < 9) {
       EXPECT_EQ(pix, red) << "x=" << x;
@@ -86,7 +86,7 @@ TEST(Blit, VlineWritesCorrectPixels) {
   color_t c = rgb565(0xFF, 0xFF, 0);
   vline(&fb, 20, 10, 5, c); /* x=20, y=10..14 */
   int y;
-  for (y = 0; y < kScreenH; ++y) {
+  for (y = 0; y < SCREEN_H; ++y) {
     color_t pix = fb_get(&fb, 20, y);
     if (y >= 10 && y < 15) {
       EXPECT_EQ(pix, c) << "y=" << y;

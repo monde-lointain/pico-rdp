@@ -19,7 +19,8 @@
 // The geometry math is plain Q16.16 (demo_fix_mul / demo_fix_div from fixed.h),
 // 64-bit integer intermediates throughout; deterministic and freestanding (no
 // malloc / printf / float). The output coefficients are NOT Q16.16 — they carry
-// the RDP setup scales (see setup_ir.h), matched to the oracle within tolerance.
+// the RDP setup scales (see setup_ir.h), matched to the oracle within
+// tolerance.
 //
 // Color is interpolated in [0,1] Q16.16; u/v in texel units Q16.16; z in [0,1]
 // clip-space depth Q16.16. The viewport min/max depth and the cull mode follow
@@ -52,7 +53,8 @@ enum DemoCullMode {
 //   x,y,z,w : clip-space homogeneous position
 //   color   : RGBA, each in [0,1]
 //   u,v     : texture coordinates in texel units (NOT 0..1); the RDP S/T scale
-//             (1<<5 per texel) is applied at quantize time, matching the oracle.
+//             (1<<5 per texel) is applied at quantize time, matching the
+//             oracle.
 struct DemoClipVert {
   demo_fix x, y, z, w;
   demo_fix color[4];

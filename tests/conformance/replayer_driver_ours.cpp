@@ -110,7 +110,7 @@ OursReplayer::OursReplayer(CommandInterface &player_, ReplayerEventInterface &if
 	for (unsigned i = 0; i < DP_NUM_REG; i++)
 		p_dp_regs[i] = &dp_regs[i];
 
-	struct n64video_config config = {};
+	struct N64videoConfig config = {};
 	config.gfx.rdram = rdram.data();
 	config.gfx.rdram_size = uint32_t(rdram.size());
 	config.gfx.vi_reg = p_vi_regs;

@@ -10,7 +10,7 @@
  *   row 2: Z 0 1 2 3 4 5 6 7 8 9 ':' 'x'
  * Uppercase only; unknown chars render as space. */
 
-enum { kFontCellW = 16, kFontCellH = 22, kFontCols = 13, kFontRows = 3 };
+enum { FONT_CELL_W = 16, FONT_CELL_H = 22, FONT_COLS = 13, FONT_ROWS = 3 };
 
 /* Look up the atlas cell (col, row) for character c.
  * Unknown characters map to col=0, row=0 (space). */

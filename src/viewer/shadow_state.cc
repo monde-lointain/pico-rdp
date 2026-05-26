@@ -98,7 +98,7 @@ static void shadow_apply_combine(struct ShadowState *s, uint32_t w0,
 
 static void shadow_apply_set_tile(struct ShadowState *s, uint32_t w0,
                                   uint32_t w1) {
-  uint32_t n = (w1 >> 24) & 0x7;
+  uint32_t const n = (w1 >> 24) & 0x7;
   struct ShadowTile *t = &s->tile[n];
   t->format = (uint8_t)((w0 >> 21) & 0x7);
   t->size = (uint8_t)((w0 >> 19) & 0x3);
@@ -119,7 +119,7 @@ static void shadow_apply_set_tile(struct ShadowState *s, uint32_t w0,
 // (rdp_set_tile_size + tile_tlut_common_cs_decoder).
 static void shadow_apply_tile_coords(struct ShadowState *s, uint32_t w0,
                                      uint32_t w1) {
-  uint32_t n = (w1 >> 24) & 0x7;
+  uint32_t const n = (w1 >> 24) & 0x7;
   struct ShadowTile *t = &s->tile[n];
   t->sl = (uint16_t)((w0 >> 12) & 0xfff);
   t->tl = (uint16_t)(w0 & 0xfff);
@@ -131,9 +131,9 @@ void shadow_apply(struct ShadowState *s, const uint32_t *words, uint32_t n) {
   if (!s || !words || n < 2) {
     return;
   }
-  uint32_t w0 = words[0];
-  uint32_t w1 = words[1];
-  uint8_t id = (uint8_t)((w0 >> 24) & 0x3f);
+  uint32_t const w0 = words[0];
+  uint32_t const w1 = words[1];
+  uint8_t const id = (uint8_t)((w0 >> 24) & 0x3f);
 
   s->seen_opcodes |= ((uint64_t)1 << id);
   s->cmd_count++;

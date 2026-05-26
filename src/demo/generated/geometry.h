@@ -4,6 +4,7 @@
  * the generator is a separate GPLv3 work (tools/gen_n64_assets.py).
  */
 
+// clang-format off
 #ifndef DEMO_GENERATED_GEOMETRY_H
 #define DEMO_GENERATED_GEOMETRY_H
 
@@ -94,3 +95,4 @@ static const struct DemoTri demo_cube_tri[DEMO_CUBE_TRI_COUNT] = {
 };
 
 #endif /* DEMO_GENERATED_GEOMETRY_H */
+// clang-format on

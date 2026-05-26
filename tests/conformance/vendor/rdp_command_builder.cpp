@@ -288,7 +288,7 @@ void CommandBuilder::flush_default_state()
 		cmd[0] |= 1 << 17;
 	if (other_modes.tex_lod_enable)
 		cmd[0] |= 1 << 16;
-	if (other_modes.tlut)
+	if (other_modes.TLUT)
 		cmd[0] |= 1 << 15;
 	if (other_modes.tlut_ia_type)
 		cmd[0] |= 1 << 14;
@@ -764,7 +764,7 @@ size_t CommandBuilder::get_hidden_rdram_size() const
 
 void CommandBuilder::set_tlut(bool enable, bool ia_type)
 {
-	other_modes.tlut = enable;
+	other_modes.TLUT = enable;
 	other_modes.tlut_ia_type = ia_type;
 }
 

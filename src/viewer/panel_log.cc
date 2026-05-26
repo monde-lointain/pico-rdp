@@ -8,10 +8,9 @@
  * past the cursor are dimmed (not yet fed to the renderer).
  */
 
-#include "panels.h"
-
 #include "dock_layout.h"
 #include "imgui.h"
+#include "panels.h"
 
 extern "C" {
 #include "cmd_decode.h"
@@ -35,17 +34,20 @@ void panel_log_draw(struct Playback* pb) {
       struct CmdRecord rec;
       cmd_decode(&pb->words[c->word_off], c->word_count, &rec);
 
-      const int is_current = (i + 1u == cursor);  // last fed command
+      const int is_current = (i + 1U == cursor);  // last fed command
       const int is_future = (i >= cursor);        // not yet fed (stepping)
 
-      if (is_current)
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.85f, 0.2f, 1.0f));
-      else if (is_future)
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+      if (is_current) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0F, 0.85F, 0.2F, 1.0F));
+      } else if (is_future) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5F, 0.5F, 0.5F, 1.0F));
+      }
 
       ImGui::Text("%4u  %02x %-22s %s", i, rec.id, rec.name, rec.summary);
 
-      if (is_current || is_future) ImGui::PopStyleColor();
+      if (is_current || is_future) {
+        ImGui::PopStyleColor();
+      }
     }
   }
   ImGui::EndChild();

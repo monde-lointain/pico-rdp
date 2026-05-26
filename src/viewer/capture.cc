@@ -41,7 +41,9 @@ static int write_word(FILE* f, uint32_t w) {
 }
 
 int capture_frame_to_rdp(const char* path, const struct Playback* pb) {
-  if (!path || !pb) return 1;
+  if (!path || !pb) {
+    return 1;
+  }
 
   uint32_t rdram_size = 0;
   const uint8_t* rdram = renderer_host_rdram(&rdram_size);
@@ -55,7 +57,9 @@ int capture_frame_to_rdp(const char* path, const struct Playback* pb) {
   // zero-pad the remainder so the reader's bounds checks pass and the replayed
   // renderer (re-init at this size) sees an identical addressable arena.
   uint32_t dump_rdram_size = DUMP_RDRAM_4MB;
-  if (rdram_size > DUMP_RDRAM_4MB) dump_rdram_size = DUMP_RDRAM_8MB;
+  if (rdram_size > DUMP_RDRAM_4MB) {
+    dump_rdram_size = DUMP_RDRAM_8MB;
+  }
   if (rdram_size > dump_rdram_size) {
     fprintf(stderr, "capture: RDRAM %u too large for an 8 MiB dump\n",
             rdram_size);
@@ -71,9 +75,15 @@ int capture_frame_to_rdp(const char* path, const struct Playback* pb) {
   int rc = 0;
 
   // Header: 8-byte magic, then rdram_size + hidden_dram_size words.
-  if (fwrite("RDPDUMP2", 1, 8, f) != 8) rc = 5;
-  if (!rc) rc = write_word(f, dump_rdram_size);
-  if (!rc) rc = write_word(f, DUMP_HIDDEN_4MB);
+  if (fwrite("RDPDUMP2", 1, 8, f) != 8) {
+    rc = 5;
+  }
+  if (!rc) {
+    rc = write_word(f, dump_rdram_size);
+  }
+  if (!rc) {
+    rc = write_word(f, DUMP_HIDDEN_4MB);
+  }
 
   // SetVIRegister records for every VI register the renderer has programmed, so
   // the replay reconstructs the exact scanout geometry standalone. Index order
@@ -83,8 +93,12 @@ int capture_frame_to_rdp(const char* path, const struct Playback* pb) {
   if (vi) {
     for (uint32_t i = 0; i < vi_count && !rc; ++i) {
       rc = write_word(f, DUMP_CMD_SET_VI_REGISTER);
-      if (!rc) rc = write_word(f, i);
-      if (!rc) rc = write_word(f, vi[i]);
+      if (!rc) {
+        rc = write_word(f, i);
+      }
+      if (!rc) {
+        rc = write_word(f, vi[i]);
+      }
     }
   }
 
@@ -92,20 +106,33 @@ int capture_frame_to_rdp(const char* path, const struct Playback* pb) {
   // declared arena, then UpdateDramFlush so the reader pushes it into the
   // replay renderer via update_rdram(). We write the renderer's actual bytes
   // then zero-pad up to dump_rdram_size.
-  if (!rc) rc = write_word(f, DUMP_CMD_UPDATE_DRAM);
-  if (!rc) rc = write_word(f, 0u);               // offset
-  if (!rc) rc = write_word(f, dump_rdram_size);  // size
-  if (!rc && fwrite(rdram, 1, rdram_size, f) != rdram_size) rc = 6;
+  if (!rc) {
+    rc = write_word(f, DUMP_CMD_UPDATE_DRAM);
+  }
+  if (!rc) {
+    rc = write_word(f, 0U);  // offset
+  }
+  if (!rc) {
+    rc = write_word(f, dump_rdram_size);  // size
+  }
+  if (!rc && fwrite(rdram, 1, rdram_size, f) != rdram_size) {
+    rc = 6;
+  }
   if (!rc && dump_rdram_size > rdram_size) {
     static const uint8_t zeros[4096] = {0};
     uint32_t pad = dump_rdram_size - rdram_size;
     while (pad && !rc) {
-      uint32_t chunk = pad < sizeof(zeros) ? pad : (uint32_t)sizeof(zeros);
-      if (fwrite(zeros, 1, chunk, f) != chunk) rc = 6;
+      uint32_t const chunk =
+          pad < sizeof(zeros) ? pad : (uint32_t)sizeof(zeros);
+      if (fwrite(zeros, 1, chunk, f) != chunk) {
+        rc = 6;
+      }
       pad -= chunk;
     }
   }
-  if (!rc) rc = write_word(f, DUMP_CMD_UPDATE_DRAM_FLUSH);
+  if (!rc) {
+    rc = write_word(f, DUMP_CMD_UPDATE_DRAM_FLUSH);
+  }
 
   // RDPCommand records: one per buffered command. cmd_id is the RDP opcode in
   // the command's first word [29:24] — what DumpPlayer hands back as Op so the
@@ -114,21 +141,32 @@ int capture_frame_to_rdp(const char* path, const struct Playback* pb) {
   for (uint32_t i = 0; i < pb->cmd_total && !rc; ++i) {
     const struct PlaybackCmd* c = &pb->cmds[i];
     const uint32_t* w = &pb->words[c->word_off];
-    uint32_t cmd_id = (c->word_count > 0) ? ((w[0] >> 24) & 0x3fu) : 0u;
+    uint32_t const cmd_id = (c->word_count > 0) ? ((w[0] >> 24) & 0x3fU) : 0U;
     rc = write_word(f, DUMP_CMD_RDP_COMMAND);
-    if (!rc) rc = write_word(f, cmd_id);
-    if (!rc) rc = write_word(f, c->word_count);
+    if (!rc) {
+      rc = write_word(f, cmd_id);
+    }
+    if (!rc) {
+      rc = write_word(f, c->word_count);
+    }
     if (!rc && c->word_count) {
-      if (fwrite(w, sizeof(uint32_t), c->word_count, f) != c->word_count)
+      if (fwrite(w, sizeof(uint32_t), c->word_count, f) != c->word_count) {
         rc = 7;
+      }
     }
   }
 
   // EndFrame (run the VI) then EndOfFile.
-  if (!rc) rc = write_word(f, DUMP_CMD_END_FRAME);
-  if (!rc) rc = write_word(f, DUMP_CMD_END_OF_FILE);
+  if (!rc) {
+    rc = write_word(f, DUMP_CMD_END_FRAME);
+  }
+  if (!rc) {
+    rc = write_word(f, DUMP_CMD_END_OF_FILE);
+  }
 
-  if (fclose(f) != 0 && !rc) rc = 8;
+  if (fclose(f) != 0 && !rc) {
+    rc = 8;
+  }
   if (rc) {
     fprintf(stderr, "capture: write error (%d) to %s\n", rc, path);
     return rc;

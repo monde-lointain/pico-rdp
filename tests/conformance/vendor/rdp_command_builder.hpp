@@ -127,7 +127,7 @@ private:
 		bool depth_write = false;
 		bool perspective = false;
 		bool alpha_test = false;
-		bool tlut = false;
+		bool TLUT = false;
 		bool tlut_ia_type = false;
 		bool cvg_times_alpha = false;
 		bool alpha_cvg_select = false;

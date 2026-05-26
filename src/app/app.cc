@@ -9,11 +9,11 @@
 #include "gfx/font.h"
 
 /* Plain ints (not an enum) so arithmetic with the framebuffer's
- * screen-dimension enum (kScreenW/kScreenH) doesn't mix two enum types
+ * screen-dimension enum (SCREEN_W/SCREEN_H) doesn't mix two enum types
  * (deprecated in C++20). */
 // clang-format off
-static const int kObjSize = 16; /* movable object is a 16x16 filled square */
-static const int kObjStep = 4; /* pixels moved per frame while a D-pad button is held */
+static const int OBJ_SIZE = 16; /* movable object is a 16x16 filled square */
+static const int OBJ_STEP = 4; /* pixels moved per frame while a D-pad button is held */
 // clang-format on
 
 static int16_t clamp_i16(int v, int lo, int hi) {
@@ -30,8 +30,8 @@ void app_init(App* a, uint32_t seed) {
   rng_seed(&a->rng, seed);
   a->seed = seed;
   a->state = APP_TITLE;
-  a->obj_x = (int16_t)((kScreenW - kObjSize) / 2);
-  a->obj_y = (int16_t)((kScreenH - kObjSize) / 2);
+  a->obj_x = (int16_t)((SCREEN_W - OBJ_SIZE) / 2);
+  a->obj_y = (int16_t)((SCREEN_H - OBJ_SIZE) / 2);
   a->pending_cue = CUE_NONE;
 }
 
@@ -46,18 +46,18 @@ enum Cue app_take_cue(App* a) {
 }
 
 static void render_title(struct Framebuffer* fb) {
-  frect(fb, 0, 0, kScreenW, kScreenH, rgb565(8, 12, 40));
+  frect(fb, 0, 0, SCREEN_W, SCREEN_H, rgb565(8, 12, 40));
   text(fb, "PICOSYSTEM", 48, 70, rgb565(255, 220, 0));
   text(fb, "TEMPLATE", 64, 100, rgb565(255, 255, 255));
   text(fb, "PRESS A", 72, 150, rgb565(120, 200, 120));
 }
 
 static void render_play(const App* a, struct Framebuffer* fb) {
-  frect(fb, 0, 0, kScreenW, kScreenH, rgb565(16, 16, 24));
+  frect(fb, 0, 0, SCREEN_W, SCREEN_H, rgb565(16, 16, 24));
   /* The movable object, drawn as a filled rect. */
-  frect(fb, (int)a->obj_x, (int)a->obj_y, kObjSize, kObjSize,
+  frect(fb, (int)a->obj_x, (int)a->obj_y, OBJ_SIZE, OBJ_SIZE,
         rgb565(255, 80, 80));
-  text(fb, "MOVE X Y", 8, kScreenH - 28, rgb565(160, 160, 160));
+  text(fb, "MOVE X Y", 8, SCREEN_H - 28, rgb565(160, 160, 160));
 }
 
 void app_tick(App* a, const struct Input* in, uint32_t now_ms,
@@ -68,8 +68,8 @@ void app_tick(App* a, const struct Input* in, uint32_t now_ms,
     if (in->pressed & BTN_A) {
       a->state = APP_PLAYING;
       /* rng-derived start position, kept fully on screen. */
-      a->obj_x = (int16_t)(rng_next(&a->rng) % (uint32_t)(kScreenW - kObjSize));
-      a->obj_y = (int16_t)(rng_next(&a->rng) % (uint32_t)(kScreenH - kObjSize));
+      a->obj_x = (int16_t)(rng_next(&a->rng) % (uint32_t)(SCREEN_W - OBJ_SIZE));
+      a->obj_y = (int16_t)(rng_next(&a->rng) % (uint32_t)(SCREEN_H - OBJ_SIZE));
       a->pending_cue = CUE_SELECT;
     }
     render_title(fb);
@@ -81,23 +81,23 @@ void app_tick(App* a, const struct Input* in, uint32_t now_ms,
   int y = (int)a->obj_y;
   int moved = 0;
   if (in->held & BTN_LEFT) {
-    x -= kObjStep;
+    x -= OBJ_STEP;
     moved = 1;
   }
   if (in->held & BTN_RIGHT) {
-    x += kObjStep;
+    x += OBJ_STEP;
     moved = 1;
   }
   if (in->held & BTN_UP) {
-    y -= kObjStep;
+    y -= OBJ_STEP;
     moved = 1;
   }
   if (in->held & BTN_DOWN) {
-    y += kObjStep;
+    y += OBJ_STEP;
     moved = 1;
   }
-  a->obj_x = clamp_i16(x, 0, kScreenW - kObjSize);
-  a->obj_y = clamp_i16(y, 0, kScreenH - kObjSize);
+  a->obj_x = clamp_i16(x, 0, SCREEN_W - OBJ_SIZE);
+  a->obj_y = clamp_i16(y, 0, SCREEN_H - OBJ_SIZE);
 
   if (in->pressed & BTN_A) {
     a->pending_cue = CUE_SELECT;

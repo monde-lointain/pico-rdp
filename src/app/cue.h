@@ -16,22 +16,22 @@
 static inline uint32_t cue_freq(enum Cue c) {
   switch (c) {
     case CUE_SELECT:
-      return 660u;
+      return 660U;
     case CUE_MOVE:
-      return 330u;
+      return 330U;
     default:
-      return 0u;
+      return 0U;
   }
 }
 
 static inline uint32_t cue_dur(enum Cue c) {
   switch (c) {
     case CUE_SELECT:
-      return 40u;
+      return 40U;
     case CUE_MOVE:
-      return 20u;
+      return 20U;
     default:
-      return 0u;
+      return 0U;
   }
 }
 

@@ -30,17 +30,17 @@ void viewer_build_default_dock_layout(ImGuiID dockspace_id) {
   // area.
   ImGuiID dock_main = dockspace_id;
   ImGuiID dock_bottom = 0;
-  ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Down, 0.25f, &dock_bottom,
+  ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Down, 0.25F, &dock_bottom,
                               &dock_main);
 
   // Split a right column (28%) off the working area for State/Memory.
   ImGuiID dock_right = 0;
-  ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Right, 0.28f, &dock_right,
+  ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Right, 0.28F, &dock_right,
                               &dock_main);
 
   // Split the right column into State (top) and Memory (bottom).
   ImGuiID dock_right_bottom = 0;
-  ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.5f,
+  ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.5F,
                               &dock_right_bottom, &dock_right);
 
   // dock_main is now the central scanout area.

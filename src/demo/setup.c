@@ -61,8 +61,12 @@ static int32_t fix_round_to_int(demo_fix v) {
 }
 
 static int16_t clamp_int16(int32_t v) {
-  if (v < -0x8000) return (int16_t)-0x8000;
-  if (v > 0x7fff) return (int16_t)0x7fff;
+  if (v < -0x8000) {
+    return (int16_t)-0x8000;
+  }
+  if (v > 0x7fff) {
+    return (int16_t)0x7fff;
+  }
   return (int16_t)v;
 }
 
@@ -198,8 +202,11 @@ static int setup_one(struct DemoPrimSetup *setup, const struct WorkTri *in,
     ys[i] = quantize_screen(in->v[i].clip[1]);
   }
 
-  int ia = 0, ib = 1, ic = 2;
-  /* Sort by Y, tie-break on X (mirrors the oracle's three compare/swap steps). */
+  int ia = 0;
+  int ib = 1;
+  int ic = 2;
+  /* Sort by Y, tie-break on X (mirrors the oracle's three compare/swap steps).
+   */
   if (ys[ib] < ys[ia] || (ys[ib] == ys[ia] && xs[ib] < xs[ia])) {
     int t = ia;
     ia = ib;
@@ -216,8 +223,12 @@ static int setup_one(struct DemoPrimSetup *setup, const struct WorkTri *in,
     ib = t;
   }
 
-  int16_t y_lo = ys[ia], y_mid = ys[ib], y_hi = ys[ic];
-  int16_t x_a = xs[ia], x_b = xs[ib], x_c = xs[ic];
+  int16_t y_lo = ys[ia];
+  int16_t y_mid = ys[ib];
+  int16_t y_hi = ys[ic];
+  int16_t x_a = xs[ia];
+  int16_t x_b = xs[ib];
+  int16_t x_c = xs[ic];
 
   setup->pos.x_a = (int32_t)x_a << (16 - SUBPIXELS_LOG2);
   setup->pos.x_b = (int32_t)x_a << (16 - SUBPIXELS_LOG2);
@@ -227,8 +238,8 @@ static int setup_one(struct DemoPrimSetup *setup, const struct WorkTri *in,
   setup->pos.y_mid = y_mid;
   setup->pos.y_hi = y_hi;
 
-  setup->pos.dxdy_a = round_away_divide(((int64_t)(x_c - x_a)) << 16,
-                                        wv_max_i(1, y_hi - y_lo));
+  setup->pos.dxdy_a =
+      round_away_divide(((int64_t)(x_c - x_a)) << 16, wv_max_i(1, y_hi - y_lo));
   setup->pos.dxdy_b = round_away_divide(((int64_t)(x_b - x_a)) << 16,
                                         wv_max_i(1, y_mid - y_lo));
   setup->pos.dxdy_c = round_away_divide(((int64_t)(x_c - x_b)) << 16,
@@ -325,8 +336,7 @@ static void interp_vert(struct WorkVert *out, const struct WorkVert *a,
                         const struct WorkVert *b, demo_fix l) {
   demo_fix left = DEMO_FIX_ONE - l;
   for (int i = 0; i < 4; ++i) {
-    out->clip[i] =
-        demo_fix_mul(a->clip[i], left) + demo_fix_mul(b->clip[i], l);
+    out->clip[i] = demo_fix_mul(a->clip[i], left) + demo_fix_mul(b->clip[i], l);
     out->color[i] =
         demo_fix_mul(a->color[i], left) + demo_fix_mul(b->color[i], l);
   }
@@ -338,7 +348,9 @@ static unsigned clip_code_low(const struct WorkTri *t, demo_fix limit,
                               int comp) {
   unsigned code = 0;
   for (int i = 0; i < 3; ++i) {
-    if (t->v[i].clip[comp] < limit) code |= (1u << i);
+    if (t->v[i].clip[comp] < limit) {
+      code |= (1U << i);
+    }
   }
   return code;
 }
@@ -347,12 +359,15 @@ static unsigned clip_code_high(const struct WorkTri *t, demo_fix limit,
                                int comp) {
   unsigned code = 0;
   for (int i = 0; i < 3; ++i) {
-    if (t->v[i].clip[comp] > limit) code |= (1u << i);
+    if (t->v[i].clip[comp] > limit) {
+      code |= (1U << i);
+    }
   }
   return code;
 }
 
-/* Two vertices a,b interpolated toward c (the inside vertex). One output prim. */
+/* Two vertices a,b interpolated toward c (the inside vertex). One output prim.
+ */
 static void clip_single(struct WorkTri *out, const struct WorkTri *in, int comp,
                         demo_fix target, int a, int b, int c) {
   demo_fix la = demo_fix_div(target - in->v[a].clip[comp],
@@ -373,7 +388,8 @@ static void clip_dual(struct WorkTri *out, const struct WorkTri *in, int comp,
                               in->v[b].clip[comp] - in->v[a].clip[comp]);
   demo_fix lac = demo_fix_div(target - in->v[a].clip[comp],
                               in->v[c].clip[comp] - in->v[a].clip[comp]);
-  struct WorkVert ab, ac;
+  struct WorkVert ab;
+  struct WorkVert ac;
   interp_vert(&ab, &in->v[a], &in->v[b], lab);
   interp_vert(&ac, &in->v[a], &in->v[c], lac);
   ab.clip[comp] = target;
@@ -439,13 +455,24 @@ static unsigned clip_pass(struct WorkTri *out, const struct WorkTri *in,
 static uint32_t setup_clipped_w(struct DemoPrimSetup *out, struct WorkTri prim,
                                 uint32_t cull, const struct DemoViewport *vp) {
   /* Early reject if all verts are off one X/Y clip side (in clip space). */
-  int all_xlo = 1, all_xhi = 1, all_ylo = 1, all_yhi = 1;
+  int all_xlo = 1;
+  int all_xhi = 1;
+  int all_ylo = 1;
+  int all_yhi = 1;
   for (int i = 0; i < 3; ++i) {
     demo_fix w = prim.v[i].clip[3];
-    if (!(prim.v[i].clip[0] < -w)) all_xlo = 0;
-    if (!(prim.v[i].clip[0] > w)) all_xhi = 0;
-    if (!(prim.v[i].clip[1] < -w)) all_ylo = 0;
-    if (!(prim.v[i].clip[1] > w)) all_yhi = 0;
+    if (!(prim.v[i].clip[0] < -w)) {
+      all_xlo = 0;
+    }
+    if (!(prim.v[i].clip[0] > w)) {
+      all_xhi = 0;
+    }
+    if (!(prim.v[i].clip[1] < -w)) {
+      all_ylo = 0;
+    }
+    if (!(prim.v[i].clip[1] > w)) {
+      all_yhi = 0;
+    }
   }
   if (all_xlo || all_xhi || all_ylo || all_yhi) {
     return 0;
@@ -514,7 +541,9 @@ uint32_t demo_setup_triangle(struct DemoPrimSetup *out,
     prim.v[i].clip[1] = tri->v[i].y;
     prim.v[i].clip[2] = tri->v[i].z;
     prim.v[i].clip[3] = tri->v[i].w;
-    for (int c = 0; c < 4; ++c) prim.v[i].color[c] = tri->v[i].color[c];
+    for (int c = 0; c < 4; ++c) {
+      prim.v[i].color[c] = tri->v[i].color[c];
+    }
     prim.v[i].u = tri->v[i].u;
     prim.v[i].v = tri->v[i].v;
   }

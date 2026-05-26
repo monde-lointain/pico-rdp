@@ -8,8 +8,8 @@
 // perspective divide, viewport, guard-band + near/far clip, cull, setup), so
 // the resulting PrimitiveSetup / DemoPrimSetup coefficients are field-to-field
 // comparable. They are NOT bit-identical: the oracle computes the setup math in
-// double, ours in fixed-point Q16.16, so we assert closeness within a documented
-// tolerance.
+// double, ours in fixed-point Q16.16, so we assert closeness within a
+// documented tolerance.
 //
 // Coverage: fill (flat color, no Z/UV variation), Gouraud shade (per-vertex
 // color), Z (depth gradient), and textured-perspective (varying U/V/W with a
@@ -18,8 +18,9 @@
 //
 // TOLERANCES (documented, tuned empirically vs the oracle):
 //   - screen pos (x_a/b/c, dxdy_a/b/c, y_lo/mid/hi): tight integer windows;
-//     these come from quantize_x/y which both implementations round identically,
-//     so they match within +/-2 subpixel-derived ulps (rounding of the divide).
+//     these come from quantize_x/y which both implementations round
+//     identically, so they match within +/-2 subpixel-derived ulps (rounding of
+//     the divide).
 //   - color/z/u/v coefficients: scaled by 255*2^16 (color), (2^18-1)*2^13 (z),
 //     2^6*2^16 (uv). The dominant error is the single fixed-point divide by
 //     signed_area plus the Q16.16 intermediates in the divide/viewport stage.
@@ -30,7 +31,6 @@
 //     to the precision Q16.16 affords (~2^16 absolute on a ~2^31 magnitude).
 
 #include <gtest/gtest.h>
-
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
@@ -146,8 +146,8 @@ void expect_pos_close(const RDP::PrimitiveSetup& o, const DemoPrimSetup& d) {
 void expect_coeff(double oracle, double demo, double rel, double abs_floor,
                   const char* what) {
   double tol = fabs(oracle) * rel + abs_floor;
-  EXPECT_NEAR(oracle, demo, tol) << what << " oracle=" << oracle
-                                 << " demo=" << demo << " tol=" << tol;
+  EXPECT_NEAR(oracle, demo, tol)
+      << what << " oracle=" << oracle << " demo=" << demo << " tol=" << tol;
 }
 
 void expect_color_close(const RDP::PrimitiveSetup& o, const DemoPrimSetup& d) {

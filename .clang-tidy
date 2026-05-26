@@ -20,12 +20,22 @@ Checks: >
   -readability-identifier-length,
   -readability-implicit-bool-conversion,
   -readability-magic-numbers
-HeaderFilterRegex: 'src/(game|gfx|app)/'
+HeaderFilterRegex: 'src/(app|game|gfx|platform|viewer|rdp)/|src/demo/[^/]+\.h$'
 WarningsAsErrors: ''
 CheckOptions:
-  - key: readability-identifier-naming.FunctionCase
-    value: lower_case
   - key: readability-identifier-naming.StructCase
     value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: lower_case
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
   - key: readability-identifier-naming.EnumCase
     value: CamelCase
+  - key: readability-identifier-naming.EnumConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE

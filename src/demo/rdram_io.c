@@ -21,8 +21,8 @@ uint8_t rdram_read8(const uint8_t *rdram, uint32_t off) {
 void rdram_write16(uint8_t *rdram, uint32_t off, uint16_t val) {
   // N64-native big-endian: high byte at the lower offset. Each byte is swizzled
   // independently so the renderer's `rdram16[(off/2) ^ 1]` read recovers `val`.
-  rdram[(off + 0) ^ RDRAM_BYTE_ADDR_XOR] = (uint8_t)((val >> 8) & 0xffu);
-  rdram[(off + 1) ^ RDRAM_BYTE_ADDR_XOR] = (uint8_t)(val & 0xffu);
+  rdram[(off + 0) ^ RDRAM_BYTE_ADDR_XOR] = (uint8_t)((val >> 8) & 0xffU);
+  rdram[(off + 1) ^ RDRAM_BYTE_ADDR_XOR] = (uint8_t)(val & 0xffU);
 }
 
 uint16_t rdram_read16(const uint8_t *rdram, uint32_t off) {

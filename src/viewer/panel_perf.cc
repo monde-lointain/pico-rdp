@@ -32,8 +32,10 @@ extern "C" {
 // ---- extrapolation model ---------------------------------------------------
 double perf_extrapolate_m0_ms(uint64_t pixel_count, double m0_cycles_per_px,
                               double m0_clock_hz) {
-  if (m0_clock_hz <= 0.0) return 0.0;
-  double cycles = (double)pixel_count * m0_cycles_per_px;
+  if (m0_clock_hz <= 0.0) {
+    return 0.0;
+  }
+  double const cycles = (double)pixel_count * m0_cycles_per_px;
   return (cycles / m0_clock_hz) * 1000.0;
 }
 
@@ -51,7 +53,7 @@ void panel_perf_draw(struct Playback* pb, const struct PerfSample* s) {
     return;
   }
 
-  const uint64_t px = s ? s->pixel_count : 0u;
+  const uint64_t px = s ? s->pixel_count : 0U;
   const double ms = s ? s->build_present_ms : 0.0;
 
   ImGui::Text("Frame %u  (%u commands)", pb->frame_index, pb->cmd_total);
@@ -60,7 +62,7 @@ void panel_perf_draw(struct Playback* pb, const struct PerfSample* s) {
   ImGui::Text("Host build+present: %.3f ms", ms);
   ImGui::Text("Pixels committed:   %llu", (unsigned long long)px);
   if (ms > 0.0) {
-    double mpix_s = ((double)px / 1.0e6) / (ms / 1000.0);
+    double const mpix_s = ((double)px / 1.0e6) / (ms / 1000.0);
     ImGui::Text("Host throughput:    %.2f Mpixels/s", mpix_s);
   } else {
     ImGui::Text("Host throughput:    (n/a)");
@@ -73,14 +75,14 @@ void panel_perf_draw(struct Playback* pb, const struct PerfSample* s) {
               M0_CYC_PER_PX_OPTIMISTIC, M0_CYC_PER_PX_PESSIMISTIC);
 
   if (px > 0) {
-    double opt_250 = perf_extrapolate_m0_ms(px, M0_CYC_PER_PX_OPTIMISTIC,
-                                            M0_CLOCK_DEFAULT_HZ);
-    double pes_250 = perf_extrapolate_m0_ms(px, M0_CYC_PER_PX_PESSIMISTIC,
-                                            M0_CLOCK_DEFAULT_HZ);
-    double opt_133 = perf_extrapolate_m0_ms(px, M0_CYC_PER_PX_OPTIMISTIC,
-                                            M0_CLOCK_DATASHEET_HZ);
-    double pes_133 = perf_extrapolate_m0_ms(px, M0_CYC_PER_PX_PESSIMISTIC,
-                                            M0_CLOCK_DATASHEET_HZ);
+    double const opt_250 = perf_extrapolate_m0_ms(px, M0_CYC_PER_PX_OPTIMISTIC,
+                                                  M0_CLOCK_DEFAULT_HZ);
+    double const pes_250 = perf_extrapolate_m0_ms(px, M0_CYC_PER_PX_PESSIMISTIC,
+                                                  M0_CLOCK_DEFAULT_HZ);
+    double const opt_133 = perf_extrapolate_m0_ms(px, M0_CYC_PER_PX_OPTIMISTIC,
+                                                  M0_CLOCK_DATASHEET_HZ);
+    double const pes_133 = perf_extrapolate_m0_ms(px, M0_CYC_PER_PX_PESSIMISTIC,
+                                                  M0_CLOCK_DATASHEET_HZ);
     ImGui::Text("  @250 MHz: %.1f .. %.1f ms/frame  (~%.0f..%.0f fps)", opt_250,
                 pes_250, opt_250 > 0 ? 1000.0 / pes_250 : 0.0,
                 pes_250 > 0 ? 1000.0 / opt_250 : 0.0);
@@ -97,14 +99,18 @@ void panel_perf_draw(struct Playback* pb, const struct PerfSample* s) {
                               ImGuiTreeNodeFlags_DefaultOpen)) {
     // Histogram over the 64 possible 6-bit opcodes; plus a triangle bucket.
     uint32_t by_id[64];
-    for (uint32_t i = 0; i < 64; ++i) by_id[i] = 0u;
-    uint32_t tri_total = 0u;
+    for (uint32_t i = 0; i < 64; ++i) {
+      by_id[i] = 0U;
+    }
+    uint32_t tri_total = 0U;
     for (uint32_t i = 0; i < pb->cmd_total; ++i) {
       const struct PlaybackCmd* c = &pb->cmds[i];
       struct CmdRecord rec;
       cmd_decode(&pb->words[c->word_off], c->word_count, &rec);
-      by_id[rec.id & 0x3f] += 1u;
-      if (rec.is_triangle) tri_total += 1u;
+      by_id[rec.id & 0x3f] += 1U;
+      if (rec.is_triangle) {
+        tri_total += 1U;
+      }
     }
     ImGui::Text("Triangles (0x08..0x0f): %u", tri_total);
     if (ImGui::BeginTable(
@@ -115,7 +121,9 @@ void panel_perf_draw(struct Playback* pb, const struct PerfSample* s) {
       ImGui::TableSetupColumn("count");
       ImGui::TableHeadersRow();
       for (uint32_t id = 0; id < 64; ++id) {
-        if (by_id[id] == 0u) continue;
+        if (by_id[id] == 0U) {
+          continue;
+        }
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
         ImGui::Text("0x%02x", id);

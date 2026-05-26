@@ -3,16 +3,17 @@
 // Stream C.2 — viewer-side shadow of RDP state.
 //
 // The renderer (rdp_core) exposes NO accessor for its internal RDP state; the
-// state inspector therefore reconstructs ("shadows") that state by replaying the
-// raw RDP command word stream the viewer feeds to rdpx_rdp_cmd (and the same
-// stream loaded from a .rdp dump). This struct mirrors the *settable* RDP state
-// the inspector cares about: combine mux, other-modes bits, the eight tile
-// descriptors, the color/depth/texture image configs, the fixed colors, and the
-// scissor rect. Field layouts match the renderer's handlers in src/rdp/rdp/*.c
-// exactly (verified against rdp_set_*; this is the source of truth, not gbi.h).
+// state inspector therefore reconstructs ("shadows") that state by replaying
+// the raw RDP command word stream the viewer feeds to rdpx_rdp_cmd (and the
+// same stream loaded from a .rdp dump). This struct mirrors the *settable* RDP
+// state the inspector cares about: combine mux, other-modes bits, the eight
+// tile descriptors, the color/depth/texture image configs, the fixed colors,
+// and the scissor rect. Field layouts match the renderer's handlers in
+// src/rdp/rdp/*.c exactly (verified against rdp_set_*; this is the source of
+// truth, not gbi.h).
 //
-// Pure C ABI / Orthodox POD: no rendering, SDL or ImGui dependency. A panel reads
-// these fields directly. The decoder (cmd_decode.h) drives updates via
+// Pure C ABI / Orthodox POD: no rendering, SDL or ImGui dependency. A panel
+// reads these fields directly. The decoder (cmd_decode.h) drives updates via
 // shadow_apply().
 
 #include <stdint.h>
@@ -31,7 +32,7 @@ struct ShadowCombine {
 
 // SET_OTHER_MODES (0x2f) — decoded bit-fields the inspector surfaces.
 struct ShadowOtherModes {
-  uint8_t cycle_type;    // 0=1cyc 1=2cyc 2=copy 3=fill
+  uint8_t cycle_type;  // 0=1cyc 1=2cyc 2=copy 3=fill
   uint8_t persp_tex_en;
   uint8_t detail_tex_en;
   uint8_t sharpen_tex_en;
@@ -72,13 +73,14 @@ struct ShadowTile {
   uint8_t ct, mt;   // clamp/mirror T
   uint8_t mask_t;
   uint8_t shift_t;
-  uint8_t cs, ms;   // clamp/mirror S
+  uint8_t cs, ms;  // clamp/mirror S
   uint8_t mask_s;
   uint8_t shift_s;
   uint16_t sl, tl, sh, th;  // 12-bit each (SET_TILE_SIZE / LOAD_TILE)
 };
 
-// RGBA32 color (SET_FILL/FOG/BLEND/PRIM/ENV_COLOR). fill stores the raw word too.
+// RGBA32 color (SET_FILL/FOG/BLEND/PRIM/ENV_COLOR). fill stores the raw word
+// too.
 struct ShadowColor {
   uint8_t r, g, b, a;
 };
@@ -107,7 +109,7 @@ struct ShadowState {
   uint32_t depth_addr;  // 24-bit
 
   // SET_PRIM_DEPTH (0x2e)
-  uint16_t prim_z;        // top 15 bits, as written (<<16 masked)
+  uint16_t prim_z;  // top 15 bits, as written (<<16 masked)
   uint16_t prim_delta_z;
 
   struct ShadowOtherModes other_modes;
@@ -120,7 +122,7 @@ struct ShadowState {
   struct ShadowColor blend_color;
   struct ShadowColor prim_color;
   struct ShadowColor env_color;
-  uint8_t prim_min_level;   // SET_PRIM_COLOR args[0] high bits
+  uint8_t prim_min_level;  // SET_PRIM_COLOR args[0] high bits
   uint8_t prim_lod_frac;
 
   struct ShadowScissor scissor;
@@ -132,9 +134,9 @@ struct ShadowState {
   uint32_t cmd_count;  // total commands applied
 };
 
-// Reset all shadow fields to zero (matches a fresh renderer's pre-init state for
-// inspector purposes; the renderer's own defaults are not mirrored — only what
-// the stream sets).
+// Reset all shadow fields to zero (matches a fresh renderer's pre-init state
+// for inspector purposes; the renderer's own defaults are not mirrored — only
+// what the stream sets).
 void shadow_reset(struct ShadowState *s);
 
 // Apply one RDP command (its raw words) to the shadow. `words` points at `n`

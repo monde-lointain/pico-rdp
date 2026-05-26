@@ -1,18 +1,18 @@
 // Stream D.1: demo command-stream capture round-trip (SDL-free gtest).
 //
 // The viewer owns the real .rdp capture (DumpPlayer-compatible, SDL-bound); the
-// end-to-end scanout round-trip is exercised by the `demo_capture_roundtrip_run`
-// ctest, which runs `rdp_viewer --headless-capture-roundtrip 0` under
-// SDL_VIDEODRIVER=dummy (registered in CMakeLists). This gtest is the pure,
-// SDL-free complement: it serializes demo_build_frame(0)'s command stream into
-// an in-memory buffer using the .rdp RDPCommand record framing (capture.h),
-// reads it back, and asserts the decoded word stream is identical — locking the
-// per-command framing that the capture writer/reader depend on, with no SDL.
+// end-to-end scanout round-trip is exercised by the
+// `demo_capture_roundtrip_run` ctest, which runs `rdp_viewer
+// --headless-capture-roundtrip 0` under SDL_VIDEODRIVER=dummy (registered in
+// CMakeLists). This gtest is the pure, SDL-free complement: it serializes
+// demo_build_frame(0)'s command stream into an in-memory buffer using the .rdp
+// RDPCommand record framing (capture.h), reads it back, and asserts the decoded
+// word stream is identical — locking the per-command framing that the capture
+// writer/reader depend on, with no SDL.
 //
 // Not orthodox-enforced (gtest / C++ idioms).
 
 #include <gtest/gtest.h>
-
 #include <stdint.h>
 #include <string.h>
 

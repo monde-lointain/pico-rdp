@@ -8,12 +8,12 @@
  * SDL_PIXELFORMAT_RGB565; the console PIO shifts bits MSB-first in panel order
  * (no separate CPU byteswap). */
 
-enum { kScreenW = 240, kScreenH = 240, kScreenPixels = kScreenW * kScreenH };
+enum { SCREEN_W = 240, SCREEN_H = 240, SCREEN_PIXELS = SCREEN_W * SCREEN_H };
 
 typedef uint16_t color_t;
 
 struct Framebuffer {
-  color_t px[kScreenPixels];
+  color_t px[SCREEN_PIXELS];
 };
 
 /* Pack 8-bit RGB into RGB565 (R[5] G[6] B[5], red in high bits). */

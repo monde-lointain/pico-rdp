@@ -14,7 +14,8 @@
 
 #include <stdint.h>
 
-// RDP command ids (6-bit). Authoritative source: CMD_ID_* in src/rdp/n64video.c.
+// RDP command ids (6-bit). Authoritative source: CMD_ID_* in
+// src/rdp/n64video.c.
 enum {
   EMIT_OP_SHADE_TEXTURE_Z_TRI = 0x0f,
   EMIT_OP_SYNC_LOAD = 0x26,
@@ -36,25 +37,32 @@ enum {
 };
 
 // Forward one command's words into the sink (skips null sinks / callbacks).
-static void emit_words(struct CmdSink *sink, const uint32_t *words, uint32_t n) {
-  if (sink != 0 && sink->emit != 0) sink->emit(sink->ctx, words, n);
+static void emit_words(struct CmdSink *sink, const uint32_t *words,
+                       uint32_t n) {
+  if (sink != 0 && sink->emit != 0) {
+    sink->emit(sink->ctx, words, n);
+  }
 }
 
 // Low `bits` of val, as in the oracle's mask<T>().
 static uint32_t mask_bits(int32_t val, unsigned bits) {
-  return (uint32_t)val & (((uint32_t)1 << bits) - 1u);
+  return (uint32_t)val & (((uint32_t)1 << bits) - 1U);
 }
 
-// --- Triangle -----------------------------------------------------------------
+// --- Triangle ----------------------------------------------------------------
 
 void emit_triangle(struct CmdSink *sink, const struct DemoPrimSetup *setup) {
   // Mirrors submit_clipped_primitive() word-for-word (minus the leading
   // flush_default_state(), which the demo manages separately).
   uint32_t cmd[44];
-  for (int32_t i = 0; i < 44; ++i) cmd[i] = 0;
+  for (int32_t i = 0; i < 44; ++i) {
+    cmd[i] = 0;
+  }
 
   cmd[0] |= (uint32_t)EMIT_OP_SHADE_TEXTURE_Z_TRI << 24;
-  if (!(setup->pos.flags & DEMO_PRIMITIVE_RIGHT_MAJOR_BIT)) cmd[0] |= 1u << 23;
+  if (!(setup->pos.flags & DEMO_PRIMITIVE_RIGHT_MAJOR_BIT)) {
+    cmd[0] |= 1U << 23;
+  }
 
   const uint32_t tile = 0;
   const uint32_t max_level = 6;
@@ -76,73 +84,73 @@ void emit_triangle(struct CmdSink *sink, const struct DemoPrimSetup *setup) {
   cmd[7] = mask_bits(setup->pos.dxdy_b, 30);
 
   // RGBA value (c), split high/low halfword across two 32-bit-word groups.
-  cmd[8] |= (uint32_t)setup->attr.c[0] & 0xffff0000u;
-  cmd[12] |= ((uint32_t)setup->attr.c[0] << 16) & 0xffff0000u;
-  cmd[8] |= ((uint32_t)setup->attr.c[1] >> 16) & 0xffffu;
-  cmd[12] |= (uint32_t)setup->attr.c[1] & 0xffffu;
-  cmd[9] |= (uint32_t)setup->attr.c[2] & 0xffff0000u;
-  cmd[13] |= ((uint32_t)setup->attr.c[2] << 16) & 0xffff0000u;
-  cmd[9] |= ((uint32_t)setup->attr.c[3] >> 16) & 0xffffu;
-  cmd[13] |= (uint32_t)setup->attr.c[3] & 0xffffu;
+  cmd[8] |= (uint32_t)setup->attr.c[0] & 0xffff0000U;
+  cmd[12] |= ((uint32_t)setup->attr.c[0] << 16) & 0xffff0000U;
+  cmd[8] |= ((uint32_t)setup->attr.c[1] >> 16) & 0xffffU;
+  cmd[12] |= (uint32_t)setup->attr.c[1] & 0xffffU;
+  cmd[9] |= (uint32_t)setup->attr.c[2] & 0xffff0000U;
+  cmd[13] |= ((uint32_t)setup->attr.c[2] << 16) & 0xffff0000U;
+  cmd[9] |= ((uint32_t)setup->attr.c[3] >> 16) & 0xffffU;
+  cmd[13] |= (uint32_t)setup->attr.c[3] & 0xffffU;
 
   // dC/dx
-  cmd[10] |= (uint32_t)setup->attr.dcdx[0] & 0xffff0000u;
-  cmd[14] |= ((uint32_t)setup->attr.dcdx[0] << 16) & 0xffff0000u;
-  cmd[10] |= ((uint32_t)setup->attr.dcdx[1] >> 16) & 0xffffu;
-  cmd[14] |= (uint32_t)setup->attr.dcdx[1] & 0xffffu;
-  cmd[11] |= (uint32_t)setup->attr.dcdx[2] & 0xffff0000u;
-  cmd[15] |= ((uint32_t)setup->attr.dcdx[2] << 16) & 0xffff0000u;
-  cmd[11] |= ((uint32_t)setup->attr.dcdx[3] >> 16) & 0xffffu;
-  cmd[15] |= (uint32_t)setup->attr.dcdx[3] & 0xffffu;
+  cmd[10] |= (uint32_t)setup->attr.dcdx[0] & 0xffff0000U;
+  cmd[14] |= ((uint32_t)setup->attr.dcdx[0] << 16) & 0xffff0000U;
+  cmd[10] |= ((uint32_t)setup->attr.dcdx[1] >> 16) & 0xffffU;
+  cmd[14] |= (uint32_t)setup->attr.dcdx[1] & 0xffffU;
+  cmd[11] |= (uint32_t)setup->attr.dcdx[2] & 0xffff0000U;
+  cmd[15] |= ((uint32_t)setup->attr.dcdx[2] << 16) & 0xffff0000U;
+  cmd[11] |= ((uint32_t)setup->attr.dcdx[3] >> 16) & 0xffffU;
+  cmd[15] |= (uint32_t)setup->attr.dcdx[3] & 0xffffU;
 
   // dC/de
-  cmd[16] |= (uint32_t)setup->attr.dcde[0] & 0xffff0000u;
-  cmd[20] |= ((uint32_t)setup->attr.dcde[0] << 16) & 0xffff0000u;
-  cmd[16] |= ((uint32_t)setup->attr.dcde[1] >> 16) & 0xffffu;
-  cmd[20] |= (uint32_t)setup->attr.dcde[1] & 0xffffu;
-  cmd[17] |= (uint32_t)setup->attr.dcde[2] & 0xffff0000u;
-  cmd[21] |= ((uint32_t)setup->attr.dcde[2] << 16) & 0xffff0000u;
-  cmd[17] |= ((uint32_t)setup->attr.dcde[3] >> 16) & 0xffffu;
-  cmd[21] |= (uint32_t)setup->attr.dcde[3] & 0xffffu;
+  cmd[16] |= (uint32_t)setup->attr.dcde[0] & 0xffff0000U;
+  cmd[20] |= ((uint32_t)setup->attr.dcde[0] << 16) & 0xffff0000U;
+  cmd[16] |= ((uint32_t)setup->attr.dcde[1] >> 16) & 0xffffU;
+  cmd[20] |= (uint32_t)setup->attr.dcde[1] & 0xffffU;
+  cmd[17] |= (uint32_t)setup->attr.dcde[2] & 0xffff0000U;
+  cmd[21] |= ((uint32_t)setup->attr.dcde[2] << 16) & 0xffff0000U;
+  cmd[17] |= ((uint32_t)setup->attr.dcde[3] >> 16) & 0xffffU;
+  cmd[21] |= (uint32_t)setup->attr.dcde[3] & 0xffffU;
 
   // dC/dy
-  cmd[18] |= (uint32_t)setup->attr.dcdy[0] & 0xffff0000u;
-  cmd[22] |= ((uint32_t)setup->attr.dcdy[0] << 16) & 0xffff0000u;
-  cmd[18] |= ((uint32_t)setup->attr.dcdy[1] >> 16) & 0xffffu;
-  cmd[22] |= (uint32_t)setup->attr.dcdy[1] & 0xffffu;
-  cmd[19] |= (uint32_t)setup->attr.dcdy[2] & 0xffff0000u;
-  cmd[23] |= ((uint32_t)setup->attr.dcdy[2] << 16) & 0xffff0000u;
-  cmd[19] |= ((uint32_t)setup->attr.dcdy[3] >> 16) & 0xffffu;
-  cmd[23] |= (uint32_t)setup->attr.dcdy[3] & 0xffffu;
+  cmd[18] |= (uint32_t)setup->attr.dcdy[0] & 0xffff0000U;
+  cmd[22] |= ((uint32_t)setup->attr.dcdy[0] << 16) & 0xffff0000U;
+  cmd[18] |= ((uint32_t)setup->attr.dcdy[1] >> 16) & 0xffffU;
+  cmd[22] |= (uint32_t)setup->attr.dcdy[1] & 0xffffU;
+  cmd[19] |= (uint32_t)setup->attr.dcdy[2] & 0xffff0000U;
+  cmd[23] |= ((uint32_t)setup->attr.dcdy[2] << 16) & 0xffff0000U;
+  cmd[19] |= ((uint32_t)setup->attr.dcdy[3] >> 16) & 0xffffU;
+  cmd[23] |= (uint32_t)setup->attr.dcdy[3] & 0xffffU;
 
   // S/T/W value
-  cmd[24] |= (uint32_t)setup->attr.u & 0xffff0000u;
-  cmd[28] |= ((uint32_t)setup->attr.u << 16) & 0xffff0000u;
-  cmd[24] |= ((uint32_t)setup->attr.v >> 16) & 0xffffu;
-  cmd[28] |= (uint32_t)setup->attr.v & 0xffffu;
-  cmd[25] |= (uint32_t)setup->attr.w & 0xffff0000u;
-  cmd[29] |= ((uint32_t)setup->attr.w << 16) & 0xffff0000u;
+  cmd[24] |= (uint32_t)setup->attr.u & 0xffff0000U;
+  cmd[28] |= ((uint32_t)setup->attr.u << 16) & 0xffff0000U;
+  cmd[24] |= ((uint32_t)setup->attr.v >> 16) & 0xffffU;
+  cmd[28] |= (uint32_t)setup->attr.v & 0xffffU;
+  cmd[25] |= (uint32_t)setup->attr.w & 0xffff0000U;
+  cmd[29] |= ((uint32_t)setup->attr.w << 16) & 0xffff0000U;
   // dS/dx, dT/dx, dW/dx
-  cmd[26] |= (uint32_t)setup->attr.dudx & 0xffff0000u;
-  cmd[30] |= ((uint32_t)setup->attr.dudx << 16) & 0xffff0000u;
-  cmd[26] |= ((uint32_t)setup->attr.dvdx >> 16) & 0xffffu;
-  cmd[30] |= (uint32_t)setup->attr.dvdx & 0xffffu;
-  cmd[27] |= (uint32_t)setup->attr.dwdx & 0xffff0000u;
-  cmd[31] |= ((uint32_t)setup->attr.dwdx << 16) & 0xffff0000u;
+  cmd[26] |= (uint32_t)setup->attr.dudx & 0xffff0000U;
+  cmd[30] |= ((uint32_t)setup->attr.dudx << 16) & 0xffff0000U;
+  cmd[26] |= ((uint32_t)setup->attr.dvdx >> 16) & 0xffffU;
+  cmd[30] |= (uint32_t)setup->attr.dvdx & 0xffffU;
+  cmd[27] |= (uint32_t)setup->attr.dwdx & 0xffff0000U;
+  cmd[31] |= ((uint32_t)setup->attr.dwdx << 16) & 0xffff0000U;
   // dS/de, dT/de, dW/de
-  cmd[32] |= (uint32_t)setup->attr.dude & 0xffff0000u;
-  cmd[36] |= ((uint32_t)setup->attr.dude << 16) & 0xffff0000u;
-  cmd[32] |= ((uint32_t)setup->attr.dvde >> 16) & 0xffffu;
-  cmd[36] |= (uint32_t)setup->attr.dvde & 0xffffu;
-  cmd[33] |= (uint32_t)setup->attr.dwde & 0xffff0000u;
-  cmd[37] |= ((uint32_t)setup->attr.dwde << 16) & 0xffff0000u;
+  cmd[32] |= (uint32_t)setup->attr.dude & 0xffff0000U;
+  cmd[36] |= ((uint32_t)setup->attr.dude << 16) & 0xffff0000U;
+  cmd[32] |= ((uint32_t)setup->attr.dvde >> 16) & 0xffffU;
+  cmd[36] |= (uint32_t)setup->attr.dvde & 0xffffU;
+  cmd[33] |= (uint32_t)setup->attr.dwde & 0xffff0000U;
+  cmd[37] |= ((uint32_t)setup->attr.dwde << 16) & 0xffff0000U;
   // dS/dy, dT/dy, dW/dy
-  cmd[34] |= (uint32_t)setup->attr.dudy & 0xffff0000u;
-  cmd[38] |= ((uint32_t)setup->attr.dudy << 16) & 0xffff0000u;
-  cmd[34] |= ((uint32_t)setup->attr.dvdy >> 16) & 0xffffu;
-  cmd[38] |= (uint32_t)setup->attr.dvdy & 0xffffu;
-  cmd[35] |= (uint32_t)setup->attr.dwdy & 0xffff0000u;
-  cmd[39] |= ((uint32_t)setup->attr.dwdy << 16) & 0xffff0000u;
+  cmd[34] |= (uint32_t)setup->attr.dudy & 0xffff0000U;
+  cmd[38] |= ((uint32_t)setup->attr.dudy << 16) & 0xffff0000U;
+  cmd[34] |= ((uint32_t)setup->attr.dvdy >> 16) & 0xffffU;
+  cmd[38] |= (uint32_t)setup->attr.dvdy & 0xffffU;
+  cmd[35] |= (uint32_t)setup->attr.dwdy & 0xffff0000U;
+  cmd[39] |= ((uint32_t)setup->attr.dwdy << 16) & 0xffff0000U;
 
   cmd[40] = (uint32_t)setup->attr.z;
   cmd[41] = (uint32_t)setup->attr.dzdx;
@@ -152,7 +160,7 @@ void emit_triangle(struct CmdSink *sink, const struct DemoPrimSetup *setup) {
   emit_words(sink, cmd, 44);
 }
 
-// --- Image / framebuffer ------------------------------------------------------
+// --- Image / framebuffer -----------------------------------------------------
 
 void emit_set_color_image(struct CmdSink *sink, uint32_t fmt, uint32_t size,
                           uint32_t addr, uint32_t width_pixels) {
@@ -160,7 +168,7 @@ void emit_set_color_image(struct CmdSink *sink, uint32_t fmt, uint32_t size,
   cmd[0] |= (uint32_t)EMIT_OP_SET_COLOR_IMAGE << 24;
   cmd[0] |= fmt << 21;
   cmd[0] |= size << 19;
-  cmd[0] |= (width_pixels - 1u) & 1023u;
+  cmd[0] |= (width_pixels - 1U) & 1023U;
   cmd[1] = addr;
   emit_words(sink, cmd, 2);
 }
@@ -178,17 +186,17 @@ void emit_set_texture_image(struct CmdSink *sink, uint32_t fmt, uint32_t size,
   cmd[0] |= (uint32_t)EMIT_OP_SET_TEXTURE_IMAGE << 24;
   cmd[0] |= fmt << 21;
   cmd[0] |= size << 19;
-  cmd[0] |= (width_pixels - 1u) & 0x3ffu;
-  cmd[1] |= addr & 0x00ffffffu;
+  cmd[0] |= (width_pixels - 1U) & 0x3ffU;
+  cmd[1] |= addr & 0x00ffffffU;
   emit_words(sink, cmd, 2);
 }
 
-// --- Render state -------------------------------------------------------------
+// --- Render state ------------------------------------------------------------
 
 void emit_set_combine(struct CmdSink *sink, uint32_t combine_hi,
                       uint32_t combine_lo) {
   uint32_t cmd[2];
-  cmd[0] = ((uint32_t)EMIT_OP_SET_COMBINE << 24) | (combine_hi & 0x00ffffffu);
+  cmd[0] = ((uint32_t)EMIT_OP_SET_COMBINE << 24) | (combine_hi & 0x00ffffffU);
   cmd[1] = combine_lo;
   emit_words(sink, cmd, 2);
 }
@@ -198,43 +206,67 @@ void emit_set_other_modes(struct CmdSink *sink,
   uint32_t cmd[2] = {0, 0};
   cmd[0] |= (uint32_t)EMIT_OP_SET_OTHER_MODES << 24;
   cmd[0] |= modes->cycle_type << 20;
-  if (modes->perspective) cmd[0] |= 1u << 19;
-  if (modes->tlut) cmd[0] |= 1u << 15;
-  if (modes->tlut_ia_type) cmd[0] |= 1u << 14;
-  if (modes->sample_quad) cmd[0] |= 1u << 13;
-  if (modes->bilerp_0) cmd[0] |= 1u << 11;
-  if (modes->bilerp_1) cmd[0] |= 1u << 10;
-  cmd[0] |= (modes->rgb_dither & 3u) << 6;
-  cmd[0] |= (modes->alpha_dither & 3u) << 4;
+  if (modes->perspective) {
+    cmd[0] |= 1U << 19;
+  }
+  if (modes->TLUT) {
+    cmd[0] |= 1U << 15;
+  }
+  if (modes->tlut_ia_type) {
+    cmd[0] |= 1U << 14;
+  }
+  if (modes->sample_quad) {
+    cmd[0] |= 1U << 13;
+  }
+  if (modes->bilerp_0) {
+    cmd[0] |= 1U << 11;
+  }
+  if (modes->bilerp_1) {
+    cmd[0] |= 1U << 10;
+  }
+  cmd[0] |= (modes->rgb_dither & 3U) << 6;
+  cmd[0] |= (modes->alpha_dither & 3U) << 4;
 
   // Blender / z / coverage default to 0 (the oracle's default blender enums all
   // encode 0, ZMode::Opaque=0, CoverageMode::Clamp=0).
-  if (modes->blend_en) cmd[1] |= 1u << 14;
-  if (modes->z_update) cmd[1] |= 1u << 5;
-  if (modes->z_compare) cmd[1] |= 1u << 4;
-  if (modes->aa) cmd[1] |= 1u << 3;
-  if (modes->z_source_prim) cmd[1] |= 1u << 2;
-  if (modes->alpha_compare) cmd[1] |= 1u << 0;
+  if (modes->blend_en) {
+    cmd[1] |= 1U << 14;
+  }
+  if (modes->z_update) {
+    cmd[1] |= 1U << 5;
+  }
+  if (modes->z_compare) {
+    cmd[1] |= 1U << 4;
+  }
+  if (modes->aa) {
+    cmd[1] |= 1U << 3;
+  }
+  if (modes->z_source_prim) {
+    cmd[1] |= 1U << 2;
+  }
+  if (modes->alpha_compare) {
+    cmd[1] |= 1U << 0;
+  }
   emit_words(sink, cmd, 2);
 }
 
-// --- Tile / texture load ------------------------------------------------------
+// --- Tile / texture load -----------------------------------------------------
 
 void emit_set_tile(struct CmdSink *sink, uint32_t tile,
                    const struct DemoTileDesc *desc) {
   uint32_t cmd[2] = {0, 0};
   cmd[0] |= (uint32_t)EMIT_OP_SET_TILE << 24;
 
-  cmd[1] |= (desc->shift_s & 0xfu) << 0;
-  cmd[1] |= (desc->mask_s & 0xfu) << 4;
+  cmd[1] |= (desc->shift_s & 0xfU) << 0;
+  cmd[1] |= (desc->mask_s & 0xfU) << 4;
   cmd[1] |= (uint32_t)((desc->flags & DEMO_TILE_MIRROR_S_BIT) != 0) << 8;
   cmd[1] |= (uint32_t)((desc->flags & DEMO_TILE_CLAMP_S_BIT) != 0) << 9;
-  cmd[1] |= (desc->shift_t & 0xfu) << 10;
-  cmd[1] |= (desc->mask_t & 0xfu) << 14;
+  cmd[1] |= (desc->shift_t & 0xfU) << 10;
+  cmd[1] |= (desc->mask_t & 0xfU) << 14;
   cmd[1] |= (uint32_t)((desc->flags & DEMO_TILE_MIRROR_T_BIT) != 0) << 18;
   cmd[1] |= (uint32_t)((desc->flags & DEMO_TILE_CLAMP_T_BIT) != 0) << 19;
-  cmd[1] |= (desc->palette & 0xfu) << 20;
-  cmd[1] |= (tile & 7u) << 24;
+  cmd[1] |= (desc->palette & 0xfU) << 20;
+  cmd[1] |= (tile & 7U) << 24;
 
   // offset/stride are bytes, stored as 64-bit words (>>3); both 8-byte aligned.
   cmd[0] |= (desc->offset >> 3) << 0;
@@ -249,11 +281,14 @@ void emit_set_tile(struct CmdSink *sink, uint32_t tile,
 static void emit_tile_rect(struct CmdSink *sink, uint32_t op, uint32_t tile,
                            uint32_t x, uint32_t y, uint32_t width,
                            uint32_t height) {
-  uint32_t xs = x << 2, ys = y << 2, ws = width << 2, hs = height << 2;
-  uint32_t sl = xs & 0xfffu;
-  uint32_t tl = ys & 0xfffu;
-  uint32_t sh = (xs + ws - 4u) & 0xfffu;
-  uint32_t th = (ys + hs - 4u) & 0xfffu;
+  uint32_t xs = x << 2;
+  uint32_t ys = y << 2;
+  uint32_t ws = width << 2;
+  uint32_t hs = height << 2;
+  uint32_t sl = xs & 0xfffU;
+  uint32_t tl = ys & 0xfffU;
+  uint32_t sh = (xs + ws - 4U) & 0xfffU;
+  uint32_t th = (ys + hs - 4U) & 0xfffU;
   uint32_t cmd[2] = {0, 0};
   cmd[0] |= op << 24;
   cmd[1] |= tile << 24;
@@ -281,10 +316,10 @@ void emit_load_tlut(struct CmdSink *sink, uint32_t tile, uint32_t x, uint32_t y,
   uint32_t cmd[2] = {0, 0};
   cmd[0] |= (uint32_t)EMIT_OP_LOAD_TLUT << 24;
   cmd[1] |= tile << 24;
-  uint32_t sl = (x << 2) & 0xfffu;
-  uint32_t tl = (y << 2) & 0xfffu;
-  uint32_t sh = ((x + width - 1u) << 2) & 0xfffu;
-  uint32_t th = ((y + height - 1u) << 2) & 0xfffu;
+  uint32_t sl = (x << 2) & 0xfffU;
+  uint32_t tl = (y << 2) & 0xfffU;
+  uint32_t sh = ((x + width - 1U) << 2) & 0xfffU;
+  uint32_t th = ((y + height - 1U) << 2) & 0xfffU;
   cmd[0] |= sl << 12;
   cmd[0] |= tl << 0;
   cmd[1] |= sh << 12;
@@ -292,7 +327,7 @@ void emit_load_tlut(struct CmdSink *sink, uint32_t tile, uint32_t x, uint32_t y,
   emit_words(sink, cmd, 2);
 }
 
-// --- Clear / fill -------------------------------------------------------------
+// --- Clear / fill ------------------------------------------------------
 
 void emit_set_fill_color(struct CmdSink *sink, uint32_t color) {
   uint32_t cmd[2] = {0, 0};
@@ -303,30 +338,35 @@ void emit_set_fill_color(struct CmdSink *sink, uint32_t color) {
 
 void emit_set_scissor(struct CmdSink *sink, uint32_t x, uint32_t y,
                       uint32_t width, uint32_t height) {
-  uint32_t xh = x << 2, yh = y << 2;
-  uint32_t xl = (x + width) << 2, yl = (y + height) << 2;
+  uint32_t xh = x << 2;
+  uint32_t yh = y << 2;
+  uint32_t xl = (x + width) << 2;
+  uint32_t yl = (y + height) << 2;
   uint32_t cmd[2] = {0, 0};
   cmd[0] |= (uint32_t)EMIT_OP_SET_SCISSOR << 24;
-  cmd[0] |= (xh & 0xfffu) << 12;
-  cmd[0] |= (yh & 0xfffu) << 0;
-  cmd[1] |= (xl & 0xfffu) << 12;
-  cmd[1] |= (yl & 0xfffu) << 0;
+  cmd[0] |= (xh & 0xfffU) << 12;
+  cmd[0] |= (yh & 0xfffU) << 0;
+  cmd[1] |= (xl & 0xfffU) << 12;
+  cmd[1] |= (yl & 0xfffU) << 0;
   emit_words(sink, cmd, 2);
 }
 
 void emit_fill_rectangle(struct CmdSink *sink, uint32_t x, uint32_t y,
                          uint32_t width, uint32_t height) {
-  uint32_t xs = x << 2, ys = y << 2, ws = width << 2, hs = height << 2;
+  uint32_t xs = x << 2;
+  uint32_t ys = y << 2;
+  uint32_t ws = width << 2;
+  uint32_t hs = height << 2;
   uint32_t cmd[2] = {0, 0};
   cmd[0] |= (uint32_t)EMIT_OP_FILL_RECTANGLE << 24;
-  cmd[0] |= ((xs + ws - 4u) & 0xfffu) << 12;
-  cmd[1] |= (xs & 0xfffu) << 12;
-  cmd[0] |= ((ys + hs - 4u) & 0xfffu) << 0;
-  cmd[1] |= (ys & 0xfffu) << 0;
+  cmd[0] |= ((xs + ws - 4U) & 0xfffU) << 12;
+  cmd[1] |= (xs & 0xfffU) << 12;
+  cmd[0] |= ((ys + hs - 4U) & 0xfffU) << 0;
+  cmd[1] |= (ys & 0xfffU) << 0;
   emit_words(sink, cmd, 2);
 }
 
-// --- Sync ---------------------------------------------------------------------
+// --- Sync  -------------------------------------------------------------------
 
 static void emit_sync(struct CmdSink *sink, uint32_t op) {
   uint32_t cmd[2] = {0, 0};
@@ -334,7 +374,15 @@ static void emit_sync(struct CmdSink *sink, uint32_t op) {
   emit_words(sink, cmd, 2);
 }
 
-void emit_sync_full(struct CmdSink *sink) { emit_sync(sink, EMIT_OP_SYNC_FULL); }
-void emit_sync_pipe(struct CmdSink *sink) { emit_sync(sink, EMIT_OP_SYNC_PIPE); }
-void emit_sync_tile(struct CmdSink *sink) { emit_sync(sink, EMIT_OP_SYNC_TILE); }
-void emit_sync_load(struct CmdSink *sink) { emit_sync(sink, EMIT_OP_SYNC_LOAD); }
+void emit_sync_full(struct CmdSink *sink) {
+  emit_sync(sink, EMIT_OP_SYNC_FULL);
+}
+void emit_sync_pipe(struct CmdSink *sink) {
+  emit_sync(sink, EMIT_OP_SYNC_PIPE);
+}
+void emit_sync_tile(struct CmdSink *sink) {
+  emit_sync(sink, EMIT_OP_SYNC_TILE);
+}
+void emit_sync_load(struct CmdSink *sink) {
+  emit_sync(sink, EMIT_OP_SYNC_LOAD);
+}

@@ -43,7 +43,9 @@ int headless_dump(const char* path) {
   renderer_host_submit_clear((uint16_t)CLEAR_FILL_5551);
   renderer_host_present();
 
-  uint32_t w = 0, h = 0, pitch = 0;
+  uint32_t w = 0;
+  uint32_t h = 0;
+  uint32_t pitch = 0;
   const uint32_t* px = renderer_host_scanout(&w, &h, &pitch);
   if (!px) {
     fprintf(stderr, "headless: no scanout produced\n");
@@ -69,8 +71,8 @@ int headless_dump(const char* path) {
     return 4;
   }
   for (uint32_t i = 0; i < w * h; ++i) {
-    const uint32_t rgb = px[i] & 0x00ffffffu;  // ignore alpha
-    if (rgb != (first & 0x00ffffffu)) {
+    const uint32_t rgb = px[i] & 0x00ffffffU;  // ignore alpha
+    if (rgb != (first & 0x00ffffffU)) {
       fprintf(stderr, "headless: non-uniform pixel at %u (0x%08x != 0x%08x)\n",
               i, px[i], first);
       renderer_host_close();
@@ -123,7 +125,9 @@ int headless_demo_frame(uint32_t frame_n, const char* path) {
   playback_init(&pb);  // buffers frame_n's commands, marks dirty (full frame)
   playback_tick(&pb);  // feeds the whole frame + present_demo
 
-  uint32_t w = 0, h = 0, pitch = 0;
+  uint32_t w = 0;
+  uint32_t h = 0;
+  uint32_t pitch = 0;
   const uint32_t* px = renderer_host_scanout(&w, &h, &pitch);
   if (!px) {
     fprintf(stderr, "headless-demo: no scanout produced\n");
@@ -142,11 +146,16 @@ int headless_demo_frame(uint32_t frame_n, const char* path) {
   uint32_t uniq[512];
   uint32_t nuniq = 0;
   for (uint32_t i = 0; i < w * h && nuniq < 512; ++i) {
-    const uint32_t rgb = px[i] & 0x00ffffffu;
+    const uint32_t rgb = px[i] & 0x00ffffffU;
     uint32_t j = 0;
-    for (; j < nuniq; ++j)
-      if (uniq[j] == rgb) break;
-    if (j == nuniq) uniq[nuniq++] = rgb;
+    for (; j < nuniq; ++j) {
+      if (uniq[j] == rgb) {
+        break;
+      }
+    }
+    if (j == nuniq) {
+      uniq[nuniq++] = rgb;
+    }
   }
   if (nuniq <= 1) {
     fprintf(
@@ -202,54 +211,65 @@ int headless_perf(uint32_t frame_n) {
   playback_init(&pb);  // buffers frame N's commands, marks dirty (full frame)
 
   rdpx_reset_pixel_count();
-  uint64_t t0 = SDL_GetPerformanceCounter();
+  uint64_t const t0 = SDL_GetPerformanceCounter();
   playback_tick(&pb);  // feeds the whole frame + present_demo
-  uint64_t t1 = SDL_GetPerformanceCounter();
-  double ms =
+  uint64_t const t1 = SDL_GetPerformanceCounter();
+  double const ms =
       (double)(t1 - t0) / (double)SDL_GetPerformanceFrequency() * 1000.0;
-  uint64_t px = rdpx_get_pixel_count();
+  uint64_t const px = rdpx_get_pixel_count();
 
   // Per-command-type histogram (C.2 decoder over the buffered stream).
   uint32_t by_id[64];
-  for (uint32_t i = 0; i < 64; ++i) by_id[i] = 0u;
-  uint32_t tri = 0u;
+  for (uint32_t i = 0; i < 64; ++i) {
+    by_id[i] = 0U;
+  }
+  uint32_t tri = 0U;
   for (uint32_t i = 0; i < pb.cmd_total; ++i) {
     const struct PlaybackCmd* c = &pb.cmds[i];
     struct CmdRecord rec;
     cmd_decode(&pb.words[c->word_off], c->word_count, &rec);
-    by_id[rec.id & 0x3f] += 1u;
-    if (rec.is_triangle) tri += 1u;
+    by_id[rec.id & 0x3f] += 1U;
+    if (rec.is_triangle) {
+      tri += 1U;
+    }
   }
 
   // TMEM non-zero check over the loaded CI4 region (low 2 KB).
   const uint8_t* tmem = rdpx_get_tmem();
-  uint32_t tmem_sz = rdpx_get_tmem_size();
-  uint32_t nz = 0u;
-  uint32_t scan = tmem_sz < 2048u ? tmem_sz : 2048u;
+  uint32_t const tmem_sz = rdpx_get_tmem_size();
+  uint32_t nz = 0U;
+  uint32_t const scan = tmem_sz < 2048U ? tmem_sz : 2048U;
   if (tmem) {
-    for (uint32_t i = 0; i < scan; ++i)
-      if (tmem[i] != 0) ++nz;
+    for (uint32_t i = 0; i < scan; ++i) {
+      if (tmem[i] != 0) {
+        ++nz;
+      }
+    }
   }
 
   // Extrapolation model (perf-extrapolation.md): 250..700 cyc/px @250 MHz.
-  double opt = perf_extrapolate_m0_ms(px, 250.0, 250000000.0);
-  double pes = perf_extrapolate_m0_ms(px, 700.0, 250000000.0);
+  double const opt = perf_extrapolate_m0_ms(px, 250.0, 250000000.0);
+  double const pes = perf_extrapolate_m0_ms(px, 700.0, 250000000.0);
 
   printf("headless-perf: frame %u\n", frame_n);
   printf("  commands=%u triangles=%u\n", pb.cmd_total, tri);
   printf("  pixels=%llu  host_build_present=%.3f ms", (unsigned long long)px,
          ms);
-  if (ms > 0.0)
+  if (ms > 0.0) {
     printf("  (%.2f Mpix/s)\n", ((double)px / 1.0e6) / (ms / 1000.0));
-  else
+  } else {
     printf("\n");
+  }
   printf(
       "  extrapolated M0+ @250MHz: %.1f .. %.1f ms/frame (~%.0f..%.0f fps)\n",
       opt, pes, pes > 0 ? 1000.0 / pes : 0.0, opt > 0 ? 1000.0 / opt : 0.0);
   printf("  TMEM non-zero bytes in CI4 region: %u / %u\n", nz, scan);
   printf("  command types:");
-  for (uint32_t id = 0; id < 64; ++id)
-    if (by_id[id]) printf(" %s=%u", rdp_cmd_name((uint8_t)id), by_id[id]);
+  for (uint32_t id = 0; id < 64; ++id) {
+    if (by_id[id]) {
+      printf(" %s=%u", rdp_cmd_name((uint8_t)id), by_id[id]);
+    }
+  }
   printf("\n");
 
   int rc = 0;
@@ -299,7 +319,9 @@ int headless_capture_roundtrip(uint32_t frame_n) {
 
   // (a) Direct render of frame N -> scanout A.
   playback_tick(&pb);
-  uint32_t aw = 0, ah = 0, ap = 0;
+  uint32_t aw = 0;
+  uint32_t ah = 0;
+  uint32_t ap = 0;
   const uint32_t* apx = renderer_host_scanout(&aw, &ah, &ap);
   if (!apx || aw != RENDERER_HOST_OUT_WIDTH || ah != RENDERER_HOST_OUT_HEIGHT) {
     fprintf(stderr, "roundtrip: direct scanout invalid (%ux%u)\n", aw, ah);
@@ -317,7 +339,9 @@ int headless_capture_roundtrip(uint32_t frame_n) {
     renderer_host_close();
     return 4;
   }
-  uint32_t bw = 0, bh = 0, bp = 0;
+  uint32_t bw = 0;
+  uint32_t bh = 0;
+  uint32_t bp = 0;
   const uint32_t* bpx = renderer_host_scanout(&bw, &bh, &bp);
   if (!bpx || bw != RENDERER_HOST_OUT_WIDTH || bh != RENDERER_HOST_OUT_HEIGHT) {
     fprintf(stderr, "roundtrip: replay scanout invalid (%ux%u)\n", bw, bh);
@@ -326,11 +350,14 @@ int headless_capture_roundtrip(uint32_t frame_n) {
   }
 
   // (d) Byte-identical comparison.
-  uint32_t diffs = 0, first_i = 0;
+  uint32_t diffs = 0;
+  uint32_t first_i = 0;
   for (uint32_t i = 0; i < RENDERER_HOST_OUT_WIDTH * RENDERER_HOST_OUT_HEIGHT;
        ++i) {
     if (snap_a[i] != bpx[i]) {
-      if (diffs == 0) first_i = i;
+      if (diffs == 0) {
+        first_i = i;
+      }
       ++diffs;
     }
   }

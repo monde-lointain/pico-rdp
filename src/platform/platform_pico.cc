@@ -10,7 +10,7 @@
  *   with COLMOD=0x55 (RGB565) instead of 0x03 (12bpp RGB444).
  *
  * PIO: screen.pio — 16bpp, MSB-first, SCK sideset.
- * DMA: halfword (16-bit) transfers, kScreenPixels count, TE-gated.
+ * DMA: halfword (16-bit) transfers, SCREEN_PIXELS count, TE-gated.
  * Seed: pico/rand.h get_rand_32() (ROSC + time entropy).
  * Log: USB-CDC printf (pico_enable_stdio_usb set in executable's CMakeLists).
  */
@@ -247,7 +247,7 @@ void plat_init(void) {
     dma_channel_configure((uint)s_dma_chan, &cfg,
                           &s_pio->txf[s_sm], /* write address */
                           NULL,              /* read address set per transfer */
-                          kScreenPixels,     /* transfer count (16-bit words) */
+                          SCREEN_PIXELS,     /* transfer count (16-bit words) */
                           false              /* don't trigger yet */
     );
   }
@@ -285,11 +285,11 @@ void plat_present(const struct Framebuffer *fb) {
   while (!gpio_get(PIN_VSYNC)) { /* wait for rising edge */
   }
 
-  /* DMA the full framebuffer: kScreenPixels 16-bit words.
+  /* DMA the full framebuffer: SCREEN_PIXELS 16-bit words.
    * PIO shifts MSB-first → no CPU byteswap needed.
    * (design spec; hardware.cpp lines 175-179 for non-doubling path) */
   dma_channel_set_read_addr((uint)s_dma_chan, fb->px, false);
-  dma_channel_set_trans_count((uint)s_dma_chan, kScreenPixels,
+  dma_channel_set_trans_count((uint)s_dma_chan, SCREEN_PIXELS,
                               true /* trigger */);
 
   /* Wait for DMA to complete before returning so callers can reuse fb */

@@ -1,4 +1,5 @@
-// demo_core public API: arena layout + per-frame RDP command stream — see demo.h.
+// demo_core public API: arena layout + per-frame RDP command stream — see
+// demo.h.
 //
 // demo_build_frame is the demo fan-in: it sets the render state and drives the
 // scene helpers (scene.c) to emit one complete, deterministic RDP command frame
@@ -9,7 +10,7 @@
 // through the XOR-correct RDRAM I/O (never plain memcpy).
 //
 // --- Render state derivation (gldemo G_* modes -> our raw RDP bits) ----------
-//
+// clang-format off
 // gldemo (render.c / graphic.c) on F3DEX2:
 //   clear:   G_CYC_FILL, SET_COLOR_IMAGE=Z then color, SET_FILL_COLOR, FILL_RECT
 //            (Z fill = GPACK_ZDZ(G_MAXFBZ,0); color fill = GPACK_RGBA5551(0,0,0,1))
@@ -17,10 +18,11 @@
 //            (G_CC_SHADE), G_ZBUFFER|G_SHADE|G_SHADING_SMOOTH|G_CULL_BACK
 //   cube:    same cycle/rendermode, our addition = arrows CI4 texture via TLUT,
 //            combine = texel * shade (G_CC_MODULATEIA), Z, CULL_BACK
-//
-// We disable AA (task: sharp opaque edges) so other-modes z/coverage stay simple.
-// Combine words are baked constants packed exactly as the bit-exact oracle
-// RDP::CommandBuilder::set_combiner_2cycle does (1-cycle => first==second):
+// clang-format on
+// We disable AA (task: sharp opaque edges) so other-modes z/coverage stay
+// simple. Combine words are baked constants packed exactly as the bit-exact
+// oracle RDP::CommandBuilder::set_combiner_2cycle does (1-cycle =>
+// first==second):
 //
 //   PYRAMID (G_CC_SHADE = (0,0,0,SHADE) RGB, (0,0,0,SHADE) A):
 //     RGB  muladd=Zero(8) mulsub=Zero(8) mul=Zero(16) add=Shade(4)
@@ -32,7 +34,8 @@
 //     -> hi=0x00121824  lo=0x8833ffff
 //
 // SET_OTHER_MODES bits (emit_set_other_modes packs these): cycle_type=1cycle,
-// z_compare=1, z_update=1, aa=0; perspective=1 only for the textured cube; tlut=1
+// z_compare=1, z_update=1, aa=0; perspective=1 only for the textured cube;
+// TLUT=1
 // + sample point (no bilerp) for the cube. Blender left at defaults (m1a=
 // PixelColor) with blend_en=0 -> the combined color is written straight to the
 // FB (opaque), matching G_RM_*_OPA_SURF without AA.
@@ -49,7 +52,8 @@
 #include "setup.h"
 
 // Baked combiner words (see header comment for the field-by-field derivation).
-// Plain macros (not an enum: the lo words exceed INT_MAX, illegal as enumerators).
+// Plain macros (not an enum: the lo words exceed INT_MAX, illegal as
+// enumerators).
 #define DEMO_COMBINE_SHADE_HI 0x00887f10u
 #define DEMO_COMBINE_SHADE_LO 0x88fe793cu
 #define DEMO_COMBINE_TEXEL_SHADE_HI 0x00121824u
@@ -61,7 +65,8 @@
 #define DEMO_Z_FILL_PIXEL 0xfffcu
 #define DEMO_COLOR_FILL_PIXEL 0x0001u
 #define DEMO_Z_FILL_WORD ((DEMO_Z_FILL_PIXEL << 16) | DEMO_Z_FILL_PIXEL)
-#define DEMO_COLOR_FILL_WORD ((DEMO_COLOR_FILL_PIXEL << 16) | DEMO_COLOR_FILL_PIXEL)
+#define DEMO_COLOR_FILL_WORD \
+  ((DEMO_COLOR_FILL_PIXEL << 16) | DEMO_COLOR_FILL_PIXEL)
 
 // Backface cull: gldemo G_CULL_BACK. Our screen-space signed_area sign (after a
 // no-Y-flip viewport) selects which winding is back; verified end-to-end.
@@ -92,7 +97,7 @@ void demo_init(uint8_t *rdram, uint32_t rdram_size) {
   // generated values are logical RGBA5551 pixel values; rdram_write16 stores
   // them so the renderer's halfword read recovers each entry).
   for (uint32_t i = 0; i < DEMO_TLUT_ENTRIES; ++i) {
-    rdram_write16(rdram, DEMO_RDRAM_TLUT_ADDR + i * 2u, arrows_tlut[i]);
+    rdram_write16(rdram, DEMO_RDRAM_TLUT_ADDR + i * 2U, arrows_tlut[i]);
   }
 }
 
@@ -112,7 +117,9 @@ static void demo_viewport(struct DemoViewport *vp) {
 // Set other-modes for the opaque shaded pass (pyramid): 1-cycle, Z test+write,
 // AA off, no texture/perspective.
 static void demo_modes_shade(struct DemoOtherModes *m) {
-  for (uint32_t i = 0; i < sizeof(*m); ++i) ((uint8_t *)m)[i] = 0;
+  for (uint32_t i = 0; i < sizeof(*m); ++i) {
+    ((uint8_t *)m)[i] = 0;
+  }
   m->cycle_type = DEMO_CYCLE_1;
   m->rgb_dither = 3;    // Off
   m->alpha_dither = 3;  // Off
@@ -125,7 +132,7 @@ static void demo_modes_shade(struct DemoOtherModes *m) {
 static void demo_modes_texture(struct DemoOtherModes *m) {
   demo_modes_shade(m);
   m->perspective = 1;
-  m->tlut = 1;
+  m->TLUT = 1;
 }
 
 // Clear one image (Z or color) via the FILL-mode rectangle sequence.
@@ -162,7 +169,9 @@ static void demo_load_cube_texture(struct CmdSink *sink) {
   emit_set_texture_image(sink, DEMO_TEXFMT_RGBA, DEMO_TEXSIZE_16BPP,
                          DEMO_RDRAM_TLUT_ADDR, DEMO_TLUT_ENTRIES);
   struct DemoTileDesc tlut_tile;
-  for (uint32_t i = 0; i < sizeof(tlut_tile); ++i) ((uint8_t *)&tlut_tile)[i] = 0;
+  for (uint32_t i = 0; i < sizeof(tlut_tile); ++i) {
+    ((uint8_t *)&tlut_tile)[i] = 0;
+  }
   tlut_tile.fmt = DEMO_TEXFMT_RGBA;
   tlut_tile.size = DEMO_TEXSIZE_16BPP;
   tlut_tile.offset = 0x800;  // tmem[0x800] = TLUT region (per tmem.c)
@@ -175,7 +184,9 @@ static void demo_load_cube_texture(struct CmdSink *sink) {
                          DEMO_RDRAM_CI4_TEX_ADDR, DEMO_CI4_LOAD_WIDTH);
   // Load tile (tile 7): 8-bit, TMEM stride 32 bytes, base offset 0.
   struct DemoTileDesc load_tile;
-  for (uint32_t i = 0; i < sizeof(load_tile); ++i) ((uint8_t *)&load_tile)[i] = 0;
+  for (uint32_t i = 0; i < sizeof(load_tile); ++i) {
+    ((uint8_t *)&load_tile)[i] = 0;
+  }
   load_tile.fmt = DEMO_TEXFMT_CI;
   load_tile.size = DEMO_TEXSIZE_8BPP;
   load_tile.stride = DEMO_CI4_TMEM_STRIDE;
@@ -188,7 +199,9 @@ static void demo_load_cube_texture(struct CmdSink *sink) {
   // The CI palette field selects the TLUT 16-entry bank; our indices fit one
   // palette, so palette=0. emit_triangle uses tile 0.
   struct DemoTileDesc ci_tile;
-  for (uint32_t i = 0; i < sizeof(ci_tile); ++i) ((uint8_t *)&ci_tile)[i] = 0;
+  for (uint32_t i = 0; i < sizeof(ci_tile); ++i) {
+    ((uint8_t *)&ci_tile)[i] = 0;
+  }
   ci_tile.fmt = DEMO_TEXFMT_CI;
   ci_tile.size = DEMO_TEXSIZE_4BPP;
   ci_tile.stride = DEMO_CI4_TMEM_STRIDE;
@@ -210,7 +223,9 @@ void demo_build_frame(uint32_t frame_index, struct CmdSink *sink) {
   emit_set_scissor(sink, 0, 0, DEMO_FB_WIDTH, DEMO_FB_HEIGHT);
 
   struct DemoOtherModes fill_modes;
-  for (uint32_t i = 0; i < sizeof(fill_modes); ++i) ((uint8_t *)&fill_modes)[i] = 0;
+  for (uint32_t i = 0; i < sizeof(fill_modes); ++i) {
+    ((uint8_t *)&fill_modes)[i] = 0;
+  }
   fill_modes.cycle_type = DEMO_CYCLE_FILL;
   fill_modes.rgb_dither = 3;
   fill_modes.alpha_dither = 3;

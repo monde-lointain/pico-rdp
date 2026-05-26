@@ -4,14 +4,14 @@
  *
  * Replays (shadow_apply) the buffered command stream up to the step cursor into
  * a fresh ShadowState, then surfaces combine / other-modes / tiles / image
- * addresses / colors / scissor — exactly the state the renderer would hold after
- * the fed prefix. The renderer exposes no accessor; this shadow is the source.
+ * addresses / colors / scissor — exactly the state the renderer would hold
+ * after the fed prefix. The renderer exposes no accessor; this shadow is the
+ * source.
  */
-
-#include "panels.h"
 
 #include "dock_layout.h"
 #include "imgui.h"
+#include "panels.h"
 
 extern "C" {
 #include "shadow_state.h"
@@ -19,10 +19,14 @@ extern "C" {
 
 static const char* cycle_name(uint8_t c) {
   switch (c & 3) {
-    case 0: return "1CYCLE";
-    case 1: return "2CYCLE";
-    case 2: return "COPY";
-    default: return "FILL";
+    case 0:
+      return "1CYCLE";
+    case 1:
+      return "2CYCLE";
+    case 2:
+      return "COPY";
+    default:
+      return "FILL";
   }
 }
 
@@ -57,7 +61,7 @@ void panel_state_draw(struct Playback* pb) {
     ImGui::Text("cycle_type: %s", cycle_name(m->cycle_type));
     ImGui::Text("z: compare %u update %u  aa %u", m->z_compare_en,
                 m->z_update_en, m->antialias_en);
-    ImGui::Text("persp %u  tlut %u (type %u)  sample %u", m->persp_tex_en,
+    ImGui::Text("persp %u  TLUT %u (type %u)  sample %u", m->persp_tex_en,
                 m->en_tlut, m->tlut_type, m->sample_type);
     ImGui::Text("force_blend %u  alpha_cvg_sel %u  cvg_dest %u", m->force_blend,
                 m->alpha_cvg_select, m->cvg_dest);
@@ -97,8 +101,9 @@ void panel_state_draw(struct Playback* pb) {
       const struct ShadowTile* tl = &s.tile[t];
       // Only show tiles that look configured (any non-zero field) or tile 0.
       if (t != 0 && tl->format == 0 && tl->size == 0 && tl->tmem == 0 &&
-          tl->sh == 0 && tl->th == 0)
+          tl->sh == 0 && tl->th == 0) {
         continue;
+      }
       ImGui::Text("tile %u: fmt %u size %u line %u tmem 0x%03x pal %u", t,
                   tl->format, tl->size, tl->line, tl->tmem, tl->palette);
       ImGui::Text("   s[%u..%u] t[%u..%u] clampST %u%u", tl->sl, tl->sh, tl->tl,

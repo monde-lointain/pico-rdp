@@ -25,19 +25,23 @@
 #define RDRAM_MASK 0x00ffffff
 
 // macros used to interface with AL's code
-#define RREADADDR8(rdst, in) {(rdst) = rdram_read_idx8((in));}
-#define RREADIDX16(rdst, in) {(rdst) = rdram_read_idx16((in));}
-#define RREADIDX32(rdst, in) {(rdst) = rdram_read_idx32((in));}
+#define RREADADDR8(rdst, in) \
+  { (rdst) = rdram_read_idx8((in)); }
+#define RREADIDX16(rdst, in) \
+  { (rdst) = rdram_read_idx16((in)); }
+#define RREADIDX32(rdst, in) \
+  { (rdst) = rdram_read_idx32((in)); }
 
 #define RWRITEADDR8(in, val) rdram_write_idx8((in), (val))
 #define RWRITEIDX16(in, val) rdram_write_idx16((in), (val))
 #define RWRITEIDX32(in, val) rdram_write_idx32((in), (val))
 
-#define PAIRREAD16(rdst, hdst, in) rdram_read_pair16(&rdst, &hdst, (in))
+#define PAIRREAD16(rdst, hdst, in) rdram_read_pair16(&(rdst), &(hdst), (in))
 
 #define PAIRWRITE16(in, rval, hval) rdram_write_pair16((in), (rval), (hval))
 
-#define PAIRWRITE32(in, rval, hval0, hval1) rdram_write_pair32((in), (rval), (hval0), (hval1))
+#define PAIRWRITE32(in, rval, hval0, hval1) \
+  rdram_write_pair32((in), (rval), (hval0), (hval1))
 
 #define PAIRWRITE8(in, rval, hval) rdram_write_pair8((in), (rval), (hval))
 
@@ -69,20 +73,16 @@ static uint8_t* rdram8;
 #endif
 
 static uint8_t rdram_hidden[RDP_HIDDEN_BOUNDED_WORDS];
-static uint32_t rdram_hidden_base; // hidden index of bounded buffer entry 0
+static uint32_t rdram_hidden_base;  // hidden index of bounded buffer entry 0
 
-static STRICTINLINE uint8_t* hidden_at(uint32_t h)
-{
-    // Remap absolute hidden index to the bounded buffer. Accesses confined to
-    // the region [base, base + RDP_HIDDEN_BOUNDED_WORDS) hit the same byte they
-    // would in the full-size array.
-    return &rdram_hidden[h - rdram_hidden_base];
+static STRICTINLINE uint8_t* hidden_at(uint32_t h) {
+  // Remap absolute hidden index to the bounded buffer. Accesses confined to
+  // the region [base, base + RDP_HIDDEN_BOUNDED_WORDS) hit the same byte they
+  // would in the full-size array.
+  return &rdram_hidden[h - rdram_hidden_base];
 }
 
-static void rdram_hidden_set_base(uint32_t base)
-{
-    rdram_hidden_base = base;
-}
+static void rdram_hidden_set_base(uint32_t base) { rdram_hidden_base = base; }
 
 #else
 
@@ -92,137 +92,119 @@ static void rdram_hidden_set_base(uint32_t base)
 // file-static and is reached only via the rdpx_get_hidden_rdram() accessor.
 static uint8_t rdram_hidden[RDRAM_MAX_SIZE / 2];
 
-static STRICTINLINE uint8_t* hidden_at(uint32_t h)
-{
-    return &rdram_hidden[h];
+static STRICTINLINE uint8_t* hidden_at(uint32_t h) { return &rdram_hidden[h]; }
+
+#endif  // RDP_HIDDEN_BOUNDED
+
+static void rdram_init(void) {
+  idxlim8 = config.gfx.rdram_size - 1;
+  idxlim16 = (idxlim8 >> 1) & 0xffffffU;
+  idxlim32 = (idxlim8 >> 2) & 0xffffffU;
+
+  rdram32 = (uint32_t*)config.gfx.rdram;
+  rdram16 = (uint16_t*)config.gfx.rdram;
+  rdram8 = config.gfx.rdram;
+
+  memset(rdram_hidden, 3, sizeof(rdram_hidden));
 }
 
-#endif // RDP_HIDDEN_BOUNDED
+static STRICTINLINE bool rdram_valid_idx8(uint32_t in) { return in <= idxlim8; }
 
-static void rdram_init(void)
-{
-    idxlim8 = config.gfx.rdram_size - 1;
-    idxlim16 = (idxlim8 >> 1) & 0xffffffu;
-    idxlim32 = (idxlim8 >> 2) & 0xffffffu;
-
-    rdram32 = (uint32_t*)config.gfx.rdram;
-    rdram16 = (uint16_t*)config.gfx.rdram;
-    rdram8 = config.gfx.rdram;
-
-    memset(rdram_hidden, 3, sizeof(rdram_hidden));
+static STRICTINLINE bool rdram_valid_idx16(uint32_t in) {
+  return in <= idxlim16;
 }
 
-static STRICTINLINE bool rdram_valid_idx8(uint32_t in)
-{
-    return in <= idxlim8;
+static STRICTINLINE bool rdram_valid_idx32(uint32_t in) {
+  return in <= idxlim32;
 }
 
-static STRICTINLINE bool rdram_valid_idx16(uint32_t in)
-{
-    return in <= idxlim16;
+static STRICTINLINE uint8_t rdram_read_idx8(uint32_t in) {
+  in &= RDRAM_MASK;
+  return rdram_valid_idx8(in) ? rdram8[in ^ BYTE_ADDR_XOR] : 0;
 }
 
-static STRICTINLINE bool rdram_valid_idx32(uint32_t in)
-{
-    return in <= idxlim32;
+static STRICTINLINE uint8_t rdram_read_idx8_fast(uint32_t in) {
+  return rdram8[in ^ BYTE_ADDR_XOR];
 }
 
-static STRICTINLINE uint8_t rdram_read_idx8(uint32_t in)
-{
-    in &= RDRAM_MASK;
-    return rdram_valid_idx8(in) ? rdram8[in ^ BYTE_ADDR_XOR] : 0;
+static STRICTINLINE uint16_t rdram_read_idx16(uint32_t in) {
+  in &= RDRAM_MASK >> 1;
+  return rdram_valid_idx16(in) ? rdram16[in ^ WORD_ADDR_XOR] : 0;
 }
 
-static STRICTINLINE uint8_t rdram_read_idx8_fast(uint32_t in)
-{
-    return rdram8[in ^ BYTE_ADDR_XOR];
+static STRICTINLINE uint16_t rdram_read_idx16_fast(uint32_t in) {
+  return rdram16[in ^ WORD_ADDR_XOR];
 }
 
-static STRICTINLINE uint16_t rdram_read_idx16(uint32_t in)
-{
-    in &= RDRAM_MASK >> 1;
-    return rdram_valid_idx16(in) ? rdram16[in ^ WORD_ADDR_XOR] : 0;
+static STRICTINLINE uint32_t rdram_read_idx32(uint32_t in) {
+  in &= RDRAM_MASK >> 2;
+  return rdram_valid_idx32(in) ? rdram32[in] : 0;
 }
 
-static STRICTINLINE uint16_t rdram_read_idx16_fast(uint32_t in)
-{
-    return rdram16[in ^ WORD_ADDR_XOR];
+static STRICTINLINE uint32_t rdram_read_idx32_fast(uint32_t in) {
+  return rdram32[in];
 }
 
-static STRICTINLINE uint32_t rdram_read_idx32(uint32_t in)
-{
-    in &= RDRAM_MASK >> 2;
-    return rdram_valid_idx32(in) ? rdram32[in] : 0;
+static STRICTINLINE void rdram_write_idx8(uint32_t in, uint8_t val) {
+  in &= RDRAM_MASK;
+  if (rdram_valid_idx8(in)) {
+    rdram8[in ^ BYTE_ADDR_XOR] = val;
+  }
 }
 
-static STRICTINLINE uint32_t rdram_read_idx32_fast(uint32_t in)
-{
-    return rdram32[in];
+static STRICTINLINE void rdram_write_idx16(uint32_t in, uint16_t val) {
+  in &= RDRAM_MASK >> 1;
+  if (rdram_valid_idx16(in)) {
+    rdram16[in ^ WORD_ADDR_XOR] = val;
+  }
 }
 
-static STRICTINLINE void rdram_write_idx8(uint32_t in, uint8_t val)
-{
-    in &= RDRAM_MASK;
-    if (rdram_valid_idx8(in)) {
-        rdram8[in ^ BYTE_ADDR_XOR] = val;
+static STRICTINLINE void rdram_write_idx32(uint32_t in, uint32_t val) {
+  in &= RDRAM_MASK >> 2;
+  if (rdram_valid_idx32(in)) {
+    rdram32[in] = val;
+  }
+}
+
+static STRICTINLINE void rdram_read_pair16(uint16_t* rdst, uint8_t* hdst,
+                                           uint32_t in) {
+  in &= RDRAM_MASK >> 1;
+  if (rdram_valid_idx16(in)) {
+    *rdst = rdram16[in ^ WORD_ADDR_XOR];
+    *hdst = *hidden_at(in);
+  } else {
+    *rdst = *hdst = 0;
+  }
+}
+
+static STRICTINLINE void rdram_write_pair8(uint32_t in, uint8_t rval,
+                                           uint8_t hval) {
+  in &= RDRAM_MASK;
+  if (rdram_valid_idx8(in)) {
+    rdram8[in ^ BYTE_ADDR_XOR] = rval;
+    if (in & 1) {
+      *hidden_at(in >> 1) = hval;
     }
+  }
 }
 
-static STRICTINLINE void rdram_write_idx16(uint32_t in, uint16_t val)
-{
-    in &= RDRAM_MASK >> 1;
-    if (rdram_valid_idx16(in)) {
-        rdram16[in ^ WORD_ADDR_XOR] = val;
-    }
+static STRICTINLINE void rdram_write_pair16(uint32_t in, uint16_t rval,
+                                            uint8_t hval) {
+  in &= RDRAM_MASK >> 1;
+  if (rdram_valid_idx16(in)) {
+    rdram16[in ^ WORD_ADDR_XOR] = rval;
+    *hidden_at(in) = hval;
+  }
 }
 
-static STRICTINLINE void rdram_write_idx32(uint32_t in, uint32_t val)
-{
-    in &= RDRAM_MASK >> 2;
-    if (rdram_valid_idx32(in)) {
-        rdram32[in] = val;
-    }
+static STRICTINLINE void rdram_write_pair32(uint32_t in, uint32_t rval,
+                                            uint8_t hval0, uint8_t hval1) {
+  in &= RDRAM_MASK >> 2;
+  if (rdram_valid_idx32(in)) {
+    rdram32[in] = rval;
+    *hidden_at(in << 1) = hval0;
+    *hidden_at((in << 1) + 1) = hval1;
+  }
 }
 
-static STRICTINLINE void rdram_read_pair16(uint16_t* rdst, uint8_t* hdst, uint32_t in)
-{
-    in &= RDRAM_MASK >> 1;
-    if (rdram_valid_idx16(in)) {
-        *rdst = rdram16[in ^ WORD_ADDR_XOR];
-        *hdst = *hidden_at(in);
-    } else {
-        *rdst = *hdst = 0;
-    }
-}
-
-static STRICTINLINE void rdram_write_pair8(uint32_t in, uint8_t rval, uint8_t hval)
-{
-    in &= RDRAM_MASK;
-    if (rdram_valid_idx8(in)) {
-        rdram8[in ^ BYTE_ADDR_XOR] = rval;
-        if (in & 1) {
-            *hidden_at(in >> 1) = hval;
-        }
-    }
-}
-
-static STRICTINLINE void rdram_write_pair16(uint32_t in, uint16_t rval, uint8_t hval)
-{
-    in &= RDRAM_MASK >> 1;
-    if (rdram_valid_idx16(in)) {
-        rdram16[in ^ WORD_ADDR_XOR] = rval;
-        *hidden_at(in) = hval;
-    }
-}
-
-static STRICTINLINE void rdram_write_pair32(uint32_t in, uint32_t rval, uint8_t hval0, uint8_t hval1)
-{
-    in &= RDRAM_MASK >> 2;
-    if (rdram_valid_idx32(in)) {
-        rdram32[in] = rval;
-        *hidden_at(in << 1) = hval0;
-        *hidden_at((in << 1) + 1) = hval1;
-    }
-}
-
-#endif // N64VIDEO_C
+#endif  // N64VIDEO_C

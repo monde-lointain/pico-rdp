@@ -120,7 +120,7 @@ struct RasterizationTestVariant
 	bool depth_compare;
 	bool texture;
 	bool pipelined_texel1;
-	bool tlut;
+	bool TLUT;
 	bool tlut_type;
 	bool mid_texel;
 	bool convert_one;
@@ -513,7 +513,7 @@ static bool run_conformance_rasterization(ReplayerState &state, const Arguments 
 				info.flags |= TILE_INFO_MIRROR_S_BIT;
 			if (rng.boolean())
 				info.flags |= TILE_INFO_MIRROR_T_BIT;
-			state.builder.set_tlut(variant.tlut, variant.tlut_type);
+			state.builder.set_tlut(variant.TLUT, variant.tlut_type);
 
 			unsigned slo = rng.rnd() & 0xfu;
 			unsigned tlo = rng.rnd() & 0xfu;
@@ -1026,7 +1026,7 @@ std::vector<RDP::Suite> RDP::register_rdp_suites()
 		variant.randomize_rdram = TextureSize::fb_bpp == TextureSize::Bpp4; \
 		variant.fb_size = TextureSize::fb_bpp; \
 		variant.alpha_test = atest; \
-		variant.tlut = lut; \
+		variant.TLUT = lut; \
 		variant.perspective = persp; \
 		return run_conformance_rasterization(state, args, variant); \
 	}})
@@ -1047,9 +1047,9 @@ std::vector<RDP::Suite> RDP::register_rdp_suites()
 	COPY_TEST(16bpp-fb8, Bpp16, Bpp8, false, false);
 	COPY_TEST(16bpp-fb16, Bpp16, Bpp16, false, false);
 
-	COPY_TEST(4bpp-fb16-tlut, Bpp4, Bpp16, false, true);
-	COPY_TEST(8bpp-fb16-tlut, Bpp8, Bpp16, false, true);
-	COPY_TEST(16bpp-fb16-tlut, Bpp16, Bpp16, false, true);
+	COPY_TEST(4bpp-fb16-TLUT, Bpp4, Bpp16, false, true);
+	COPY_TEST(8bpp-fb16-TLUT, Bpp8, Bpp16, false, true);
+	COPY_TEST(16bpp-fb16-TLUT, Bpp16, Bpp16, false, true);
 
 	COPY_TEST(16bpp-fb16-alpha-test, Bpp16, Bpp16, true, false);
 
@@ -1482,7 +1482,7 @@ std::vector<RDP::Suite> RDP::register_rdp_suites()
 		variant.texture = true; \
 		variant.texture_format = TextureFormat::fmt; \
 		variant.texture_size = TextureSize::size; \
-		variant.tlut = tlut_enable; \
+		variant.TLUT = tlut_enable; \
 		variant.tlut_type = tlut_ia_type; \
 		variant.sample_quad = sample_q; \
 		variant.mid_texel = mid; \
@@ -1503,14 +1503,14 @@ std::vector<RDP::Suite> RDP::register_rdp_suites()
 	TEXTURE_TEST_MID_TEXEL(ci8-mid-texel, CI, Bpp8, false, false, true, true);
 	TEXTURE_TEST_MID_TEXEL(ci16-mid-texel, CI, Bpp16, false, false, true, true);
 	TEXTURE_TEST_MID_TEXEL(ci32-mid-texel, CI, Bpp32, false, false, true, true);
-	TEXTURE_TEST_MID_TEXEL(ci4-tlut-mid-texel, CI, Bpp4, true, false, true, true);
-	TEXTURE_TEST_MID_TEXEL(ci8-tlut-mid-texel, CI, Bpp8, true, false, true, true);
-	TEXTURE_TEST_MID_TEXEL(ci16-tlut-mid-texel, CI, Bpp16, true, false, true, true);
-	TEXTURE_TEST_MID_TEXEL(ci32-tlut-mid-texel, CI, Bpp32, true, false, true, true);
-	TEXTURE_TEST_MID_TEXEL(ci4-tlut-mid-texel-no-quad, CI, Bpp4, true, false, false, true);
-	TEXTURE_TEST_MID_TEXEL(ci8-tlut-mid-texel-no-quad, CI, Bpp8, true, false, false, true);
-	TEXTURE_TEST_MID_TEXEL(ci16-tlut-mid-texel-no-quad, CI, Bpp16, true, false, false, true);
-	TEXTURE_TEST_MID_TEXEL(ci32-tlut-mid-texel-no-quad, CI, Bpp32, true, false, false, true);
+	TEXTURE_TEST_MID_TEXEL(ci4-TLUT-mid-texel, CI, Bpp4, true, false, true, true);
+	TEXTURE_TEST_MID_TEXEL(ci8-TLUT-mid-texel, CI, Bpp8, true, false, true, true);
+	TEXTURE_TEST_MID_TEXEL(ci16-TLUT-mid-texel, CI, Bpp16, true, false, true, true);
+	TEXTURE_TEST_MID_TEXEL(ci32-TLUT-mid-texel, CI, Bpp32, true, false, true, true);
+	TEXTURE_TEST_MID_TEXEL(ci4-TLUT-mid-texel-no-quad, CI, Bpp4, true, false, false, true);
+	TEXTURE_TEST_MID_TEXEL(ci8-TLUT-mid-texel-no-quad, CI, Bpp8, true, false, false, true);
+	TEXTURE_TEST_MID_TEXEL(ci16-TLUT-mid-texel-no-quad, CI, Bpp16, true, false, false, true);
+	TEXTURE_TEST_MID_TEXEL(ci32-TLUT-mid-texel-no-quad, CI, Bpp32, true, false, false, true);
 
 	TEXTURE_TEST(rgba4-nearest, RGBA, Bpp4, false, false, false);
 	TEXTURE_TEST(rgba8-nearest, RGBA, Bpp8, false, false, false);
@@ -1530,31 +1530,31 @@ std::vector<RDP::Suite> RDP::register_rdp_suites()
 	TEXTURE_TEST(i16, I, Bpp16, false, false, true);
 	TEXTURE_TEST(i32, I, Bpp32, false, false, true);
 
-	TEXTURE_TEST(ci4-tlut, CI, Bpp4, true, false, true);
-	TEXTURE_TEST(ci8-tlut, CI, Bpp8, true, false, true);
-	TEXTURE_TEST(ci16-tlut, CI, Bpp16, true, false, true);
-	TEXTURE_TEST(ci32-tlut, CI, Bpp32, true, false, true);
-	TEXTURE_TEST(ci4-tlut-no-quad, CI, Bpp4, true, false, false);
-	TEXTURE_TEST(ci8-tlut-no-quad, CI, Bpp8, true, false, false);
-	TEXTURE_TEST(ci16-tlut-no-quad, CI, Bpp16, true, false, false);
-	TEXTURE_TEST(ci32-tlut-no-quad, CI, Bpp32, true, false, false);
-	TEXTURE_TEST(ia4-tlut, IA, Bpp4, true, false, true);
-	TEXTURE_TEST(ia8-tlut, IA, Bpp8, true, false, true);
-	TEXTURE_TEST(ia16-tlut, IA, Bpp16, true, false, true);
-	TEXTURE_TEST(ia32-tlut, IA, Bpp32, true, false, true);
-	TEXTURE_TEST(i4-tlut, I, Bpp4, true, false, true);
-	TEXTURE_TEST(i8-tlut, I, Bpp8, true, false, true);
-	TEXTURE_TEST(i16-tlut, I, Bpp16, true, false, true);
-	TEXTURE_TEST(i32-tlut, I, Bpp32, true, false, true);
-	TEXTURE_TEST(rgba4-tlut, RGBA, Bpp4, true, false, true);
-	TEXTURE_TEST(rgba8-tlut, RGBA, Bpp8, true, false, true);
-	TEXTURE_TEST(rgba16-tlut, RGBA, Bpp16, true, false, true);
-	TEXTURE_TEST(rgba32-tlut, RGBA, Bpp32, true, false, true);
+	TEXTURE_TEST(ci4-TLUT, CI, Bpp4, true, false, true);
+	TEXTURE_TEST(ci8-TLUT, CI, Bpp8, true, false, true);
+	TEXTURE_TEST(ci16-TLUT, CI, Bpp16, true, false, true);
+	TEXTURE_TEST(ci32-TLUT, CI, Bpp32, true, false, true);
+	TEXTURE_TEST(ci4-TLUT-no-quad, CI, Bpp4, true, false, false);
+	TEXTURE_TEST(ci8-TLUT-no-quad, CI, Bpp8, true, false, false);
+	TEXTURE_TEST(ci16-TLUT-no-quad, CI, Bpp16, true, false, false);
+	TEXTURE_TEST(ci32-TLUT-no-quad, CI, Bpp32, true, false, false);
+	TEXTURE_TEST(ia4-TLUT, IA, Bpp4, true, false, true);
+	TEXTURE_TEST(ia8-TLUT, IA, Bpp8, true, false, true);
+	TEXTURE_TEST(ia16-TLUT, IA, Bpp16, true, false, true);
+	TEXTURE_TEST(ia32-TLUT, IA, Bpp32, true, false, true);
+	TEXTURE_TEST(i4-TLUT, I, Bpp4, true, false, true);
+	TEXTURE_TEST(i8-TLUT, I, Bpp8, true, false, true);
+	TEXTURE_TEST(i16-TLUT, I, Bpp16, true, false, true);
+	TEXTURE_TEST(i32-TLUT, I, Bpp32, true, false, true);
+	TEXTURE_TEST(rgba4-TLUT, RGBA, Bpp4, true, false, true);
+	TEXTURE_TEST(rgba8-TLUT, RGBA, Bpp8, true, false, true);
+	TEXTURE_TEST(rgba16-TLUT, RGBA, Bpp16, true, false, true);
+	TEXTURE_TEST(rgba32-TLUT, RGBA, Bpp32, true, false, true);
 
-	TEXTURE_TEST(ci4-tlut-ia16, CI, Bpp4, true, true, true);
-	TEXTURE_TEST(ci8-tlut-ia16, CI, Bpp8, true, true, true);
-	TEXTURE_TEST(ci16-tlut-ia16, CI, Bpp16, true, true, true);
-	TEXTURE_TEST(ci32-tlut-ia16, CI, Bpp32, true, true, true);
+	TEXTURE_TEST(ci4-TLUT-ia16, CI, Bpp4, true, true, true);
+	TEXTURE_TEST(ci8-TLUT-ia16, CI, Bpp8, true, true, true);
+	TEXTURE_TEST(ci16-TLUT-ia16, CI, Bpp16, true, true, true);
+	TEXTURE_TEST(ci32-TLUT-ia16, CI, Bpp32, true, true, true);
 
 	suites.push_back({ "interpolation-color-texture-perspective", [](ReplayerState &state, const Arguments &args) -> bool {
 		RasterizationTestVariant variant = {};
@@ -1576,9 +1576,9 @@ std::vector<RDP::Suite> RDP::register_rdp_suites()
 	suites.push_back({ "texture-load-block-8", run_conformance_load_tile8<true> });
 	suites.push_back({ "texture-load-block-16", run_conformance_load_tile16<true> });
 	suites.push_back({ "texture-load-block-32", run_conformance_load_tile32<true> });
-	suites.push_back({ "texture-load-tlut-4", run_conformance_load_tlut4 });
-	suites.push_back({ "texture-load-tlut-8", run_conformance_load_tlut8 });
-	suites.push_back({ "texture-load-tlut-16", run_conformance_load_tlut16 });
+	suites.push_back({ "texture-load-TLUT-4", run_conformance_load_tlut4 });
+	suites.push_back({ "texture-load-TLUT-8", run_conformance_load_tlut8 });
+	suites.push_back({ "texture-load-TLUT-16", run_conformance_load_tlut16 });
 
 #define TEXTURE_TEST_CONVERT_BASE(name, cycle, fmt, sample_q, mid, bilerp, conv_one) \
 	suites.push_back({"texture-convert-" #name, [](ReplayerState &state, const Arguments &args) -> bool { \

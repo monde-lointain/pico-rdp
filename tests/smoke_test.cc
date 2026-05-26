@@ -12,7 +12,7 @@ TEST(FramebufferContract, Rgb565PacksRedInHighBits) {
   EXPECT_EQ(rgb565(0xFF, 0x00, 0x00), 0xF800);
   EXPECT_EQ(rgb565(0x00, 0xFF, 0x00), 0x07E0);
   EXPECT_EQ(rgb565(0x00, 0x00, 0xFF), 0x001F);
-  EXPECT_EQ(sizeof(Framebuffer), (size_t)(kScreenPixels * 2));
+  EXPECT_EQ(sizeof(Framebuffer), (size_t)(SCREEN_PIXELS * 2));
 }
 
 TEST(AssetsContract, FontSpriteIsAvailable) {

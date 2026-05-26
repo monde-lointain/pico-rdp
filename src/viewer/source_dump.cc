@@ -84,13 +84,17 @@ struct DumpToRenderer : RDP::CommandListenerInterface {
   void update_hidden_rdram(const void* data, size_t size,
                            size_t offset) override {
     uint8_t* hid = rdpx_get_hidden_rdram();
-    uint32_t cap = rdpx_get_hidden_rdram_size();
+    uint32_t const cap = rdpx_get_hidden_rdram_size();
     if (!hid || offset + size > cap) {
       // Hidden-RDRAM is coverage scratch; our VI_MODE_COLOR scanout does not
       // read it. A size mismatch (dump declares 4 MiB, our bounded buffer is
       // smaller) is non-fatal — clamp what fits.
-      if (!hid) return;
-      if (offset >= cap) return;
+      if (!hid) {
+        return;
+      }
+      if (offset >= cap) {
+        return;
+      }
       size = cap - offset;
     }
     memcpy(hid + offset, data, size);
@@ -100,7 +104,9 @@ struct DumpToRenderer : RDP::CommandListenerInterface {
 }  // namespace
 
 extern "C" int source_dump_replay(const char* path) {
-  if (!path) return 1;
+  if (!path) {
+    return 1;
+  }
 
   RDP::DumpPlayer player;
   if (!player.load_dump(path)) {
@@ -108,7 +114,7 @@ extern "C" int source_dump_replay(const char* path) {
     return 2;
   }
 
-  uint32_t rdram_size = (uint32_t)player.get_rdram_size();
+  uint32_t const rdram_size = (uint32_t)player.get_rdram_size();
 
   // Re-init the renderer at the dump's RDRAM size so its UpdateDram offsets all
   // fit (dumps carry 4 or 8 MiB; the demo arena is 2 MiB).

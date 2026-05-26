@@ -34,8 +34,9 @@ uint8_t rdram_read8(const uint8_t *rdram, uint32_t off);
 // the per-halfword `^1` swizzle.)
 void rdram_write16(uint8_t *rdram, uint32_t off, uint16_t val);
 
-// Load one N64-native big-endian halfword from byte offset `off` (must be even);
-// inverse of rdram_write16, matching the renderer's `rdram16[(off/2) ^ 1]` read.
+// Load one N64-native big-endian halfword from byte offset `off` (must be
+// even); inverse of rdram_write16, matching the renderer's `rdram16[(off/2) ^
+// 1]` read.
 uint16_t rdram_read16(const uint8_t *rdram, uint32_t off);
 
 // Copy `n` contiguous source bytes INTO the arena starting at byte offset
@@ -45,8 +46,8 @@ void rdram_write_block(uint8_t *rdram, uint32_t dst_off, const void *src,
                        uint32_t n);
 
 // Copy `n` bytes OUT OF the arena starting at byte offset `src_off` into a
-// contiguous destination, undoing the byte XOR: dst[i] = rdram[(src_off+i) ^ 3].
-// Inverse of rdram_write_block.
+// contiguous destination, undoing the byte XOR: dst[i] = rdram[(src_off+i) ^
+// 3]. Inverse of rdram_write_block.
 void rdram_read_block(const uint8_t *rdram, uint32_t src_off, void *dst,
                       uint32_t n);
 

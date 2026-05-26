@@ -15,7 +15,6 @@
 // Not orthodox-enforced (gtest / C++ idioms).
 
 #include <gtest/gtest.h>
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,7 +77,8 @@ TEST(DemoSnapshotStream, Frame0MatchesGolden) {
   long sz = ftell(f);
   fseek(f, 0, SEEK_SET);
   ASSERT_GT(sz, 0);
-  ASSERT_EQ((size_t)sz % sizeof(uint32_t), 0u) << "golden size not word-aligned";
+  ASSERT_EQ((size_t)sz % sizeof(uint32_t), 0u)
+      << "golden size not word-aligned";
 
   std::vector<uint32_t> golden(sz / sizeof(uint32_t));
   size_t got = fread(golden.data(), sizeof(uint32_t), golden.size(), f);
