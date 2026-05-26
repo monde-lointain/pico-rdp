@@ -10,10 +10,11 @@ if(CLANG_TIDY_EXECUTABLE)
   # platform_pico.cc / main_pico.cc compile only for the device; assets_gen.cc is
   # generated. None appear in the host compile_commands.json.
   list(FILTER TIDY_SOURCE_FILES EXCLUDE REGEX "(_pico|assets_gen)\\.(c|cc)$")
-  # src/rdp/rdp/*.c and src/rdp/vi/*.c are #included into n64video.c (Angrylion
-  # unity build), so they are not standalone TUs and absent from the compile DB.
-  # They are still analyzed transitively through n64video.c via HeaderFilterRegex.
-  list(FILTER TIDY_SOURCE_FILES EXCLUDE REGEX "src/rdp/(rdp|vi)/")
+  # NB src/rdp/rdp/*.cc and src/rdp/vi/*.cc are now standalone TUs (the Angrylion
+  # unity build was split), so they ARE in tidy's scope. `make tidy` runs
+  # --warnings-as-errors=* and therefore stays nonzero on the vendored renderer's
+  # narrowing conversions (unfixable without risking bit-exactness; CI does not
+  # gate on tidy) — tidy is inspection-only here, not a green gate.
   # Headers are analyzed through the TUs that include them; HeaderFilterRegex in
   # .clang-tidy selects which (all of src/ except generated demo tables).
 

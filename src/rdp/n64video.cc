@@ -1,26 +1,21 @@
-// n64video.c — our renderer's single translation unit (Stream B.1 / M1).
+// n64video.cc — the renderer's public C ABI layer + one-time static init.
 //
 // Ported from the CANONICAL Angrylion fork parallel-rdp embeds:
 //   parallel-rdp/angrylion-rdp-plus @ 31bdb1f (src/core/n64video.c).
 //
-// Single-TU model (mirrors the fork): this file owns the renderer `config`,
-// the shared MIN/MAX/SIGN/RGBA macros + irand/clamp, the command-ID table, and
-// then #includes the RDP pipeline (rdp/rdp.c, which in turn #includes the stage
-// files
-// rdp/{rdram,dither,blender,combiner,coverage,zbuffer,fbuffer,tmem,tcoord,
-// tex,rasterizer}.c) under N64VIDEO_C. At M1 the FILL path is wired end-to-end:
-// the conformance adapter feeds RDP command words to rdpx_rdp_cmd(), which
-// dispatches through the real command table into the rasterizer/fbuffer, so the
-// fill suites compare BYTE-FOR-BYTE against the Angrylion oracle.
+// Formerly the single unity TU (it #included rdp/rdp.c + vi/vi.c + every stage
+// .c under N64VIDEO_C). The pipeline is now split into individual TUs
+// (rdp/*.cc, vi/*.cc); this file holds: the renderer globals (rdpxi_config /
+// pipeline-crash latch / onetimewarnings / pixel-count), the rdpxi_msg_* +
+// rdpxi_vdac_* + rdpxi_parallel_* shims the VI TU calls, rdpx_static_init()
+// (which drives each stage's *_init_lut), and the extern "C" rdpx_* ABI exposed
+// by n64video.h.
 //
 // Symbol hygiene (CRITICAL): the conformance executable links this lib AND the
 // Angrylion oracle, which keeps Angrylion's ORIGINAL C names (n64video_init,
 // rdp_cmd, state, get_tmem, rdram_hidden, z_init_lut, ...). To avoid duplicate-
-// symbol collisions, EVERY external symbol this TU exposes is rdpx_*-prefixed;
-// all Angrylion-named functions/tables/state are given INTERNAL LINKAGE
-// (static) in rdp/rdp.c. The vdac / msg sinks are rdpx_vdac_* / rdpx_msg_*; the
-// renderer's own message reporting routes through static
-// msg_error/warning/debug shims.
+// symbol collisions, every external symbol this lib exposes is rdpx_* (public
+// ABI) or rdpxi_* (cross-TU internal); the oracle's names stay collision-free.
 //
 // Compiled as C++ (Orthodox C++ subset), exposing a pure C ABI. -fno-strict-
 // aliasing is pinned by the build (RDRAM is aliased through uint8/16/32*).
@@ -71,9 +66,6 @@ void rdpxi_msg_error(const char* err, ...) { (void)err; }
 void rdpxi_msg_warning(const char* err, ...) { (void)err; }
 
 void rdpxi_msg_debug(const char* err, ...) { (void)err; }
-
-// include guard to prevent compilation of code modules as translation units
-#define N64VIDEO_C
 
 #ifdef RDPX_TESTING
 // Per-frame count of pixels the rasterizer commits via the coverage/blend write
@@ -156,8 +148,6 @@ void rdpxi_vdac_close(void) {}
 uint32_t rdpxi_parallel_num_workers(void) { return 1; }
 
 void rdpxi_parallel_run(void (*task)(uint32_t)) { task(0); }
-
-#undef N64VIDEO_C
 
 // One-time static init of the Angrylion lookup tables and per-worker RDP state.
 // Mirrors the fork's n64video_init() static_init block (fill needs the dither /
