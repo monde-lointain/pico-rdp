@@ -89,7 +89,7 @@ static uint32_t rgba5551_to_rgba8(uint16_t p) {
   uint32_t r = (p >> 11) & 0x1f;
   uint32_t g = (p >> 6) & 0x1f;
   uint32_t b = (p >> 1) & 0x1f;
-  uint32_t a = (p & 1u) ? 0xff : 0xff;  // force opaque for display
+  uint32_t a = 0xff;  // force opaque for display (RGBA5551 alpha bit ignored)
   r = (r << 3) | (r >> 2);
   g = (g << 3) | (g >> 2);
   b = (b << 3) | (b >> 2);
