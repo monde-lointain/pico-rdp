@@ -409,7 +409,7 @@ static STRICTINLINE int32_t chroma_key_min(uint32_t wid, struct Color *col) {
 }
 
 void combiner_1cycle(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
-  int32_t keyalpha;
+  int32_t keyalpha = 0;
   int32_t temp;
   struct Color chromabypass;
 
@@ -508,8 +508,6 @@ void combiner_1cycle(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
         rdpxi_state[wid].pixel_color.a = 0xff;
       }
     } else {
-      // keyalpha set above under same key_en guard.
-      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
       rdpxi_state[wid].pixel_color.a = keyalpha;
     }
   } else {
@@ -612,7 +610,7 @@ void combiner_2cycle_cycle0(uint32_t wid, int adseed, uint32_t cvg,
 }
 
 void combiner_2cycle_cycle1(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
-  int32_t keyalpha;
+  int32_t keyalpha = 0;
   int32_t temp;
   struct Color chromabypass;
 
@@ -717,8 +715,6 @@ void combiner_2cycle_cycle1(uint32_t wid, int adseed, uint32_t *curpixel_cvg) {
         rdpxi_state[wid].pixel_color.a = 0xff;
       }
     } else {
-      // keyalpha set above under same key_en guard.
-      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
       rdpxi_state[wid].pixel_color.a = keyalpha;
     }
   } else {

@@ -816,8 +816,8 @@ static void edgewalker_for_loads(uint32_t wid, const int32_t* lewdata) {
 #define ADDVALUES_LOAD() \
   { t += dtde; }
 
-  int32_t maxxmx;
-  int32_t minxhx;
+  int32_t maxxmx = 0;
+  int32_t minxhx = 0xfff;
 
   int spix = 0;
   int const ycur = yh & ~3;
@@ -852,12 +852,8 @@ static void edgewalker_for_loads(uint32_t wid, const int32_t* lewdata) {
       xlsc = (xleft >> 13) & 0x7ffe;
 
       if (valid_y) {
-        // ycur=yh&~3 is a multiple of 4, so spix==0 runs first and seeds
-        // maxxmx/minxhx before any read here; the analyzer can't prove it.
-        // NOLINTBEGIN(clang-analyzer-core.UndefinedBinaryOperatorResult)
         maxxmx =
             (((xlsc >> 3) & 0xfff) > maxxmx) ? (xlsc >> 3) & 0xfff : maxxmx;
-        // NOLINTEND(clang-analyzer-core.UndefinedBinaryOperatorResult)
         minxhx =
             (((xrsc >> 3) & 0xfff) < minxhx) ? (xrsc >> 3) & 0xfff : minxhx;
       }
@@ -868,9 +864,6 @@ static void edgewalker_for_loads(uint32_t wid, const int32_t* lewdata) {
       }
 
       if (spix == 3) {
-        // spix==0 (which seeds maxxmx) always precedes spix==3 within the
-        // same valid k-block; analyzer can't prove it.
-        // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
         rdpxi_state[wid].span[j].lx = maxxmx;
         rdpxi_state[wid].span[j].rx = minxhx;
       }

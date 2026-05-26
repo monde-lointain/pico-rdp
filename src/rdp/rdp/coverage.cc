@@ -153,7 +153,7 @@ void compute_cvg_noflip(uint32_t wid, int32_t scanline) {
 
 int finalize_spanalpha(int cvg_dest, uint32_t blend_en, uint32_t curpixel_cvg,
                        uint32_t curpixel_memcvg) {
-  int finalcvg;
+  int finalcvg = 0;
 
   switch (cvg_dest) {
     case CVG_CLAMP:
@@ -180,14 +180,11 @@ int finalize_spanalpha(int cvg_dest, uint32_t blend_en, uint32_t curpixel_cvg,
     case CVG_SAVE:
       finalcvg = (int)curpixel_memcvg;
       break;
-    default:  // NOLINT(clang-diagnostic-sometimes-uninitialized): cvg_dest is
-              // always one of the 4 CVG_* modes; default path unreachable
+    default:  // cvg_dest is always one of the 4 CVG_* modes; unreachable
       break;
   }
 
-  return finalcvg;  // NOLINT(clang-analyzer-core.uninitialized.UndefReturn):
-                    // cvg_dest is always one of the 4 CVG_* modes; default path
-                    // unreachable
+  return finalcvg;
 }
 
 static STRICTINLINE uint16_t decompress_cvmask_frombyte(uint8_t x) {
