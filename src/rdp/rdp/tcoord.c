@@ -401,7 +401,7 @@ static STRICTINLINE void tclod_2cycle(uint32_t wid, int32_t* sss, int32_t* sst, 
 
 
 
-    int nextys, nextyt, nextysw, nexts, nextt, nextsw;
+    int32_t nextys, nextyt, nextysw, nexts, nextt, nextsw;
     int lodclamp = 0;
     int32_t lod = 0;
     uint32_t l_tile;
@@ -470,8 +470,8 @@ static STRICTINLINE void tclod_2cycle(uint32_t wid, int32_t* sss, int32_t* sst, 
 
 static STRICTINLINE void tclod_2cycle_next(uint32_t wid, int32_t* sss, int32_t* sst, int32_t* sss2, int32_t* sst2, int32_t s, int32_t t, int32_t w, int32_t dsinc, int32_t dtinc, int32_t dwinc, int32_t prim_tile, int32_t* t1, int32_t* t2, int32_t* lf, int scanline)
 {
-    int nextys, nextyt, nextysw;
-    int nexts, nextt, nextsw;
+    int32_t nextys, nextyt, nextysw;
+    int32_t nexts, nextt, nextsw;
     int lodclamp = 0;
     int32_t lod = 0;
     uint32_t l_tile;
@@ -553,7 +553,7 @@ static STRICTINLINE void tclod_2cycle_next(uint32_t wid, int32_t* sss, int32_t* 
 
 static STRICTINLINE void tclod_2cycle_notexel1(uint32_t wid, int32_t* sss, int32_t* sst, int32_t s, int32_t t, int32_t w, int32_t dsinc, int32_t dtinc, int32_t dwinc, int32_t prim_tile, int32_t* t1)
 {
-    int nextys, nextyt, nextysw, nexts, nextt, nextsw;
+    int32_t nextys, nextyt, nextysw, nexts, nextt, nextsw;
     int lodclamp = 0;
     int32_t lod = 0;
     uint32_t l_tile;
@@ -609,7 +609,7 @@ static STRICTINLINE void tclod_1cycle_current(uint32_t wid, int32_t* sss, int32_
 
 
 
-    int fars, fart, farsw;
+    int32_t fars, fart, farsw;
     int lodclamp = 0;
     int32_t lod = 0;
     uint32_t l_tile = 0, magnify = 0, distant = 0;
@@ -683,7 +683,7 @@ static STRICTINLINE void tclod_1cycle_current(uint32_t wid, int32_t* sss, int32_
 
 static STRICTINLINE void tclod_1cycle_current_simple(uint32_t wid, int32_t* sss, int32_t* sst, int32_t s, int32_t t, int32_t w, int32_t dsinc, int32_t dtinc, int32_t dwinc, int32_t scanline, int32_t prim_tile, int32_t* t1, struct spansigs* sigs)
 {
-    int fars, fart, farsw, nexts, nextt, nextsw;
+    int32_t fars, fart, farsw, nexts, nextt, nextsw;
     int lodclamp = 0;
     int32_t lod = 0;
     uint32_t l_tile = 0, magnify = 0, distant = 0;
@@ -759,7 +759,7 @@ static STRICTINLINE void tclod_1cycle_current_simple(uint32_t wid, int32_t* sss,
 
 static STRICTINLINE void tclod_1cycle_next(uint32_t wid, int32_t* sss, int32_t* sst, int32_t s, int32_t t, int32_t w, int32_t dsinc, int32_t dtinc, int32_t dwinc, int32_t scanline, int32_t prim_tile, int32_t* t1, struct spansigs* sigs, int32_t* prelodfrac)
 {
-    int nexts, nextt, nextsw, fars, fart, farsw;
+    int32_t nexts, nextt, nextsw, fars, fart, farsw;
     int lodclamp = 0;
     int32_t lod = 0;
     uint32_t l_tile = 0, magnify = 0, distant = 0;
@@ -897,7 +897,7 @@ static STRICTINLINE void tclod_copy(uint32_t wid, int32_t* sss, int32_t* sst, in
 
 
 
-    int nexts, nextt, nextsw, fars, fart, farsw;
+    int32_t nexts, nextt, nextsw, fars, fart, farsw;
     int lodclamp = 0;
     int32_t lod = 0;
     uint32_t l_tile = 0, magnify = 0, distant = 0;
@@ -960,7 +960,7 @@ static STRICTINLINE void tclod_copy(uint32_t wid, int32_t* sss, int32_t* sst, in
 
 static STRICTINLINE void tc_pipeline_copy(uint32_t wid, int32_t* sss0, int32_t* sss1, int32_t* sss2, int32_t* sss3, int32_t* sst, int tilenum)
 {
-    int ss0 = *sss0, ss1 = 0, ss2 = 0, ss3 = 0, st = *sst;
+    int32_t ss0 = *sss0, ss1 = 0, ss2 = 0, ss3 = 0, st = *sst;
 
     tcshift_copy(wid, &ss0, &st, tilenum);
 

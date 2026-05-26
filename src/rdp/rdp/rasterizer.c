@@ -197,9 +197,9 @@ static void render_spans_1cycle_complete(uint32_t wid, int start, int end, int t
     uint32_t curpixel_cvg, curpixel_cvbit, curpixel_memcvg;
 
     int prim_tile = tilenum;
-    int tile1 = tilenum;
-    int newtile = tilenum;
-    int news, newt;
+    int32_t tile1 = tilenum;
+    int32_t newtile = tilenum;
+    int32_t news, newt;
 
     int i, j;
 
@@ -245,7 +245,7 @@ static void render_spans_1cycle_complete(uint32_t wid, int start, int end, int t
     int r, g, b, a, z, s, t, w;
     int sr, sg, sb, sa, sz, ss, st, sw;
     int xstart, xend, xendsc;
-    int sss = 0, sst = 0;
+    int32_t sss = 0, sst = 0;
     int32_t prelodfrac;
     int curpixel = 0;
     int x, length, scdiff, lodlength;
@@ -409,7 +409,7 @@ static void render_spans_1cycle_notexel1(uint32_t wid, int start, int end, int t
     uint32_t curpixel_cvg, curpixel_cvbit, curpixel_memcvg;
 
     int prim_tile = tilenum;
-    int tile1 = tilenum;
+    int32_t tile1 = tilenum;
 
     int i, j;
 
@@ -454,7 +454,7 @@ static void render_spans_1cycle_notexel1(uint32_t wid, int start, int end, int t
     int r, g, b, a, z, s, t, w;
     int sr, sg, sb, sa, sz, ss, st, sw;
     int xstart, xend, xendsc;
-    int sss = 0, sst = 0;
+    int32_t sss = 0, sst = 0;
     int curpixel = 0;
     int x, length, scdiff, lodlength;
     uint32_t fir, fig, fib;
@@ -724,10 +724,10 @@ static void render_spans_2cycle_complete(uint32_t wid, int start, int end, int t
 
 
 
-    int tile2 = (tilenum + 1) & 7;
-    int tile1 = tilenum;
+    int32_t tile2 = (tilenum + 1) & 7;
+    int32_t tile1 = tilenum;
     int prim_tile = tilenum;
-    int tile3 = tilenum;
+    int32_t tile3 = tilenum;
 
     int i, j;
 
@@ -774,7 +774,7 @@ static void render_spans_2cycle_complete(uint32_t wid, int start, int end, int t
     int r, g, b, a, z, s, t, w;
     int sr, sg, sb, sa, sz, ss, st, sw;
     int xstart, xend, xendsc;
-    int sss = 0, sst = 0;
+    int32_t sss = 0, sst = 0;
     int curpixel = 0;
     int wen;
 
@@ -890,7 +890,7 @@ static void render_spans_2cycle_complete(uint32_t wid, int start, int end, int t
             }
             else
             {
-                int sss2, sst2;
+                int32_t sss2, sst2;
 
                 ss = state[wid].span[i + 1].s >> 16;
                 st = state[wid].span[i + 1].t >> 16;
@@ -1003,8 +1003,8 @@ static void render_spans_2cycle_notexelnext(uint32_t wid, int start, int end, in
     uint32_t nextpixel_cvg;
     uint32_t acalpha, tmp_acalpha;
 
-    int tile2 = (tilenum + 1) & 7;
-    int tile1 = tilenum;
+    int32_t tile2 = (tilenum + 1) & 7;
+    int32_t tile1 = tilenum;
     int prim_tile = tilenum;
 
     int i, j;
@@ -1052,7 +1052,7 @@ static void render_spans_2cycle_notexelnext(uint32_t wid, int start, int end, in
     int r, g, b, a, z, s, t, w;
     int sr, sg, sb, sa, sz, ss, st, sw;
     int xstart, xend, xendsc;
-    int sss = 0, sst = 0;
+    int32_t sss = 0, sst = 0;
     int curpixel = 0;
     int wen;
 
@@ -1227,7 +1227,7 @@ static void render_spans_2cycle_notexel1(uint32_t wid, int start, int end, int t
     uint32_t nextpixel_cvg;
     uint32_t acalpha, tmp_acalpha;
 
-    int tile1 = tilenum;
+    int32_t tile1 = tilenum;
     int prim_tile = tilenum;
 
     int i, j;
@@ -1275,7 +1275,7 @@ static void render_spans_2cycle_notexel1(uint32_t wid, int start, int end, int t
     int r, g, b, a, z, s, t, w;
     int sr, sg, sb, sa, sz, ss, st, sw;
     int xstart, xend, xendsc;
-    int sss = 0, sst = 0;
+    int32_t sss = 0, sst = 0;
     int curpixel = 0;
     int wen;
 
@@ -1715,7 +1715,7 @@ static void render_spans_copy(uint32_t wid, int start, int end, int tilenum, int
         return;
     }
 
-    int tile1 = tilenum;
+    int32_t tile1 = tilenum;
     int prim_tile = tilenum;
 
     int dsinc, dtinc, dwinc;
@@ -1736,7 +1736,7 @@ static void render_spans_copy(uint32_t wid, int start, int end, int tilenum, int
     }
 
     int xstart = 0, xendsc;
-    int s = 0, t = 0, w = 0, ss = 0, st = 0, sw = 0, sss = 0, sst = 0, ssw = 0;
+    int32_t s = 0, t = 0, w = 0, ss = 0, st = 0, sw = 0, sss = 0, sst = 0, ssw = 0;
     int fb_index, length;
     int diff = 0;
 
