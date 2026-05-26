@@ -154,6 +154,15 @@ static void msg_debug(const char* err, ...)
 // include guard to prevent compilation of code modules as translation units
 #define N64VIDEO_C
 
+#ifdef RDPX_TESTING
+// Per-frame count of pixels the rasterizer commits via the coverage/blend write
+// path (fbwrite_ptr). File-static in this single TU; defined BEFORE rdp/rdp.c so
+// it is in scope where rasterizer.c increments it, and reached by the accessors
+// below. Test-only: compiled out entirely when RDPX_TESTING is undefined, so it
+// can never perturb a rendered bit on the production picosystem build.
+static uint64_t rdpx_pixel_count = 0;
+#endif
+
 #include "rdp/rdp.c"
 
 // ---- VI (Stream C / M8) ---------------------------------------------------
@@ -430,6 +439,16 @@ uint8_t* rdpx_get_tmem(void)
 uint32_t rdpx_get_tmem_size(void)
 {
     return (uint32_t)sizeof(state[0].tmem);
+}
+
+uint64_t rdpx_get_pixel_count(void)
+{
+    return rdpx_pixel_count;
+}
+
+void rdpx_reset_pixel_count(void)
+{
+    rdpx_pixel_count = 0;
 }
 
 #endif  // RDPX_TESTING
