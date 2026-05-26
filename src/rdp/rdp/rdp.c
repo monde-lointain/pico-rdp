@@ -30,6 +30,7 @@
 #include "rdp/coverage_internal.h"
 #include "rdp/dither_internal.h"
 #include "rdp/fbuffer_internal.h"
+#include "rdp/rasterizer_internal.h"
 #include "rdp/rdram_internal.h"
 #include "rdp/tcoord_internal.h"
 #include "rdp/tex_internal.h"
@@ -46,24 +47,11 @@ int32_t zero_color = 0x00;
 static void rdp_init(uint32_t wid, uint32_t num_workers);
 static void rdp_invalid(uint32_t wid, const uint32_t* args);
 static void rdp_noop(uint32_t wid, const uint32_t* args);
-static void rdp_tri_noshade(uint32_t wid, const uint32_t* args);
-static void rdp_tri_noshade_z(uint32_t wid, const uint32_t* args);
-static void rdp_tri_tex(uint32_t wid, const uint32_t* args);
-static void rdp_tri_tex_z(uint32_t wid, const uint32_t* args);
-static void rdp_tri_shade(uint32_t wid, const uint32_t* args);
-static void rdp_tri_shade_z(uint32_t wid, const uint32_t* args);
-static void rdp_tri_texshade(uint32_t wid, const uint32_t* args);
-static void rdp_tri_texshade_z(uint32_t wid, const uint32_t* args);
-static void rdp_tex_rect(uint32_t wid, const uint32_t* args);
-static void rdp_tex_rect_flip(uint32_t wid, const uint32_t* args);
 static void rdp_sync_load(uint32_t wid, const uint32_t* args);
 static void rdp_sync_pipe(uint32_t wid, const uint32_t* args);
 static void rdp_sync_tile(uint32_t wid, const uint32_t* args);
 static void rdp_sync_full(uint32_t wid, const uint32_t* args);
-static void rdp_set_scissor(uint32_t wid, const uint32_t* args);
-static void rdp_set_prim_depth(uint32_t wid, const uint32_t* args);
 static void rdp_set_other_modes(uint32_t wid, const uint32_t* args);
-static void rdp_fill_rect(uint32_t wid, const uint32_t* args);
 static void rdp_cmd(uint32_t wid, const uint32_t* args);
 
 // init funcs forward-declared static (internal linkage vs oracle's globals).
@@ -86,14 +74,14 @@ static const struct {
     {rdp_invalid,             8},
     {rdp_invalid,             8},
     {rdp_invalid,             8},
-    {rdp_tri_noshade,        32},
-    {rdp_tri_noshade_z,      48},
-    {rdp_tri_tex,            96},
-    {rdp_tri_tex_z,         112},
-    {rdp_tri_shade,          96},
-    {rdp_tri_shade_z,       112},
-    {rdp_tri_texshade,      160},
-    {rdp_tri_texshade_z,    176},
+    {rdpxi_rdp_tri_noshade, 32},
+    {rdpxi_rdp_tri_noshade_z, 48},
+    {rdpxi_rdp_tri_tex, 96},
+    {rdpxi_rdp_tri_tex_z, 112},
+    {rdpxi_rdp_tri_shade, 96},
+    {rdpxi_rdp_tri_shade_z, 112},
+    {rdpxi_rdp_tri_texshade, 160},
+    {rdpxi_rdp_tri_texshade_z, 176},
     {rdp_invalid,             8},
     {rdp_invalid,             8},
     {rdp_invalid,             8},
@@ -114,8 +102,8 @@ static const struct {
     {rdp_invalid,             8},
     {rdp_invalid,             8},
     {rdp_invalid,             8},
-    {rdp_tex_rect,           16},
-    {rdp_tex_rect_flip,      16},
+    {rdpxi_rdp_tex_rect, 16},
+    {rdpxi_rdp_tex_rect_flip, 16},
     {rdp_sync_load,           8},
     {rdp_sync_pipe,           8},
     {rdp_sync_tile,           8},
@@ -123,8 +111,8 @@ static const struct {
     {rdpxi_rdp_set_key_gb,     8},
     {rdpxi_rdp_set_key_r,     8},
     {rdpxi_rdp_set_convert,     8},
-    {rdp_set_scissor,         8},
-    {rdp_set_prim_depth,      8},
+    {rdpxi_rdp_set_scissor, 8},
+    {rdpxi_rdp_set_prim_depth, 8},
     {rdp_set_other_modes,     8},
     {rdpxi_rdp_load_tlut,     8},
     {rdp_invalid,             8},
@@ -132,7 +120,7 @@ static const struct {
     {rdpxi_rdp_load_block,     8},
     {rdpxi_rdp_load_tile,     8},
     {rdpxi_rdp_set_tile,     8},
-    {rdp_fill_rect,           8},
+    {rdpxi_rdp_fill_rect, 8},
     {rdpxi_rdp_set_fill_color,     8},
     {rdpxi_rdp_set_fog_color,     8},
     {rdpxi_rdp_set_blend_color,     8},
@@ -145,7 +133,8 @@ static const struct {
 };
 // clang-format on
 
-static void deduce_derivatives(uint32_t wid);
+// deduce_derivatives: external (rasterizer.cc calls it); declared in
+// rdp_internal.h.
 
 // Stage files are #included in DEPENDENCY order (matches the canonical fork
 // 31bdb1f). The unity build is order-sensitive: rdram defines the RWRITE*/PAIR*
@@ -154,15 +143,9 @@ static void deduce_derivatives(uint32_t wid);
 // NOT alphabetize these (doing so broke the build — undeclared identifiers).
 // clang-format off
 
-
-
-
-
-
-#include "rdp/rasterizer.c"
 // clang-format on
 
-static void deduce_derivatives(uint32_t wid) {
+void deduce_derivatives(uint32_t wid) {
   int special_bsel0;
   int special_bsel1;
 

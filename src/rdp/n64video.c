@@ -42,9 +42,7 @@
 // rdpxi_config.gfx.rdram / .rdram_size; handlers read rdpxi_config.gfx.*.
 struct N64videoConfig rdpxi_config;
 
-static struct {
-  bool fillmbitcrashes, vbusclock, nolerp;
-} onetimewarnings;
+struct OneTimeWarnings onetimewarnings;
 
 int rdpxi_pipeline_crashed = 0;
 
@@ -73,7 +71,7 @@ void rdpxi_msg_debug(const char* err, ...) { (void)err; }
 // accessors below. Test-only: compiled out entirely when RDPX_TESTING is
 // undefined, so it can never perturb a rendered bit on the production
 // picosystem build.
-static uint64_t rdpx_pixel_count = 0;
+uint64_t rdpxi_pixel_count = 0;
 #endif
 
 #include "rdp/rdp.c"
@@ -314,9 +312,9 @@ uint32_t rdpx_get_tmem_size(void) {
   return (uint32_t)sizeof(rdpxi_state[0].tmem);
 }
 
-uint64_t rdpx_get_pixel_count(void) { return rdpx_pixel_count; }
+uint64_t rdpx_get_pixel_count(void) { return rdpxi_pixel_count; }
 
-void rdpx_reset_pixel_count(void) { rdpx_pixel_count = 0; }
+void rdpx_reset_pixel_count(void) { rdpxi_pixel_count = 0; }
 
 #endif  // RDPX_TESTING
 

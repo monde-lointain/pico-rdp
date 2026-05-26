@@ -439,6 +439,16 @@ extern int32_t one_color;
 extern int32_t zero_color;
 extern int rdpxi_pipeline_crashed;
 
+struct OneTimeWarnings {
+  bool fillmbitcrashes, vbusclock, nolerp;
+};
+extern struct OneTimeWarnings onetimewarnings;
+
+void deduce_derivatives(uint32_t wid);
+#ifdef RDPX_TESTING
+extern uint64_t rdpxi_pixel_count;  // per-frame committed-pixel counter (tests)
+#endif
+
 // Message sinks (no-ops) — rdpxi_-prefixed; the oracle exports msg_*.
 void rdpxi_msg_error(const char* err, ...);
 void rdpxi_msg_warning(const char* err, ...);

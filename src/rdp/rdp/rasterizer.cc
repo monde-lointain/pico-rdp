@@ -1,13 +1,30 @@
-#ifdef N64VIDEO_C
+// rasterizer.cc — edge walker + span render (standalone TU; the pipeline hub).
+// Ported VERBATIM from the fork 31bdb1f. The 13 triangle/rect/scissor handlers
+// collide with the oracle (rdpxi_-prefixed); render_spans_*/edgewalker stay
+// file-static. Pulls in every other stage. See rasterizer_internal.h.
+
+#include <string.h>
+
+#include "blender_internal.h"
+#include "combiner_internal.h"
+#include "coverage_internal.h"
+#include "dither_internal.h"
+#include "fbuffer_internal.h"
+#include "rasterizer_internal.h"
+#include "rdram_internal.h"
+#include "tcoord_internal.h"
+#include "tex_internal.h"
+#include "tmem_internal.h"
+#include "zbuffer_internal.h"
 
 // RDPX_TESTING-only per-pixel commit counter. Expands to the increment of the
-// file-static rdpx_pixel_count (defined in n64video.c ahead of this include) at
-// each coverage/blend framebuffer commit, and to NOTHING when RDPX_TESTING is
-// undefined — so the production build is bit-identical, zero added codegen.
-// Single-TU build: rdpx_pixel_count is the file-static defined in n64video.c
+// file-static rdpxi_pixel_count (defined in n64video.c ahead of this include)
+// at each coverage/blend framebuffer commit, and to NOTHING when RDPX_TESTING
+// is undefined — so the production build is bit-identical, zero added codegen.
+// Single-TU build: rdpxi_pixel_count is the file-static defined in n64video.c
 // before this file is #included, so it is already in scope here (no extern).
 #ifdef RDPX_TESTING
-#define RDPX_COUNT_PIXEL() (++rdpx_pixel_count)
+#define RDPX_COUNT_PIXEL() (++rdpxi_pixel_count)
 #else
 #define RDPX_COUNT_PIXEL() ((void)0)
 #endif
@@ -2660,19 +2677,19 @@ static void edgewalker_for_prims(uint32_t wid, const int32_t* ewdata) {
   rdpxi_state[wid].primitive_count++;
 }
 
-static void rasterizer_init(uint32_t wid) {
+void rasterizer_init(uint32_t wid) {
   rdpxi_state[wid].clip.xh = 0x2000;
   rdpxi_state[wid].clip.yh = 0x2000;
 }
 
-void rdp_tri_noshade(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_tri_noshade(uint32_t wid, const uint32_t* args) {
   int32_t ewdata[CMD_MAX_INTS];
   memcpy(&ewdata[0], args, 8 * sizeof(int32_t));
   memset(&ewdata[8], 0, 36 * sizeof(int32_t));
   edgewalker_for_prims(wid, ewdata);
 }
 
-void rdp_tri_noshade_z(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_tri_noshade_z(uint32_t wid, const uint32_t* args) {
   int32_t ewdata[CMD_MAX_INTS];
   memcpy(&ewdata[0], args, 8 * sizeof(int32_t));
   memset(&ewdata[8], 0, 32 * sizeof(int32_t));
@@ -2680,7 +2697,7 @@ void rdp_tri_noshade_z(uint32_t wid, const uint32_t* args) {
   edgewalker_for_prims(wid, ewdata);
 }
 
-void rdp_tri_tex(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_tri_tex(uint32_t wid, const uint32_t* args) {
   int32_t ewdata[CMD_MAX_INTS];
   memcpy(&ewdata[0], args, 8 * sizeof(int32_t));
   memset(&ewdata[8], 0, 16 * sizeof(int32_t));
@@ -2689,7 +2706,7 @@ void rdp_tri_tex(uint32_t wid, const uint32_t* args) {
   edgewalker_for_prims(wid, ewdata);
 }
 
-void rdp_tri_tex_z(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_tri_tex_z(uint32_t wid, const uint32_t* args) {
   int32_t ewdata[CMD_MAX_INTS];
   memcpy(&ewdata[0], args, 8 * sizeof(int32_t));
   memset(&ewdata[8], 0, 16 * sizeof(int32_t));
@@ -2699,14 +2716,14 @@ void rdp_tri_tex_z(uint32_t wid, const uint32_t* args) {
   edgewalker_for_prims(wid, ewdata);
 }
 
-void rdp_tri_shade(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_tri_shade(uint32_t wid, const uint32_t* args) {
   int32_t ewdata[CMD_MAX_INTS];
   memcpy(&ewdata[0], args, 24 * sizeof(int32_t));
   memset(&ewdata[24], 0, 20 * sizeof(int32_t));
   edgewalker_for_prims(wid, ewdata);
 }
 
-void rdp_tri_shade_z(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_tri_shade_z(uint32_t wid, const uint32_t* args) {
   int32_t ewdata[CMD_MAX_INTS];
   memcpy(&ewdata[0], args, 24 * sizeof(int32_t));
   memset(&ewdata[24], 0, 16 * sizeof(int32_t));
@@ -2714,21 +2731,21 @@ void rdp_tri_shade_z(uint32_t wid, const uint32_t* args) {
   edgewalker_for_prims(wid, ewdata);
 }
 
-void rdp_tri_texshade(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_tri_texshade(uint32_t wid, const uint32_t* args) {
   int32_t ewdata[CMD_MAX_INTS];
   memcpy(&ewdata[0], args, 40 * sizeof(int32_t));
   memset(&ewdata[40], 0, 4 * sizeof(int32_t));
   edgewalker_for_prims(wid, ewdata);
 }
 
-void rdp_tri_texshade_z(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_tri_texshade_z(uint32_t wid, const uint32_t* args) {
   int32_t ewdata[CMD_MAX_INTS];
   memcpy(&ewdata[0], args, CMD_MAX_SIZE);
 
   edgewalker_for_prims(wid, ewdata);
 }
 
-void rdp_tex_rect(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_tex_rect(uint32_t wid, const uint32_t* args) {
   uint32_t const tilenum = (args[1] >> 24) & 0x7;
   uint32_t const xl = (args[0] >> 12) & 0xfff;
   uint32_t yl = (args[0] >> 0) & 0xfff;
@@ -2782,7 +2799,7 @@ void rdp_tex_rect(uint32_t wid, const uint32_t* args) {
   edgewalker_for_prims(wid, ewdata);
 }
 
-void rdp_tex_rect_flip(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_tex_rect_flip(uint32_t wid, const uint32_t* args) {
   uint32_t const tilenum = (args[1] >> 24) & 0x7;
   uint32_t const xl = (args[0] >> 12) & 0xfff;
   uint32_t yl = (args[0] >> 0) & 0xfff;
@@ -2837,7 +2854,7 @@ void rdp_tex_rect_flip(uint32_t wid, const uint32_t* args) {
   edgewalker_for_prims(wid, ewdata);
 }
 
-void rdp_fill_rect(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_fill_rect(uint32_t wid, const uint32_t* args) {
   uint32_t const xl = (args[0] >> 12) & 0xfff;
   uint32_t yl = (args[0] >> 0) & 0xfff;
   uint32_t const xh = (args[1] >> 12) & 0xfff;
@@ -2865,13 +2882,13 @@ void rdp_fill_rect(uint32_t wid, const uint32_t* args) {
   edgewalker_for_prims(wid, ewdata);
 }
 
-void rdp_set_prim_depth(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_set_prim_depth(uint32_t wid, const uint32_t* args) {
   rdpxi_state[wid].primitive_z = args[1] & (0x7fff << 16);
 
   rdpxi_state[wid].primitive_delta_z = (uint16_t)(args[1]);
 }
 
-void rdp_set_scissor(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_set_scissor(uint32_t wid, const uint32_t* args) {
   rdpxi_state[wid].clip.xh = (args[0] >> 12) & 0xfff;
   rdpxi_state[wid].clip.yh = (args[0] >> 0) & 0xfff;
   rdpxi_state[wid].clip.xl = (args[1] >> 12) & 0xfff;
@@ -2880,5 +2897,3 @@ void rdp_set_scissor(uint32_t wid, const uint32_t* args) {
   rdpxi_state[wid].scfield = (args[1] >> 25) & 1;
   rdpxi_state[wid].sckeepodd = (args[1] >> 24) & 1;
 }
-
-#endif  // N64VIDEO_C

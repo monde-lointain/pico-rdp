@@ -27,6 +27,7 @@ add_library(rdp_core STATIC
     rdp/tmem.cc
     rdp/tcoord.cc
     rdp/tex.cc
+    rdp/rasterizer.cc
 )
 add_library(Rdp::rdp ALIAS rdp_core)
 
