@@ -14,6 +14,7 @@ Checks: >
   readability-*,
   -bugprone-easily-swappable-parameters,
   -misc-include-cleaner,
+  -misc-non-private-member-variables-in-classes,
   -misc-use-anonymous-namespace,
   -performance-enum-size,
   -readability-function-cognitive-complexity,

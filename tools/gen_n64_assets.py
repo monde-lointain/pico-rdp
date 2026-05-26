@@ -424,6 +424,7 @@ def emit_texture(w, h, packed, tlut, ncolors):
     path = os.path.join(OUT_DIR, "arrows_ci4.h")
     lines = []
     lines.append(GEN_BANNER)
+    lines.append("// clang-format off")
     lines.append("#ifndef DEMO_GENERATED_ARROWS_CI4_H")
     lines.append("#define DEMO_GENERATED_ARROWS_CI4_H")
     lines.append("")
@@ -450,6 +451,7 @@ def emit_texture(w, h, packed, tlut, ncolors):
     lines.append("};")
     lines.append("")
     lines.append("#endif /* DEMO_GENERATED_ARROWS_CI4_H */")
+    lines.append("// clang-format on")
     write_file(path, "\n".join(lines) + "\n")
 
 
@@ -465,6 +467,7 @@ def emit_matrices(proj, view, pyr_models, cube_models):
     path = os.path.join(OUT_DIR, "baked_matrices.h")
     lines = []
     lines.append(GEN_BANNER)
+    lines.append("// clang-format off")
     lines.append("#ifndef DEMO_GENERATED_BAKED_MATRICES_H")
     lines.append("#define DEMO_GENERATED_BAKED_MATRICES_H")
     lines.append("")
@@ -484,7 +487,11 @@ def emit_matrices(proj, view, pyr_models, cube_models):
     lines.append(" * periods 30 / 40 frames -> full 360 loop; lcm = 120 (DEMO_ANIM_PERIOD).")
     lines.append(" */")
     lines.append("#define DEMO_FIX_FRAC %d" % DEMO_FIX_FRAC)
+    # DEMO_FIX_ONE also lives in demo/fixed.h (identical value); guard it so a
+    # TU including both this header and fixed.h doesn't trip -Wmacro-redefined.
+    lines.append("#ifndef DEMO_FIX_ONE")
     lines.append("#define DEMO_FIX_ONE  (1 << DEMO_FIX_FRAC)  /* %d */" % DEMO_FIX_ONE)
+    lines.append("#endif")
     lines.append("#define DEMO_PYRAMID_PERIOD %d" % PYRAMID_PERIOD)
     lines.append("#define DEMO_CUBE_PERIOD    %d" % CUBE_PERIOD)
     lines.append("#define DEMO_ANIM_PERIOD    %d  /* lcm(%d,%d) */"
@@ -517,6 +524,7 @@ def emit_matrices(proj, view, pyr_models, cube_models):
     lines.append("};")
     lines.append("")
     lines.append("#endif /* DEMO_GENERATED_BAKED_MATRICES_H */")
+    lines.append("// clang-format on")
     write_file(path, "\n".join(lines) + "\n")
 
 
@@ -524,6 +532,7 @@ def emit_geometry():
     path = os.path.join(OUT_DIR, "geometry.h")
     lines = []
     lines.append(GEN_BANNER)
+    lines.append("// clang-format off")
     lines.append("#ifndef DEMO_GENERATED_GEOMETRY_H")
     lines.append("#define DEMO_GENERATED_GEOMETRY_H")
     lines.append("")
@@ -575,6 +584,7 @@ def emit_geometry():
     lines.append("};")
     lines.append("")
     lines.append("#endif /* DEMO_GENERATED_GEOMETRY_H */")
+    lines.append("// clang-format on")
     write_file(path, "\n".join(lines) + "\n")
 
 

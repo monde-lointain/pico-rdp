@@ -264,14 +264,14 @@ static void image_fit(SDL_Texture* tex, int native_w, int native_h) {
   ImVec2 const avail = ImGui::GetContentRegionAvail();
   float scale = avail.x / (float)native_w;
   float const maxh = avail.y > 1.0F ? avail.y : (float)native_h;
-  if (scale * native_h > maxh) {
+  if (scale * (float)native_h > maxh) {
     scale = maxh / (float)native_h;
   }
   if (scale < 1.0F) {
     scale = 1.0F;
   }
   ImGui::Image((ImTextureID)(intptr_t)tex,
-               ImVec2(native_w * scale, native_h * scale));
+               ImVec2((float)native_w * scale, (float)native_h * scale));
 }
 
 void panel_memory_draw(struct Playback* pb) {

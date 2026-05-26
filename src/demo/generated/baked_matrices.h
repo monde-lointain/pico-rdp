@@ -24,7 +24,9 @@
  * periods 30 / 40 frames -> full 360 loop; lcm = 120 (DEMO_ANIM_PERIOD).
  */
 #define DEMO_FIX_FRAC 16
+#ifndef DEMO_FIX_ONE
 #define DEMO_FIX_ONE  (1 << DEMO_FIX_FRAC)  /* 65536 */
+#endif
 #define DEMO_PYRAMID_PERIOD 30
 #define DEMO_CUBE_PERIOD    40
 #define DEMO_ANIM_PERIOD    120  /* lcm(30,40) */

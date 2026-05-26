@@ -167,11 +167,6 @@ static void decode_summary(uint8_t id, uint32_t w0, uint32_t w1, uint32_t avail,
   size_t const cap = sizeof out->summary;
   switch (id) {
     case RDPCMD_SET_COLOR_IMAGE:
-      snprintf(b, cap, "%s %s w=%u addr=0x%06x",
-               fb_format_name((uint8_t)((w0 >> 21) & 7)),
-               px_size_name((uint8_t)((w0 >> 19) & 3)),
-               (unsigned)((w0 & 0x3ff) + 1), (unsigned)(w1 & 0x0ffffff));
-      break;
     case RDPCMD_SET_TEXTURE_IMAGE:
       snprintf(b, cap, "%s %s w=%u addr=0x%06x",
                fb_format_name((uint8_t)((w0 >> 21) & 7)),
