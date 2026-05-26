@@ -109,7 +109,7 @@ foreach(copy_suite
     copy-4bpp-fb8 copy-4bpp-fb16
     copy-4bpp-fb4 copy-8bpp-fb4 copy-16bpp-fb4 copy-32bpp-fb4
     copy-8bpp-fb8 copy-8bpp-fb16 copy-16bpp-fb8 copy-16bpp-fb16
-    copy-4bpp-fb16-tlut copy-8bpp-fb16-tlut copy-16bpp-fb16-tlut
+    copy-4bpp-fb16-TLUT copy-8bpp-fb16-TLUT copy-16bpp-fb16-TLUT
     copy-16bpp-fb16-alpha-test
     copy-8bpp-fb8-perspective copy-8bpp-fb16-perspective
     copy-16bpp-fb8-perspective copy-16bpp-fb16-perspective)
@@ -127,7 +127,7 @@ endforeach()
 foreach(load_suite
     texture-load-tile-4 texture-load-tile-8 texture-load-tile-16 texture-load-tile-32
     texture-load-block-8 texture-load-block-16 texture-load-block-32
-    texture-load-tlut-4 texture-load-tlut-8 texture-load-tlut-16
+    texture-load-TLUT-4 texture-load-TLUT-8 texture-load-TLUT-16
     texture-load-tile-16-yuv texture-load-block-16-yuv)
   add_test(NAME conformance.${load_suite}
            COMMAND rdp_suite_runner --suite ${load_suite} --range 0 1000)
@@ -166,19 +166,19 @@ foreach(tex_variant
     yuv16
     rgba16-mid-texel
     ci4-mid-texel ci8-mid-texel ci16-mid-texel ci32-mid-texel
-    ci4-tlut-mid-texel ci8-tlut-mid-texel ci16-tlut-mid-texel ci32-tlut-mid-texel
-    ci4-tlut-mid-texel-no-quad ci8-tlut-mid-texel-no-quad
-    ci16-tlut-mid-texel-no-quad ci32-tlut-mid-texel-no-quad
+    ci4-TLUT-mid-texel ci8-TLUT-mid-texel ci16-TLUT-mid-texel ci32-TLUT-mid-texel
+    ci4-TLUT-mid-texel-no-quad ci8-TLUT-mid-texel-no-quad
+    ci16-TLUT-mid-texel-no-quad ci32-TLUT-mid-texel-no-quad
     rgba4-nearest rgba8-nearest rgba16-nearest rgba32-nearest
     ci4 ci8 ci16 ci32
     ia4 ia8 ia16 ia32
     i4 i8 i16 i32
-    ci4-tlut ci8-tlut ci16-tlut ci32-tlut
-    ci4-tlut-no-quad ci8-tlut-no-quad ci16-tlut-no-quad ci32-tlut-no-quad
-    ia4-tlut ia8-tlut ia16-tlut ia32-tlut
-    i4-tlut i8-tlut i16-tlut i32-tlut
-    rgba4-tlut rgba8-tlut rgba16-tlut rgba32-tlut
-    ci4-tlut-ia16 ci8-tlut-ia16 ci16-tlut-ia16 ci32-tlut-ia16)
+    ci4-TLUT ci8-TLUT ci16-TLUT ci32-TLUT
+    ci4-TLUT-no-quad ci8-TLUT-no-quad ci16-TLUT-no-quad ci32-TLUT-no-quad
+    ia4-TLUT ia8-TLUT ia16-TLUT ia32-TLUT
+    i4-TLUT i8-TLUT i16-TLUT i32-TLUT
+    rgba4-TLUT rgba8-TLUT rgba16-TLUT rgba32-TLUT
+    ci4-TLUT-ia16 ci8-TLUT-ia16 ci16-TLUT-ia16 ci32-TLUT-ia16)
   add_test(NAME conformance.interpolation-color-texture-${tex_variant}
            COMMAND rdp_suite_runner --suite interpolation-color-texture-${tex_variant} --range 0 1000)
   set_tests_properties(conformance.interpolation-color-texture-${tex_variant}
