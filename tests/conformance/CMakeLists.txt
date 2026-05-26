@@ -58,6 +58,47 @@ foreach(fill_suite fill-16 fill-8 fill-32 fill-16-ia fill-16-interlace fill-rect
   set_tests_properties(conformance.${fill_suite} PROPERTIES LABELS "conformance;m1;fill")
 endforeach()
 
+# ---- M8 VI conformance suite runner (Stream C) ---------------------------
+# Drives register_vi_suites() (A.2) side-by-side: Angrylion oracle (reference)
+# vs OUR rdp_core VI (gpu), comparing the VI scanout image (compare_image) each
+# iteration. Same no-duplicate-symbol contract as rdp_suite_runner (links BOTH
+# the oracle and rdp_core). gpu_scaled is wired to our no-op scaled stub.
+add_executable(vi_suite_runner
+    vi_suite_runner_main.cpp
+    replayer_driver_ours.cpp
+)
+target_link_libraries(vi_suite_runner PRIVATE
+    rdp::conformance_utils
+    angrylion_oracle
+    rdp_core
+)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_compile_options(vi_suite_runner PRIVATE -fno-strict-aliasing)
+endif()
+
+# M8 VI conformance: the 21 NATIVE aa-* suites (native-vs-native, bit-exact vs
+# oracle) over the upstream VI default range [0, 32]. The runner defaults
+# args.hi = 32 when --range is omitted.
+#
+# The four per-scanline-xh* suites are intentionally absent: they compare against
+# a synthetic reference that exercises parallel-rdp's GPU-only per-scanline VI
+# register table + upscaler, a feature the Angrylion-derived VI (our port AND
+# the oracle) does not implement. They are N/A for a native renderer (see
+# vi_suite_runner_main.cpp).
+foreach(vi_suite
+    aa-none-rgba5551 aa-none-rgba8888 aa-none-blank aa-none-reserved
+    aa-extra-always aa-extra aa-scale aa-none
+    aa-extra-dither-filter aa-extra-divot aa-extra-dither-filter-divot
+    aa-extra-gamma aa-extra-gamma-dither aa-extra-nogamma-dither
+    aa-none-randomize-xy-scale-bias aa-scale-randomize-xy-scale-bias
+    aa-extra-randomize-xy-scale-bias
+    aa-none-randomize-hv-start-end aa-none-randomize-hv-start-end-pal
+    aa-none-serrate)
+  add_test(NAME conformance.vi-${vi_suite}
+           COMMAND vi_suite_runner --suite ${vi_suite})
+  set_tests_properties(conformance.vi-${vi_suite} PROPERTIES LABELS "conformance;m8;vi")
+endforeach()
+
 # ---- M2 copy-mode + tex-rect + texture-load suites (B.2) -----------------
 # Same rdp_suite_runner, driving the copy-cycle / TEX_RECT / LOAD_{TILE,BLOCK,
 # TLUT} command paths bit-exact vs the oracle over [0, 1000). Suite names match
