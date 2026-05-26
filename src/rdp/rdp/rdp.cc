@@ -1,5 +1,3 @@
-#ifdef N64VIDEO_C
-
 // rdp.c: RDP command dispatcher + rdp_state + state-setting handlers.
 //
 // Ported from the CANONICAL Angrylion fork that parallel-rdp embeds:
@@ -44,7 +42,6 @@ int32_t zero_color = 0x00;
 
 // Forward declarations — all `static` so the stage-file definitions inherit
 // internal linkage (symbol hygiene vs the oracle's identically-named globals).
-static void rdp_init(uint32_t wid, uint32_t num_workers);
 static void rdp_invalid(uint32_t wid, const uint32_t* args);
 static void rdp_noop(uint32_t wid, const uint32_t* args);
 static void rdp_sync_load(uint32_t wid, const uint32_t* args);
@@ -52,7 +49,6 @@ static void rdp_sync_pipe(uint32_t wid, const uint32_t* args);
 static void rdp_sync_tile(uint32_t wid, const uint32_t* args);
 static void rdp_sync_full(uint32_t wid, const uint32_t* args);
 static void rdp_set_other_modes(uint32_t wid, const uint32_t* args);
-static void rdp_cmd(uint32_t wid, const uint32_t* args);
 
 // init funcs forward-declared static (internal linkage vs oracle's globals).
 
@@ -336,7 +332,7 @@ void deduce_derivatives(uint32_t wid) {
       rdpxi_state[wid].other_modes.tex_lod_en || lodfracused;
 }
 
-static void rdp_init(uint32_t wid, uint32_t num_workers) {
+void rdpxi_rdp_init(uint32_t wid, uint32_t num_workers) {
   rdpxi_state[wid].stride = num_workers;
   rdpxi_state[wid].offset = wid;
   rdpxi_state[wid].rseed = 3 + wid * 13;
@@ -427,9 +423,7 @@ static void rdp_set_other_modes(uint32_t wid, const uint32_t* args) {
   rdpxi_state[wid].other_modes.f.stalederivs = 1;
 }
 
-static void rdp_cmd(uint32_t wid, const uint32_t* args) {
+void rdpxi_rdp_cmd(uint32_t wid, const uint32_t* args) {
   uint32_t const cmd_id = CMD_ID(args);
   RDP_COMMANDS[cmd_id].handler(wid, args);
 }
-
-#endif  // N64VIDEO_C

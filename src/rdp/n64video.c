@@ -36,6 +36,16 @@
 #include "rdp/rdp_internal.h"
 #include "rdp/rdram_internal.h"  // rdram_init() + rdpxi_rdram_hidden accessor
 #include "vi/vi_internal.h"      // struct Rgba/FrameBuffer + VI exports
+// Stage headers for rdpx_static_init() (the *_init/_init_lut funcs) + the
+// RDPX_TESTING tmem accessor. The unity build used to get these via rdp.c.
+#include "rdp/blender_internal.h"
+#include "rdp/combiner_internal.h"
+#include "rdp/coverage_internal.h"
+#include "rdp/fbuffer_internal.h"
+#include "rdp/rasterizer_internal.h"
+#include "rdp/tex_internal.h"
+#include "rdp/tmem_internal.h"
+#include "rdp/zbuffer_internal.h"
 
 // The renderer config global. External linkage (rdpxi_-prefixed to avoid
 // colliding with the Angrylion oracle's `config`) so split-out stage TUs
@@ -74,8 +84,6 @@ void rdpxi_msg_debug(const char* err, ...) { (void)err; }
 // picosystem build.
 uint64_t rdpxi_pixel_count = 0;
 #endif
-
-#include "rdp/rdp.c"
 
 // ---- VI (Stream C / M8) ---------------------------------------------------
 // Port of Angrylion's VI from 31bdb1f (src/core/n64video/vi.c + vi/*.c). The VI
@@ -199,7 +207,7 @@ void rdpx_video_init(struct N64videoConfig* cfg) {
   memset(&onetimewarnings, 0, sizeof(onetimewarnings));
 
   // Single host worker (no parallel split): worker 0 owns full framebuffer.
-  rdp_init(0, 1);
+  rdpxi_rdp_init(0, 1);
 }
 
 void rdpx_video_process_list(void) {
@@ -210,12 +218,12 @@ void rdpx_video_process_list(void) {
 
 void rdpx_rdp_cmd(uint32_t wid, const uint32_t* args) {
   // Real per-command dispatch — the harness entry point. Mirrors the oracle
-  // adapter's rdp_cmd(0, words). If a prior command crashed the pipeline,
+  // adapter's rdpxi_rdp_cmd(0, words). If a prior command crashed the pipeline,
   // angrylion stops processing; replicate by gating on rdpxi_pipeline_crashed.
   if (rdpxi_pipeline_crashed) {
     return;
   }
-  rdp_cmd(wid, args);
+  rdpxi_rdp_cmd(wid, args);
 }
 
 void rdpx_video_update_screen(struct N64videoFrameBuffer* fb) {

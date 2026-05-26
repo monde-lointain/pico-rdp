@@ -445,6 +445,8 @@ struct OneTimeWarnings {
 extern struct OneTimeWarnings onetimewarnings;
 
 void deduce_derivatives(uint32_t wid);
+void rdpxi_rdp_init(uint32_t wid, uint32_t num_workers);
+void rdpxi_rdp_cmd(uint32_t wid, const uint32_t* args);
 #ifdef RDPX_TESTING
 extern uint64_t rdpxi_pixel_count;  // per-frame committed-pixel counter (tests)
 #endif
