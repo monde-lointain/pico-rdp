@@ -20,4 +20,11 @@ namespace RDP
 // the oracle). Wired into ReplayerState::make_gpu by the A.0 executable.
 std::unique_ptr<ReplayerDriver> create_replayer_driver_ours(CommandInterface &player,
                                                             ReplayerEventInterface &iface);
+
+// Factory for ReplayerState::gpu_scaled. rdp_core is native-resolution only and
+// has no upscaler, so this returns a no-op stub (it absorbs register/frame calls
+// without touching the singleton engine). The native VI suites never compare its
+// scanout; the per-scanline-*upscale* suites (which would) are not registered.
+std::unique_ptr<ReplayerDriver> create_replayer_driver_ours_scaled(CommandInterface &player,
+                                                                   ReplayerEventInterface &iface);
 }

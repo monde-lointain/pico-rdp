@@ -156,6 +156,105 @@ static void msg_debug(const char* err, ...)
 
 #include "rdp/rdp.c"
 
+// ---- VI (Stream C / M8) ---------------------------------------------------
+// Port of Angrylion's VI from 31bdb1f (src/core/n64video/vi.c + vi/*.c). The VI
+// code is included whole (mirroring the fork's `#include "n64video/vi.c"`); it
+// in turn includes vi/{gamma,lerp,divot,video,restore,fetch}.c.
+//
+// The fork's vi.c depends on a handful of symbols that live outside the RDP
+// stage files: the `struct rgba` / `struct frame_buffer` scanout PODs (fork's
+// vdac.h), the vdac_* sink, the parallel_* worker API, and PARALLEL_MAX_WORKERS.
+// We supply file-static stand-ins here so the VI source ports BYTE-FOR-BYTE:
+//
+//   * struct rgba / struct frame_buffer — same layout as the fork's vdac.h (and
+//     our public n64video_pixel / n64video_frame_buffer). Local POD types: types
+//     have no linkage, so no collision with the oracle's identically-named ones.
+//   * vdac_* — static shims. vdac_write/sync route the finished prescale buffer
+//     to the rdpx_vdac_write / rdpx_vdac_sync sink (which forwards to the test
+//     adapter), exactly as the oracle's vdac_write calls update_screen().
+//   * parallel_* — single-host-worker stubs. config.parallel is always false in
+//     the conformance adapter, so the parallel branches in vi.c are dead; the
+//     stubs exist only so the dead branches link.
+//
+// Every VI external (vi_update_screen, vi_set_zbuffer_address, vi_gamma_init,
+// vi_restore_init, vi_init, vi_close) was made `static` in the ported vi/*.c so
+// nothing collides with the oracle's original VI symbol names at link.
+
+#define PARALLEL_MAX_WORKERS RDPX_PARALLEL_MAX_WORKERS
+
+struct rgba
+{
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t a;
+};
+
+struct frame_buffer
+{
+    struct rgba* pixels;
+    uint32_t width;
+    uint32_t height;
+    uint32_t height_out;
+    uint32_t pitch;
+};
+
+// Adapter-installed scanout callback. data is RGBA8888 (struct rgba) pixels;
+// mirrors the oracle's vdac_write -> update_screen(pixels, width, height, pitch).
+// Installed by the conformance adapter via rdpx_vdac_set_scanout_cb (below).
+static void (*rdpx_scanout_cb)(const void* data, uint32_t width, uint32_t height, uint32_t pitch);
+
+// Internal bridges: the static vdac_* shims forward the finished prescale frame
+// here. On an invalid frame (vdac_sync(true)) we forward a null/zero frame, as
+// the oracle's vdac_sync does.
+static void rdpx_vdac_write_fb(struct frame_buffer* fb)
+{
+    if (rdpx_scanout_cb)
+        rdpx_scanout_cb(fb->pixels, fb->width, fb->height, fb->pitch);
+}
+
+static void rdpx_vdac_sync_internal(bool invalid)
+{
+    if (invalid && rdpx_scanout_cb)
+        rdpx_scanout_cb(NULL, 0, 0, 0);
+}
+
+// vdac sink shims — see comment above. vi_init calls vdac_init; vi_process_*
+// call vdac_write; vi_update_screen calls vdac_sync; vi_close calls vdac_close.
+static void vdac_init(struct n64video_config* cfg)
+{
+    (void)cfg;
+}
+
+static void vdac_write(struct frame_buffer* fb)
+{
+    rdpx_vdac_write_fb(fb);
+}
+
+static void vdac_sync(bool invalid)
+{
+    rdpx_vdac_sync_internal(invalid);
+}
+
+static void vdac_close(void)
+{
+}
+
+// parallel_* stubs — single host worker. config.parallel is false in the
+// adapter, so vi.c's parallel_run / parallel_num_workers branches never execute;
+// these only satisfy the linker for the dead code path.
+static uint32_t parallel_num_workers(void)
+{
+    return 1;
+}
+
+static void parallel_run(void (*task)(uint32_t))
+{
+    task(0);
+}
+
+#include "vi/vi.c"
+
 #undef N64VIDEO_C
 
 // One-time static init of the Angrylion lookup tables and per-worker RDP state.
@@ -203,6 +302,7 @@ void rdpx_video_init(struct n64video_config* cfg)
     rdpx_static_init();
 
     rdram_init();
+    vi_init();
     rdp_pipeline_crashed = 0;
     memset(&onetimewarnings, 0, sizeof(onetimewarnings));
 
@@ -229,20 +329,31 @@ void rdpx_rdp_cmd(uint32_t wid, const uint32_t* args)
 
 void rdpx_video_update_screen(struct n64video_frame_buffer* fb)
 {
-    // M1: no VI scanout yet (Stream B.x / VI). The fill suites compare RDRAM.
+    // M8: run the VI. Reads VI registers from config.gfx.vi_reg, fetches +
+    // filters the framebuffer into the prescale buffer, and emits the finished
+    // frame through the vdac sink (vdac_write -> rdpx_vdac_write callback ->
+    // adapter -> iface.update_screen). The argument is unused: the harness reads
+    // scanout via the event interface, not this struct.
     (void)fb;
+    vi_update_screen();
 }
 
 void rdpx_video_close(void)
 {
-    // Nothing to release (all storage is file-static / caller-owned). Reset the
-    // crash latch so a fresh driver instance starts clean.
+    // Release VI resources (none beyond file-static storage) and reset the crash
+    // latch so a fresh driver instance starts clean.
+    vi_close();
     rdp_pipeline_crashed = 0;
 }
 
 // ---- rdpx_vdac_* scanout sink --------------------------------------------
-// Mirrors the oracle's vdac_* sink shape, rdpx_-prefixed. No-ops at M1; the
-// adapter forwards nothing to the event interface until VI produces pixels.
+// The VI emits the finished prescale buffer through the static vdac_write /
+// vdac_sync shims (above), which forward here. The conformance adapter installs
+// a scanout callback (rdpx_vdac_set_scanout_cb) that mirrors the oracle's
+// vdac_write -> update_screen(pixels, width, height, pitch) path; on an invalid
+// frame (vdac_sync(true)) it forwards a null/zero frame, exactly like the
+// oracle's vdac_sync. Pixels are RGBA8888 (struct rgba), which is what
+// compare_image checks.
 
 struct rdpx_frame_buffer
 {
@@ -252,6 +363,11 @@ struct rdpx_frame_buffer
     uint32_t pitch;
 };
 
+void rdpx_vdac_set_scanout_cb(void (*cb)(const void*, uint32_t, uint32_t, uint32_t))
+{
+    rdpx_scanout_cb = cb;
+}
+
 void rdpx_vdac_init(struct n64video_config* cfg)
 {
     (void)cfg;
@@ -259,12 +375,13 @@ void rdpx_vdac_init(struct n64video_config* cfg)
 
 void rdpx_vdac_write(struct rdpx_frame_buffer* fb)
 {
-    (void)fb;
+    if (rdpx_scanout_cb)
+        rdpx_scanout_cb(fb->pixels, fb->width, fb->height, fb->pitch);
 }
 
 void rdpx_vdac_sync(bool invalid)
 {
-    (void)invalid;
+    rdpx_vdac_sync_internal(invalid);
 }
 
 void rdpx_vdac_close(void)
