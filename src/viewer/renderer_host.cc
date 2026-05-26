@@ -24,10 +24,10 @@
 // the hardcoded clear only needs the color-FB address + dimensions, which are
 // fixed macros. The future demo source will call demo_init through the seam.
 #include "demo.h"
+#include "minmax.h"   // C++-only: overloaded rdpx_min/max — MUST stay out of extern "C"
 #include "rdram_io.h"  // XOR-correct halfword I/O for the demo->staging blit
 
 extern "C" {
-#include "minmax.h"
 #include "n64video.h"
 
 // Harness hooks NOT in the public header (test-only / adapter entry points),
