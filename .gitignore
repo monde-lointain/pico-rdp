@@ -28,3 +28,6 @@ Sessionx.vim
 tags
 # Persistent undo
 [._]*.un~
+
+# Claude superpowers
+.superpowers/
