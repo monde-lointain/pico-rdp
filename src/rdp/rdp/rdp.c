@@ -31,6 +31,7 @@
 #include "rdp/dither_internal.h"
 #include "rdp/fbuffer_internal.h"
 #include "rdp/rdram_internal.h"
+#include "rdp/tcoord_internal.h"
 #include "rdp/tmem_internal.h"
 #include "rdp/zbuffer_internal.h"
 
@@ -162,7 +163,7 @@ static void deduce_derivatives(uint32_t wid);
 
 
 
-#include "rdp/tcoord.c"
+
 #include "rdp/tex.c"
 #include "rdp/rasterizer.c"
 // clang-format on
