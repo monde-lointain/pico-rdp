@@ -396,15 +396,18 @@ CUBE_TRIS = [
     (20, 21, 22), (20, 22, 23),  # Right
 ]
 
-# Per-face (u,v) texel coords mapping the 64x64 arrows texture across each
-# cube face. The 4 verts of each face are ordered (per CUBE_VERTS) so that
-# index%4 = 0,1,2,3 map to the face corners; assign UV in texel units
-# [0,64] so the whole arrows image covers the quad. Standard quad layout:
-#   corner 0 -> (0,0)   corner 1 -> (64,0)
-#   corner 2 -> (64,64) corner 3 -> (0,64)
-# (top-left origin, T increases downward as the RDP samples.)
+# Per-face (u,v) texel coords mapping the 64x64 arrows texture across each cube
+# face. CUBE_VERTS orders every face's 4 corners consistently as
+#   corner 0 = (+a,+b)  corner 1 = (-a,+b)  corner 2 = (-a,-b)  corner 3 = (+a,-b)
+# (a,b = the face's two in-plane axes), so one FACE_UV orients the texture
+# identically on all six faces. With the Y-flipped (N64 RSP) viewport and our
+# winding, U must run high->low across corners 0->1 to render the arrows
+# unmirrored (matching gldemo's textured cube); the earlier (0,0)-at-corner-0
+# layout mirrored the texture horizontally. V is already upright.
+#   corner 0 -> (64,0)  corner 1 -> (0,0)
+#   corner 2 -> (0,64)  corner 3 -> (64,64)
 TEX_DIM = 64
-FACE_UV = [(0, 0), (TEX_DIM, 0), (TEX_DIM, TEX_DIM), (0, TEX_DIM)]
+FACE_UV = [(TEX_DIM, 0), (0, 0), (0, TEX_DIM), (TEX_DIM, TEX_DIM)]
 
 
 # ===========================================================================
