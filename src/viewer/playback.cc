@@ -9,6 +9,7 @@
  * when stepping — and presented through renderer_host_present_demo().
  */
 
+#include "demo_anim.h"
 #include "dock_layout.h"
 #include "imgui.h"
 #include "minmax.h"
@@ -42,7 +43,10 @@ static void playback_sink_emit(void* ctx, const uint32_t* words, uint32_t n) {
 
 // ---- frame buffering -------------------------------------------------------
 void playback_init(struct Playback* pb) {
-  pb->period = demo_anim_period_frames();
+  // gldemo-rate playback uses runtime model matrices over a 7200-frame loop;
+  // baked playback uses the coarse 120-frame tables.
+  pb->period =
+      pb->gldemo_rate ? DEMO_ANIM_GLDEMO_PERIOD : demo_anim_period_frames();
   if (pb->period == 0) {
     pb->period = 1;
   }
@@ -56,7 +60,15 @@ void playback_init(struct Playback* pb) {
   struct CmdSink sink;
   sink.emit = playback_sink_emit;
   sink.ctx = pb;
-  demo_build_frame(pb->frame_index, &sink);
+  if (pb->gldemo_rate) {
+    int32_t pyr_model[16];
+    int32_t cube_model[16];
+    demo_anim_pyramid_model((double)pb->frame_index, pyr_model);
+    demo_anim_cube_model((double)pb->frame_index, cube_model);
+    demo_build_frame_models(pyr_model, cube_model, &sink);
+  } else {
+    demo_build_frame(pb->frame_index, &sink);
+  }
 
   // Default: show the whole frame.
   pb->step_cmd = pb->cmd_total;
@@ -78,12 +90,13 @@ static void playback_feed(struct Playback* pb, uint32_t k) {
                              demo_fb_height());
 }
 
+void playback_advance_frame(struct Playback* pb) {
+  pb->frame_index = (pb->frame_index + 1U) % pb->period;
+  playback_init(pb);  // rebuild the new frame; step cursor -> full frame
+  pb->step_mode = 0;
+}
+
 void playback_tick(struct Playback* pb) {
-  if (pb->playing) {
-    pb->frame_index = (pb->frame_index + 1U) % pb->period;
-    playback_init(pb);  // rebuild the new frame; step cursor -> full frame
-    pb->step_mode = 0;
-  }
   if (!pb->dirty) {
     return;
   }

@@ -37,14 +37,25 @@ struct Playback {
   int step_mode;      // 1 = honoring step_cmd (sub-frame), 0 = whole frame
 
   int dirty;  // re-feed + present needed this tick
+
+  // 1 = build frames from runtime gldemo-rate model matrices (smooth 60fps,
+  // period DEMO_ANIM_GLDEMO_PERIOD) instead of the coarse baked tables. Set by
+  // the windowed loop only; headless paths leave it 0 (deterministic baked).
+  int gldemo_rate;
 };
 
 // Build/buffer the current frame's command stream, reset the step cursor to the
 // full frame, and mark dirty. Called on init, step-frame, reset, and play tick.
 void playback_init(struct Playback* pb);
 
-// Per-UI-frame update: if playing, advance the frame; if dirty, feed the
-// appropriate prefix of the buffered stream into the renderer and present.
+// Advance to the next animation frame (wraps at pb->period) and rebuild it.
+// The windowed loop drives this at a fixed 60fps timestep; playback_tick no
+// longer auto-advances.
+void playback_advance_frame(struct Playback* pb);
+
+// Per-UI-frame update: if dirty, feed the appropriate prefix of the buffered
+// stream into the renderer and present. (Frame advancement is separate; see
+// playback_advance_frame.)
 void playback_tick(struct Playback* pb);
 
 // The three docked panels (call inside the ImGui frame).

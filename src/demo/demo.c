@@ -244,6 +244,13 @@ static void demo_load_cube_texture(struct CmdSink *sink) {
 
 void demo_build_frame(uint32_t frame_index, struct CmdSink *sink) {
   uint32_t frame = frame_index % DEMO_ANIM_PERIOD;
+  demo_build_frame_models(demo_pyramid_model[frame % DEMO_PYRAMID_PERIOD],
+                          demo_cube_model[frame % DEMO_CUBE_PERIOD], sink);
+}
+
+void demo_build_frame_models(const int32_t *pyramid_model16,
+                             const int32_t *cube_model16,
+                             struct CmdSink *sink) {
   struct DemoViewport vp;
   demo_viewport(&vp);
 
@@ -276,8 +283,8 @@ void demo_build_frame(uint32_t frame_index, struct CmdSink *sink) {
   emit_set_combine(sink, DEMO_COMBINE_SHADE_HI, DEMO_COMBINE_SHADE_LO);
 
   struct DemoMat4 pyr_mvp;
-  scene_build_mvp(&pyr_mvp, demo_pyramid_model[frame % DEMO_PYRAMID_PERIOD],
-                  demo_view_matrix, demo_proj_matrix);
+  scene_build_mvp(&pyr_mvp, pyramid_model16, demo_view_matrix,
+                  demo_proj_matrix);
   scene_draw_pyramid(sink, &pyr_mvp, &vp, DEMO_SCENE_CULL);
 
   // 3) Cube: texel * shade (CI4 via TLUT), Z, perspective-correct.
@@ -289,8 +296,7 @@ void demo_build_frame(uint32_t frame_index, struct CmdSink *sink) {
   emit_set_combine(sink, DEMO_COMBINE_DECAL_HI, DEMO_COMBINE_DECAL_LO);
 
   struct DemoMat4 cube_mvp;
-  scene_build_mvp(&cube_mvp, demo_cube_model[frame % DEMO_CUBE_PERIOD],
-                  demo_view_matrix, demo_proj_matrix);
+  scene_build_mvp(&cube_mvp, cube_model16, demo_view_matrix, demo_proj_matrix);
   scene_draw_cube(sink, &cube_mvp, &vp, DEMO_SCENE_CULL);
 
   // 4) Finish the frame.

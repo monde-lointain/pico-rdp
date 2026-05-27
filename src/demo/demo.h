@@ -102,6 +102,14 @@ void demo_init(uint8_t *rdram, uint32_t rdram_size);
 // addresses seeded by demo_init. No internal animation state beyond the index.
 void demo_build_frame(uint32_t frame_index, struct CmdSink *sink);
 
+// Same as demo_build_frame but with the two per-frame model matrices supplied
+// explicitly (Q16.16 row-major, int32[16]) instead of indexed from the baked
+// tables. The only frame-varying inputs to a frame are these two matrices, so
+// this is the seam a host driver uses to animate at a different rate (e.g. the
+// viewer's runtime gldemo-rate playback). demo_build_frame is a thin wrapper.
+void demo_build_frame_models(const int32_t *pyramid_model16,
+                             const int32_t *cube_model16, struct CmdSink *sink);
+
 // --- Accessors (for programming the VI) -----------------------------------
 
 // RDRAM byte address of the color framebuffer (VI_ORIGIN source).

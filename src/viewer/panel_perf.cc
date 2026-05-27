@@ -55,10 +55,12 @@ void panel_perf_draw(struct Playback* pb, const struct PerfSample* s) {
 
   const uint64_t px = s ? s->pixel_count : 0U;
   const double ms = s ? s->build_present_ms : 0.0;
+  const double fps = s ? s->play_fps : 0.0;
 
   ImGui::Text("Frame %u  (%u commands)", pb->frame_index, pb->cmd_total);
   ImGui::Separator();
 
+  ImGui::Text("Playback rate:      %.1f fps (target 60)", fps);
   ImGui::Text("Host build+present: %.3f ms", ms);
   ImGui::Text("Pixels committed:   %llu", (unsigned long long)px);
   if (ms > 0.0) {

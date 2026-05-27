@@ -90,6 +90,17 @@ if(TARGET Rdp::viewer_decode)
   add_test(NAME demo_tmem_preview_test COMMAND demo_tmem_preview_test)
 endif()
 
+# viewer_anim_test: the viewer's runtime gldemo-rate model matrices
+# (Rdp::viewer_anim) vs the baked tables at shared sample points, plus the
+# fixed-timestep pacer. Plain add_test like the other end-to-end demo tests.
+# Guarded on the anim lib (built with the host SDL viewer stack).
+if(TARGET Rdp::viewer_anim)
+  add_executable(demo_viewer_anim_test viewer_anim_test.cc)
+  target_link_libraries(demo_viewer_anim_test PRIVATE
+    demo_core Rdp::viewer_anim gtest_main)
+  add_test(NAME demo_viewer_anim_test COMMAND demo_viewer_anim_test)
+endif()
+
 # capture_roundtrip_test: SDL-free gtest — demo_build_frame(0) stream through the
 # .rdp RDPCommand record framing and back, asserting byte-identical replay.
 add_executable(demo_capture_roundtrip_test capture_roundtrip_test.cc)

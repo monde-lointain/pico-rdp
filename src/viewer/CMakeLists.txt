@@ -21,6 +21,15 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(Rdp_viewer_decode PRIVATE -fno-strict-aliasing)
 endif()
 
+# Pure, SDL/ImGui-free runtime playback support: gldemo-rate model matrices
+# (demo_anim) + fixed-timestep pacer (frame_pacer). Split out so they stay in
+# lockstep with the demo's baked angles and are unit-testable headlessly
+# (tests/demo/viewer_anim_test.cc links this).
+add_library(Rdp_viewer_anim STATIC demo_anim.cc frame_pacer.cc)
+add_library(Rdp::viewer_anim ALIAS Rdp_viewer_anim)
+target_link_libraries(Rdp_viewer_anim PUBLIC Rdp::demo PRIVATE project_warnings m)
+target_include_directories(Rdp_viewer_anim PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_executable(rdp_viewer
     main.cc
     headless.cc
@@ -50,6 +59,7 @@ target_link_libraries(rdp_viewer PRIVATE
     Rdp::rdp
     Rdp::demo
     Rdp::viewer_decode
+    Rdp::viewer_anim
     SDL3::SDL3
     imgui
     project_warnings

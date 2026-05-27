@@ -17,6 +17,7 @@
 
 #include "capture.h"
 #include "dock_layout.h"
+#include "frame_pacer.h"
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
@@ -41,6 +42,9 @@ int run_windowed(void) {
     fprintf(stderr, "SDL window/renderer failed: %s\n", SDL_GetError());
     return 1;
   }
+  // Pace presents to the display (best-effort; the fixed-timestep loop below
+  // keeps the demo at 60fps regardless of the actual refresh rate).
+  SDL_SetRenderVSync(renderer, 1);
 
   // Streaming texture for the 240x240 scanout (RGBA32 matches struct Rgba
   // bytes).
@@ -71,7 +75,19 @@ int run_windowed(void) {
   memset(&pb, 0, sizeof(pb));
   pb.frame_index = 0;
   pb.playing = true;
+  pb.gldemo_rate = 1;  // runtime gldemo-rate matrices, smooth 60fps playback
   playback_init(&pb);
+
+  // Fixed-timestep pacing: advance the demo at exactly 60fps by wall clock,
+  // independent of the window's refresh rate. play_fps is measured over a short
+  // sliding window for the perf HUD.
+  struct FramePacer pacer;
+  frame_pacer_init(&pacer, 60.0);
+  uint64_t pace_last = SDL_GetPerformanceCounter();
+  double const pc_freq = (double)SDL_GetPerformanceFrequency();
+  uint32_t fps_frames = 0;
+  double fps_accum_s = 0.0;
+  double play_fps = 0.0;
 
   // C.4 perf HUD: sampled around each frame's build+present.
   struct PerfSample perf;
@@ -99,18 +115,42 @@ int run_windowed(void) {
     // While a .rdp dump is the active source, the live-demo driver is frozen —
     // the dump's last replay owns the renderer scanout.
     if (!source_is_dump) {
-      const bool will_present = pb.dirty || pb.playing;
+      // Fixed-timestep: advance the demo at exactly 60fps by wall clock.
+      uint64_t const pace_now = SDL_GetPerformanceCounter();
+      double const dt = (double)(pace_now - pace_last) / pc_freq;
+      pace_last = pace_now;
+      int due = 0;
+      if (pb.playing) {
+        due = frame_pacer_step(&pacer, dt);
+      } else {
+        pacer.accum = 0.0;  // don't bank elapsed time while paused
+      }
+
+      // Present when an advance rebuilt the frame, or an interaction set dirty.
+      const bool will_present = pb.dirty || due > 0;
       if (will_present) {
         rdpx_reset_pixel_count();
       }
       uint64_t const t0 = SDL_GetPerformanceCounter();
-      playback_tick(&pb);
+      for (int i = 0; i < due; ++i) {
+        playback_advance_frame(&pb);  // build (no rasterize) the next frame
+      }
+      playback_tick(&pb);  // feed + present the dirty frame
       if (will_present) {
         uint64_t const t1 = SDL_GetPerformanceCounter();
-        double const freq = (double)SDL_GetPerformanceFrequency();
-        perf.build_present_ms = (double)(t1 - t0) / freq * 1000.0;
+        perf.build_present_ms = (double)(t1 - t0) / pc_freq * 1000.0;
         perf.pixel_count = rdpx_get_pixel_count();
       }
+
+      // Measured playback rate over a ~0.5 s sliding window (HUD readout).
+      fps_frames += (uint32_t)due;
+      fps_accum_s += dt;
+      if (fps_accum_s >= 0.5) {
+        play_fps = (double)fps_frames / fps_accum_s;
+        fps_frames = 0;
+        fps_accum_s = 0.0;
+      }
+      perf.play_fps = play_fps;
     }
 
     // Upload the latest scanout into the SDL texture.

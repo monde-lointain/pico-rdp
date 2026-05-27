@@ -20,6 +20,7 @@ struct Playback;  // panels.h
 struct PerfSample {
   double build_present_ms;  // wall-clock for build+feed+present of the frame
   uint64_t pixel_count;     // rdpx_get_pixel_count() committed over the frame
+  double play_fps;          // measured playback rate (advanced frames / wall s)
 };
 
 // Draw the Perf dock node. `s` is the latest sampled frame; `pb` is the current
