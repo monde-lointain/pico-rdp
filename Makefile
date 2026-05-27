@@ -16,6 +16,9 @@ PRESET ?= host
 BUILD_DIR := build-$(PRESET)
 CONFIGURED := $(BUILD_DIR)/CMakeCache.txt
 
+# Pico firmware artifact (produced by the pico preset).
+UF2 := build-pico/src/rdp_demo.uf2
+
 JOBS ?= $(shell nproc)
 
 # Optional configure-time overrides.
@@ -28,23 +31,43 @@ FORMAT_FILES := $(shell find src tests \( -name '*.cc' -o -name '*.c' -o -name '
 
 .DEFAULT_GOAL := help
 
-.PHONY: all build test reconfig clean distclean help
-.PHONY: format format-patch tidy assets sanitize
+.PHONY: all build test test-all run view reconfig clean distclean help
+.PHONY: format format-patch tidy assets sanitize flash
 
 all: build
 
 # ---- core (preset-aware) -------------------------------------------------
 build: | $(CONFIGURED)
 	$(Q)cmake --build --preset $(PRESET) -j$(JOBS)
+ifeq ($(PRESET),pico)
+	$(Q)echo "firmware: $(UF2)"
+endif
 
-# Tests are host-only; never configure the pico tree just to skip.
+# Tests are host-only. Default runs the fast subset (conformance/perf excluded).
+# LABEL=<ctest -L regex> selects a label set instead (e.g. LABEL=m0); ARGS=
+# appends raw ctest flags. Use `test-all` for the full (slow) suite.
 test:
 ifeq ($(PRESET),pico)
 	@echo "test: skipped (no test preset for the pico build; tests are host-only)"
 else
-	$(Q)$(MAKE) --no-print-directory build
-	$(Q)ctest --preset host
+	$(Q)$(MAKE) --no-print-directory build PRESET=host
+	$(Q)ctest --preset host --output-on-failure -j$(JOBS) \
+	  $(if $(LABEL),-L $(LABEL),-E 'conformance|perf') $(ARGS)
 endif
+
+# Full host suite incl. conformance (slow: can be hours). Always host.
+test-all:
+	$(Q)$(MAKE) --no-print-directory build PRESET=host
+	$(Q)ctest --preset host --output-on-failure -j$(JOBS) $(ARGS)
+
+# Build the host demo / viewer and launch them. Need a display (not headless/SSH).
+run:
+	$(Q)$(MAKE) --no-print-directory build PRESET=host
+	$(Q)./build-host/src/rdp_demo
+
+view:
+	$(Q)$(MAKE) --no-print-directory build PRESET=host
+	$(Q)./build-host/src/viewer/rdp_viewer
 
 # Configure when a build dir has no cache yet. Pattern rule so both build-host and
 # build-pico are covered by one recipe (tidy depends on build-host's cache directly).
@@ -59,7 +82,7 @@ clean:
 	$(Q)if [ -d $(BUILD_DIR) ]; then cmake --build $(BUILD_DIR) --target clean; fi
 
 distclean:
-	$(Q)rm -rf build-host build-pico build-orthodoxy
+	$(Q)rm -rf build-*
 
 # ---- tooling -------------------------------------------------------------
 # format / format-patch / assets run directly (no CMake configure, so no SDL3 clone).
@@ -77,6 +100,16 @@ tidy: | build-host/CMakeCache.txt
 
 assets:
 	$(Q)python3 tools/gen_assets.py assets src/gfx/assets_gen.h src/gfx/assets_gen.cc
+
+# Build the pico firmware and flash it. picotool needs the RP2040 in BOOTSEL (USB);
+# without picotool, fall back to a copy-to-mount hint.
+flash:
+	$(Q)$(MAKE) --no-print-directory build PRESET=pico
+	$(Q)if command -v picotool >/dev/null 2>&1; then \
+	  picotool load -x $(UF2); \
+	else \
+	  echo "picotool not found; copy $(UF2) to the mounted RPI-RP2 drive."; \
+	fi
 
 # ---- sanitizers ----------------------------------------------------------
 # Build the ASan/UBSan tree (clang-22, Debug) and run the fast subset under the
@@ -99,21 +132,26 @@ build-asan/CMakeCache.txt:
 
 # ---- help ----------------------------------------------------------------
 help:
-	@echo "picosystem-template - make targets"
+	@echo "rdp - make targets"
 	@echo ""
 	@echo "Variables:"
 	@echo "  PRESET=host|pico   Target preset (default: host). pico builds the .uf2."
 	@echo "  BUILD_TYPE=<type>  Override the preset's CMAKE_BUILD_TYPE (e.g. Release)."
 	@echo "  OPTIONS=<-D...>    Extra cmake configure flags."
-	@echo "  JOBS=<n>           Parallel build jobs (default: nproc)."
+	@echo "  JOBS=<n>           Parallel build/test jobs (default: nproc)."
+	@echo "  LABEL=<regex>      'make test' only: ctest -L filter (regex, so m4 also matches m4t/m4p/...)."
+	@echo "  ARGS=<...>         'make test[-all]' only: extra ctest flags, appended raw."
 	@echo "  VERBOSE=1          Echo underlying commands."
 	@echo ""
 	@echo "Core:"
 	@echo "  build         Configure (if needed) and build the selected preset (default goal: help)"
-	@echo "  test          Build host preset and run ctest (host-only)"
+	@echo "  run           Build host and launch the SDL demo (rdp_demo; needs a display)"
+	@echo "  view          Build host and launch the ImGui viewer (rdp_viewer; needs a display)"
+	@echo "  test          Build host and run the fast ctest subset (conformance/perf excluded)"
+	@echo "  test-all      Build host and run the full ctest suite (slow: can be hours)"
 	@echo "  reconfig      Wipe and reconfigure the selected build dir"
 	@echo "  clean         Run the build system's clean target"
-	@echo "  distclean     Remove build-host / build-pico / build-orthodoxy"
+	@echo "  distclean     Remove all build-* directories"
 	@echo ""
 	@echo "Tooling:"
 	@echo "  format        clang-format -i over src/ + tests/ (excludes generated assets)"
@@ -121,6 +159,13 @@ help:
 	@echo "  tidy          Build host, then gated clang-tidy (findings fail)"
 	@echo "  sanitize      Build clang-22 ASan/UBSan tree, run fast subset (survey env)"
 	@echo "  assets        Regenerate src/gfx/assets_gen.{h,cc} from assets/*.png"
+	@echo "  flash         Build pico and flash the .uf2 via picotool (RP2040 in BOOTSEL)"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make run                 # build + launch the demo"
+	@echo "  make test                # fast unit/integration subset"
+	@echo "  make test LABEL=m4       # conformance m4* via ctest -L"
+	@echo "  make build PRESET=pico   # build the firmware .uf2"
+	@echo "  make flash               # build + flash the pico"
 	@echo ""
 	@echo "Note: the pico build needs the arm-none-eabi toolchain + pico-sdk."
-	@echo "      Run the demo directly: ./build-host/src/picosystem_template"
