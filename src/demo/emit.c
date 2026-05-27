@@ -51,6 +51,17 @@ static uint32_t mask_bits(int32_t val, unsigned bits) {
 
 // --- Triangle ----------------------------------------------------------------
 
+// Pack two signed 32-bit coefficients into an interleaved hi/lo word pair: v0
+// fills the high halfwords of cmd[base] and cmd[base+4]; v1 the low halfwords.
+// Mirrors the oracle's triangle attribute layout (see emit.h). For the lone
+// w/dw scalars (no second value), pass v1 = 0.
+static void emit_pack_pair(uint32_t *cmd, int32_t base, int32_t v0, int32_t v1) {
+  cmd[base] |= (uint32_t)v0 & 0xffff0000U;
+  cmd[base + 4] |= ((uint32_t)v0 << 16) & 0xffff0000U;
+  cmd[base] |= ((uint32_t)v1 >> 16) & 0xffffU;
+  cmd[base + 4] |= (uint32_t)v1 & 0xffffU;
+}
+
 void emit_triangle(struct CmdSink *sink, const struct DemoPrimSetup *setup) {
   // Mirrors submit_clipped_primitive() word-for-word (minus the leading
   // flush_default_state(), which the demo manages separately).
@@ -83,74 +94,28 @@ void emit_triangle(struct CmdSink *sink, const struct DemoPrimSetup *setup) {
   cmd[6] = mask_bits(setup->pos.x_b, 28);
   cmd[7] = mask_bits(setup->pos.dxdy_b, 30);
 
-  // RGBA value (c), split high/low halfword across two 32-bit-word groups.
-  cmd[8] |= (uint32_t)setup->attr.c[0] & 0xffff0000U;
-  cmd[12] |= ((uint32_t)setup->attr.c[0] << 16) & 0xffff0000U;
-  cmd[8] |= ((uint32_t)setup->attr.c[1] >> 16) & 0xffffU;
-  cmd[12] |= (uint32_t)setup->attr.c[1] & 0xffffU;
-  cmd[9] |= (uint32_t)setup->attr.c[2] & 0xffff0000U;
-  cmd[13] |= ((uint32_t)setup->attr.c[2] << 16) & 0xffff0000U;
-  cmd[9] |= ((uint32_t)setup->attr.c[3] >> 16) & 0xffffU;
-  cmd[13] |= (uint32_t)setup->attr.c[3] & 0xffffU;
+  // RGBA color (c) and its X/edge/Y derivatives: each is a 4-element attribute
+  // split into two interleaved hi/lo word pairs (cmd[base] / cmd[base+4]).
+  const struct DemoPrimSetupAttr *a = &setup->attr;
+  emit_pack_pair(cmd, 8, a->c[0], a->c[1]);
+  emit_pack_pair(cmd, 9, a->c[2], a->c[3]);
+  emit_pack_pair(cmd, 10, a->dcdx[0], a->dcdx[1]);
+  emit_pack_pair(cmd, 11, a->dcdx[2], a->dcdx[3]);
+  emit_pack_pair(cmd, 16, a->dcde[0], a->dcde[1]);
+  emit_pack_pair(cmd, 17, a->dcde[2], a->dcde[3]);
+  emit_pack_pair(cmd, 18, a->dcdy[0], a->dcdy[1]);
+  emit_pack_pair(cmd, 19, a->dcdy[2], a->dcdy[3]);
 
-  // dC/dx
-  cmd[10] |= (uint32_t)setup->attr.dcdx[0] & 0xffff0000U;
-  cmd[14] |= ((uint32_t)setup->attr.dcdx[0] << 16) & 0xffff0000U;
-  cmd[10] |= ((uint32_t)setup->attr.dcdx[1] >> 16) & 0xffffU;
-  cmd[14] |= (uint32_t)setup->attr.dcdx[1] & 0xffffU;
-  cmd[11] |= (uint32_t)setup->attr.dcdx[2] & 0xffff0000U;
-  cmd[15] |= ((uint32_t)setup->attr.dcdx[2] << 16) & 0xffff0000U;
-  cmd[11] |= ((uint32_t)setup->attr.dcdx[3] >> 16) & 0xffffU;
-  cmd[15] |= (uint32_t)setup->attr.dcdx[3] & 0xffffU;
-
-  // dC/de
-  cmd[16] |= (uint32_t)setup->attr.dcde[0] & 0xffff0000U;
-  cmd[20] |= ((uint32_t)setup->attr.dcde[0] << 16) & 0xffff0000U;
-  cmd[16] |= ((uint32_t)setup->attr.dcde[1] >> 16) & 0xffffU;
-  cmd[20] |= (uint32_t)setup->attr.dcde[1] & 0xffffU;
-  cmd[17] |= (uint32_t)setup->attr.dcde[2] & 0xffff0000U;
-  cmd[21] |= ((uint32_t)setup->attr.dcde[2] << 16) & 0xffff0000U;
-  cmd[17] |= ((uint32_t)setup->attr.dcde[3] >> 16) & 0xffffU;
-  cmd[21] |= (uint32_t)setup->attr.dcde[3] & 0xffffU;
-
-  // dC/dy
-  cmd[18] |= (uint32_t)setup->attr.dcdy[0] & 0xffff0000U;
-  cmd[22] |= ((uint32_t)setup->attr.dcdy[0] << 16) & 0xffff0000U;
-  cmd[18] |= ((uint32_t)setup->attr.dcdy[1] >> 16) & 0xffffU;
-  cmd[22] |= (uint32_t)setup->attr.dcdy[1] & 0xffffU;
-  cmd[19] |= (uint32_t)setup->attr.dcdy[2] & 0xffff0000U;
-  cmd[23] |= ((uint32_t)setup->attr.dcdy[2] << 16) & 0xffff0000U;
-  cmd[19] |= ((uint32_t)setup->attr.dcdy[3] >> 16) & 0xffffU;
-  cmd[23] |= (uint32_t)setup->attr.dcdy[3] & 0xffffU;
-
-  // S/T/W value
-  cmd[24] |= (uint32_t)setup->attr.u & 0xffff0000U;
-  cmd[28] |= ((uint32_t)setup->attr.u << 16) & 0xffff0000U;
-  cmd[24] |= ((uint32_t)setup->attr.v >> 16) & 0xffffU;
-  cmd[28] |= (uint32_t)setup->attr.v & 0xffffU;
-  cmd[25] |= (uint32_t)setup->attr.w & 0xffff0000U;
-  cmd[29] |= ((uint32_t)setup->attr.w << 16) & 0xffff0000U;
-  // dS/dx, dT/dx, dW/dx
-  cmd[26] |= (uint32_t)setup->attr.dudx & 0xffff0000U;
-  cmd[30] |= ((uint32_t)setup->attr.dudx << 16) & 0xffff0000U;
-  cmd[26] |= ((uint32_t)setup->attr.dvdx >> 16) & 0xffffU;
-  cmd[30] |= (uint32_t)setup->attr.dvdx & 0xffffU;
-  cmd[27] |= (uint32_t)setup->attr.dwdx & 0xffff0000U;
-  cmd[31] |= ((uint32_t)setup->attr.dwdx << 16) & 0xffff0000U;
-  // dS/de, dT/de, dW/de
-  cmd[32] |= (uint32_t)setup->attr.dude & 0xffff0000U;
-  cmd[36] |= ((uint32_t)setup->attr.dude << 16) & 0xffff0000U;
-  cmd[32] |= ((uint32_t)setup->attr.dvde >> 16) & 0xffffU;
-  cmd[36] |= (uint32_t)setup->attr.dvde & 0xffffU;
-  cmd[33] |= (uint32_t)setup->attr.dwde & 0xffff0000U;
-  cmd[37] |= ((uint32_t)setup->attr.dwde << 16) & 0xffff0000U;
-  // dS/dy, dT/dy, dW/dy
-  cmd[34] |= (uint32_t)setup->attr.dudy & 0xffff0000U;
-  cmd[38] |= ((uint32_t)setup->attr.dudy << 16) & 0xffff0000U;
-  cmd[34] |= ((uint32_t)setup->attr.dvdy >> 16) & 0xffffU;
-  cmd[38] |= (uint32_t)setup->attr.dvdy & 0xffffU;
-  cmd[35] |= (uint32_t)setup->attr.dwdy & 0xffff0000U;
-  cmd[39] |= ((uint32_t)setup->attr.dwdy << 16) & 0xffff0000U;
+  // Texture S/T/W and its X/edge/Y derivatives: (u,v) form a pair; w stands
+  // alone in the high halfwords (v1 = 0 leaves the low halfwords untouched).
+  emit_pack_pair(cmd, 24, a->u, a->v);
+  emit_pack_pair(cmd, 25, a->w, 0);
+  emit_pack_pair(cmd, 26, a->dudx, a->dvdx);
+  emit_pack_pair(cmd, 27, a->dwdx, 0);
+  emit_pack_pair(cmd, 32, a->dude, a->dvde);
+  emit_pack_pair(cmd, 33, a->dwde, 0);
+  emit_pack_pair(cmd, 34, a->dudy, a->dvdy);
+  emit_pack_pair(cmd, 35, a->dwdy, 0);
 
   cmd[40] = (uint32_t)setup->attr.z;
   cmd[41] = (uint32_t)setup->attr.dzdx;
