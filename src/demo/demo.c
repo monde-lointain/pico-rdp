@@ -141,7 +141,8 @@ static void demo_clear_image(struct CmdSink *sink, uint32_t addr,
   emit_set_color_image(sink, DEMO_TEXFMT_RGBA, DEMO_TEXSIZE_16BPP, addr,
                        DEMO_FB_WIDTH);
   emit_set_fill_color(sink, fill_word);
-  emit_fill_rectangle(sink, 0, 0, DEMO_FB_WIDTH, DEMO_FB_HEIGHT);
+  struct DemoRect fb = {0, 0, DEMO_FB_WIDTH, DEMO_FB_HEIGHT};
+  emit_fill_rectangle(sink, &fb);
   emit_sync_pipe(sink);
 }
 
@@ -176,7 +177,8 @@ static void demo_load_cube_texture(struct CmdSink *sink) {
   tlut_tile.size = DEMO_TEXSIZE_16BPP;
   tlut_tile.offset = 0x800;  // tmem[0x800] = TLUT region (per tmem.c)
   emit_set_tile(sink, 1, &tlut_tile);
-  emit_load_tlut(sink, 1, 0, 0, DEMO_TLUT_ENTRIES, 1);
+  struct DemoRect tlut_rect = {0, 0, DEMO_TLUT_ENTRIES, 1};
+  emit_load_tlut(sink, 1, &tlut_rect);
   emit_sync_load(sink);
 
   // --- CI4 texels: texture image -> CI4 data as 8-bit half-width ------------
@@ -192,7 +194,8 @@ static void demo_load_cube_texture(struct CmdSink *sink) {
   load_tile.stride = DEMO_CI4_TMEM_STRIDE;
   load_tile.offset = 0;
   emit_set_tile(sink, 7, &load_tile);
-  emit_load_tile(sink, 7, 0, 0, DEMO_CI4_LOAD_WIDTH, DEMO_CI4_TEX_HEIGHT);
+  struct DemoRect ci_load_rect = {0, 0, DEMO_CI4_LOAD_WIDTH, DEMO_CI4_TEX_HEIGHT};
+  emit_load_tile(sink, 7, &ci_load_rect);
   emit_sync_load(sink);
 
   // --- Sample tile (tile 0): CI4 4bpp, same TMEM stride, CLAMP S/T ----------
@@ -209,7 +212,8 @@ static void demo_load_cube_texture(struct CmdSink *sink) {
   ci_tile.palette = 0;
   ci_tile.flags = DEMO_TILE_CLAMP_S_BIT | DEMO_TILE_CLAMP_T_BIT;
   emit_set_tile(sink, 0, &ci_tile);
-  emit_set_tile_size(sink, 0, 0, 0, DEMO_CI4_TEX_WIDTH, DEMO_CI4_TEX_HEIGHT);
+  struct DemoRect tile_size_rect = {0, 0, DEMO_CI4_TEX_WIDTH, DEMO_CI4_TEX_HEIGHT};
+  emit_set_tile_size(sink, 0, &tile_size_rect);
 }
 
 // --- Per-frame builder -------------------------------------------------------
@@ -220,7 +224,8 @@ void demo_build_frame(uint32_t frame_index, struct CmdSink *sink) {
   demo_viewport(&vp);
 
   // 1) Scissor to the full FB, then clear Z and color via FILL mode.
-  emit_set_scissor(sink, 0, 0, DEMO_FB_WIDTH, DEMO_FB_HEIGHT);
+  struct DemoRect fb = {0, 0, DEMO_FB_WIDTH, DEMO_FB_HEIGHT};
+  emit_set_scissor(sink, &fb);
 
   struct DemoOtherModes fill_modes;
   for (uint32_t i = 0; i < sizeof(fill_modes); ++i) {

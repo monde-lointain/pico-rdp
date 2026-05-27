@@ -357,7 +357,8 @@ TEST(EmitState, SetTile) {
 TEST(EmitLoad, SetTileSizeSubpixelBias) {
   Capture c;
   CmdSink sink = make_sink(&c);
-  emit_set_tile_size(&sink, 0, 0, 0, 64, 64);
+  struct DemoRect r = {0, 0, 64, 64};
+  emit_set_tile_size(&sink, 0, &r);
   ASSERT_EQ(c.n, 2u);
   EXPECT_EQ(c.words[0] >> 24, 0x32u);
   EXPECT_EQ((c.words[0] >> 12) & 0xfffu, 0u);    // sl
@@ -369,7 +370,8 @@ TEST(EmitLoad, SetTileSizeSubpixelBias) {
 TEST(EmitLoad, LoadTile) {
   Capture c;
   CmdSink sink = make_sink(&c);
-  emit_load_tile(&sink, 0, 0, 0, 64, 64);
+  struct DemoRect r = {0, 0, 64, 64};
+  emit_load_tile(&sink, 0, &r);
   ASSERT_EQ(c.n, 2u);
   EXPECT_EQ(c.words[0] >> 24, 0x34u);
   EXPECT_EQ((c.words[1] >> 12) & 0xfffu, 252u);
@@ -378,7 +380,8 @@ TEST(EmitLoad, LoadTile) {
 TEST(EmitLoad, LoadTlutPixelBias) {
   Capture c;
   CmdSink sink = make_sink(&c);
-  emit_load_tlut(&sink, 1, 0, 0, 16, 1);
+  struct DemoRect r = {0, 0, 16, 1};
+  emit_load_tlut(&sink, 1, &r);
   ASSERT_EQ(c.n, 2u);
   EXPECT_EQ(c.words[0] >> 24, 0x30u);
   EXPECT_EQ((c.words[1] >> 24) & 7u, 1u);
@@ -398,7 +401,8 @@ TEST(EmitClear, SetFillColor) {
 TEST(EmitClear, SetScissor) {
   Capture c;
   CmdSink sink = make_sink(&c);
-  emit_set_scissor(&sink, 0, 0, 240, 240);
+  struct DemoRect r = {0, 0, 240, 240};
+  emit_set_scissor(&sink, &r);
   ASSERT_EQ(c.n, 2u);
   EXPECT_EQ(c.words[0] >> 24, 0x2du);
   EXPECT_EQ((c.words[0] >> 12) & 0xfffu, 0u);    // xh
@@ -409,7 +413,8 @@ TEST(EmitClear, SetScissor) {
 TEST(EmitClear, FillRectangle) {
   Capture c;
   CmdSink sink = make_sink(&c);
-  emit_fill_rectangle(&sink, 0, 0, 240, 240);
+  struct DemoRect r = {0, 0, 240, 240};
+  emit_fill_rectangle(&sink, &r);
   ASSERT_EQ(c.n, 2u);
   EXPECT_EQ(c.words[0] >> 24, 0x36u);
   EXPECT_EQ((c.words[1] >> 12) & 0xfffu, 0u);    // xl (low corner)

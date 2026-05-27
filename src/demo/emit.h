@@ -135,16 +135,23 @@ void emit_set_combine(struct CmdSink *sink, uint32_t combine_hi,
 void emit_set_other_modes(struct CmdSink *sink,
                           const struct DemoOtherModes *modes);
 
+// Pixel-space rectangle shared by the tile-load and clear/fill emitters. All of
+// them take the same (x, y, width, height) in PIXELS; only the internal corner
+// bias differs per command (see the per-function notes below and in emit.c).
+struct DemoRect {
+  uint32_t x, y, width, height;
+};
+
 // --- Tile / texture load -----------------------------------------------------
 
 void emit_set_tile(struct CmdSink *sink, uint32_t tile,
                    const struct DemoTileDesc *desc);
-void emit_set_tile_size(struct CmdSink *sink, uint32_t tile, uint32_t x,
-                        uint32_t y, uint32_t width, uint32_t height);
-void emit_load_tile(struct CmdSink *sink, uint32_t tile, uint32_t x, uint32_t y,
-                    uint32_t width, uint32_t height);
-void emit_load_tlut(struct CmdSink *sink, uint32_t tile, uint32_t x, uint32_t y,
-                    uint32_t width, uint32_t height);
+void emit_set_tile_size(struct CmdSink *sink, uint32_t tile,
+                        const struct DemoRect *r);
+void emit_load_tile(struct CmdSink *sink, uint32_t tile,
+                    const struct DemoRect *r);
+void emit_load_tlut(struct CmdSink *sink, uint32_t tile,
+                    const struct DemoRect *r);
 
 // --- Clear / fill ------------------------------------------------------------
 
@@ -154,12 +161,10 @@ void emit_set_fill_color(struct CmdSink *sink, uint32_t color);
 
 // SET_SCISSOR (0x2d): clip rect in PIXELS (stored as subpixels x<<2). No
 // interlace.
-void emit_set_scissor(struct CmdSink *sink, uint32_t x, uint32_t y,
-                      uint32_t width, uint32_t height);
+void emit_set_scissor(struct CmdSink *sink, const struct DemoRect *r);
 
 // FILL_RECTANGLE (0x36): rect in PIXELS.
-void emit_fill_rectangle(struct CmdSink *sink, uint32_t x, uint32_t y,
-                         uint32_t width, uint32_t height);
+void emit_fill_rectangle(struct CmdSink *sink, const struct DemoRect *r);
 
 // --- Sync --------------------------------------------------------------------
 

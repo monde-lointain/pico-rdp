@@ -244,12 +244,11 @@ void emit_set_tile(struct CmdSink *sink, uint32_t tile,
 // Shared lower-right-corner (-1 pixel == -4 subpixels) rect packer used by
 // SET_TILE_SIZE / LOAD_TILE. x/y/width/height are PIXELS.
 static void emit_tile_rect(struct CmdSink *sink, uint32_t op, uint32_t tile,
-                           uint32_t x, uint32_t y, uint32_t width,
-                           uint32_t height) {
-  uint32_t xs = x << 2;
-  uint32_t ys = y << 2;
-  uint32_t ws = width << 2;
-  uint32_t hs = height << 2;
+                           const struct DemoRect *r) {
+  uint32_t xs = r->x << 2;
+  uint32_t ys = r->y << 2;
+  uint32_t ws = r->width << 2;
+  uint32_t hs = r->height << 2;
   uint32_t sl = xs & 0xfffU;
   uint32_t tl = ys & 0xfffU;
   uint32_t sh = (xs + ws - 4U) & 0xfffU;
@@ -264,27 +263,27 @@ static void emit_tile_rect(struct CmdSink *sink, uint32_t op, uint32_t tile,
   emit_words(sink, cmd, 2);
 }
 
-void emit_set_tile_size(struct CmdSink *sink, uint32_t tile, uint32_t x,
-                        uint32_t y, uint32_t width, uint32_t height) {
-  emit_tile_rect(sink, EMIT_OP_SET_TILE_SIZE, tile, x, y, width, height);
+void emit_set_tile_size(struct CmdSink *sink, uint32_t tile,
+                        const struct DemoRect *r) {
+  emit_tile_rect(sink, EMIT_OP_SET_TILE_SIZE, tile, r);
 }
 
-void emit_load_tile(struct CmdSink *sink, uint32_t tile, uint32_t x, uint32_t y,
-                    uint32_t width, uint32_t height) {
-  emit_tile_rect(sink, EMIT_OP_LOAD_TILE, tile, x, y, width, height);
+void emit_load_tile(struct CmdSink *sink, uint32_t tile,
+                    const struct DemoRect *r) {
+  emit_tile_rect(sink, EMIT_OP_LOAD_TILE, tile, r);
 }
 
-void emit_load_tlut(struct CmdSink *sink, uint32_t tile, uint32_t x, uint32_t y,
-                    uint32_t width, uint32_t height) {
+void emit_load_tlut(struct CmdSink *sink, uint32_t tile,
+                    const struct DemoRect *r) {
   // LOAD_TLUT biases the lower-right corner by -1 PIXEL before <<2 (not -4
   // subpixels), matching the oracle's load_tlut().
   uint32_t cmd[2] = {0, 0};
   cmd[0] |= (uint32_t)EMIT_OP_LOAD_TLUT << 24;
   cmd[1] |= tile << 24;
-  uint32_t sl = (x << 2) & 0xfffU;
-  uint32_t tl = (y << 2) & 0xfffU;
-  uint32_t sh = ((x + width - 1U) << 2) & 0xfffU;
-  uint32_t th = ((y + height - 1U) << 2) & 0xfffU;
+  uint32_t sl = (r->x << 2) & 0xfffU;
+  uint32_t tl = (r->y << 2) & 0xfffU;
+  uint32_t sh = ((r->x + r->width - 1U) << 2) & 0xfffU;
+  uint32_t th = ((r->y + r->height - 1U) << 2) & 0xfffU;
   cmd[0] |= sl << 12;
   cmd[0] |= tl << 0;
   cmd[1] |= sh << 12;
@@ -301,12 +300,11 @@ void emit_set_fill_color(struct CmdSink *sink, uint32_t color) {
   emit_words(sink, cmd, 2);
 }
 
-void emit_set_scissor(struct CmdSink *sink, uint32_t x, uint32_t y,
-                      uint32_t width, uint32_t height) {
-  uint32_t xh = x << 2;
-  uint32_t yh = y << 2;
-  uint32_t xl = (x + width) << 2;
-  uint32_t yl = (y + height) << 2;
+void emit_set_scissor(struct CmdSink *sink, const struct DemoRect *r) {
+  uint32_t xh = r->x << 2;
+  uint32_t yh = r->y << 2;
+  uint32_t xl = (r->x + r->width) << 2;
+  uint32_t yl = (r->y + r->height) << 2;
   uint32_t cmd[2] = {0, 0};
   cmd[0] |= (uint32_t)EMIT_OP_SET_SCISSOR << 24;
   cmd[0] |= (xh & 0xfffU) << 12;
@@ -316,12 +314,11 @@ void emit_set_scissor(struct CmdSink *sink, uint32_t x, uint32_t y,
   emit_words(sink, cmd, 2);
 }
 
-void emit_fill_rectangle(struct CmdSink *sink, uint32_t x, uint32_t y,
-                         uint32_t width, uint32_t height) {
-  uint32_t xs = x << 2;
-  uint32_t ys = y << 2;
-  uint32_t ws = width << 2;
-  uint32_t hs = height << 2;
+void emit_fill_rectangle(struct CmdSink *sink, const struct DemoRect *r) {
+  uint32_t xs = r->x << 2;
+  uint32_t ys = r->y << 2;
+  uint32_t ws = r->width << 2;
+  uint32_t hs = r->height << 2;
   uint32_t cmd[2] = {0, 0};
   cmd[0] |= (uint32_t)EMIT_OP_FILL_RECTANGLE << 24;
   cmd[0] |= ((xs + ws - 4U) & 0xfffU) << 12;
