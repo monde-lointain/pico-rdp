@@ -215,6 +215,47 @@ In codebases enforced by an Orthodox C++ tool, suppress a single line with a tra
 static_cast<int>(x);  /* HERESY(static-cast) */
 ```
 
+# Refactoring (Orthodox C++)
+
+When refactoring (e.g. acting on code-smell findings), pursue the
+*intent* of good design — single responsibility, low coupling, encapsulation,
+no duplication — realized with C idioms, never with classes, inheritance,
+templates, or value-objects-with-methods. Testability is the design signal:
+hard-to-test code signals a design problem, not a need for more mocking.
+
+- **The module is the unit of design, not the class.** A module = a POD struct
+  plus `module_verb(Receiver* r, ...)` functions over it, split header
+  (interface) / `.cc` (implementation). This is where cohesion lives; "extract
+  a class" means *extract a module*.
+- **Encapsulate state, don't expose it.** Single-instance state: hide as
+  file-scope `static` in the `.cc`, reach it only through module functions —
+  that is encapsulation, not a global hazard. Multiple instances that must hide
+  layout: forward-declare the struct in the header and define it in the `.cc`
+  (opaque pointer / ADT).
+- **Group data that travels together** (co-occurring parameters, primitives
+  standing in for a domain concept like a coordinate) into a named POD struct.
+  It stays POD — behavior goes in free `module_verb` functions, never ctors,
+  operators, or conversions.
+- **Invert dependencies onto interfaces, not details.** Keep high-level/game
+  logic free of platform and hardware calls (the `App`/`plat_*` split already
+  does this). Substitute implementations at link time, or — when runtime
+  selection is needed — through an explicit function-pointer interface.
+- **Replace type-switching with a function-pointer interface.** Repeated
+  `switch` on a type tag (shotgun surgery when behavior changes) becomes one
+  interface of function pointers; callers dispatch through it. "Inheritance" is
+  struct composition: embed the base struct as the first member and cast.
+- **Move a function to the data it envies.** If a function works mostly on
+  another module's data, move it into that module and rename to fit. Say each
+  thing once; kill duplication at the root.
+- **Refactor behind tests, behavior-preserving.** Copy → compile the new path →
+  switch callers → delete the old (don't break a working path mid-refactor).
+  Leave each file a little cleaner than you found it.
+- **Reconcile generic smell heuristics with this style.** A module's file-scope
+  state behind accessors is encapsulation, not "global data." An explicit
+  receiver pointer plus a few parameters is not automatically a long-parameter
+  smell. Intention-revealing and section comments are fine. Apply the smell's
+  intent; reject any fix that reaches for a class, template, or virtual.
+
 # Modern CMake Best Practices
 
 Follow these when writing or editing CMake.
