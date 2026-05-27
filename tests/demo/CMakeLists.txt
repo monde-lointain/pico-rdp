@@ -76,6 +76,20 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 add_test(NAME demo_seed_load_sample_test COMMAND demo_seed_load_sample_test)
 
+# tmem_preview_test: the viewer's Memory->TMEM CI4 preview decode
+# (Rdp::viewer_decode) vs the renderer's live TMEM after a real frame 0. Locks the
+# TLUT stride + texel XOR swizzle. Plain add_test like the other end-to-end demo
+# tests. Guarded on the decode lib (built with the host SDL viewer stack).
+if(TARGET Rdp::viewer_decode)
+  add_executable(demo_tmem_preview_test tmem_preview_test.cc)
+  target_link_libraries(demo_tmem_preview_test PRIVATE
+    demo_core Rdp::rdp rdp::test_support Rdp::viewer_decode gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(demo_tmem_preview_test PRIVATE -fno-strict-aliasing)
+  endif()
+  add_test(NAME demo_tmem_preview_test COMMAND demo_tmem_preview_test)
+endif()
+
 # capture_roundtrip_test: SDL-free gtest — demo_build_frame(0) stream through the
 # .rdp RDPCommand record framing and back, asserting byte-identical replay.
 add_executable(demo_capture_roundtrip_test capture_roundtrip_test.cc)

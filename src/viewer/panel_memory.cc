@@ -37,6 +37,7 @@
 #include "imgui.h"
 #include "minmax.h"
 #include "renderer_host.h"
+#include "tmem_preview.h"
 
 extern "C" {
 #include "demo.h"
@@ -149,27 +150,17 @@ void panel_memory_shutdown(void) {
 }
 
 // ---- texture refresh -------------------------------------------------------
-// Decode the 64x64 CI4 texels (TMEM offset 0, 32 bytes/row) through the TLUT at
-// tmem[0x800] into s_stage as RGBA8, then upload.
+// Decode the 64x64 CI4 texels (TMEM offset 0) through the TLUT at tmem[0x800]
+// into s_stage as RGBA8, then upload. The decode mirrors the renderer's
+// sample-tile addressing (stride-4 replicated TLUT + the t-parity byte XOR
+// swizzle) and lives in tmem_preview.cc so it stays in lockstep with tmem.cc
+// and is unit-tested headlessly (tests/demo/tmem_preview_test.cc).
 static void refresh_tmem(void) {
   const uint8_t* tmem = rdpx_get_tmem();
   if (!tmem || !s_tex_tmem) {
     return;
   }
-  const uint16_t* tlut = (const uint16_t*)(tmem + 0x800);  // tmem.c base
-  for (int y = 0; y < TEX_TMEM_H; ++y) {
-    const uint8_t* row = tmem + ((size_t)y * 32U);  // 32 bytes / CI4 row
-    for (int x = 0; x < TEX_TMEM_W; ++x) {
-      uint8_t const byte = row[x >> 1];
-      uint8_t const idx =
-          (x & 1) ? (byte & 0x0f) : (byte >> 4);  // hi nibble first
-      // TLUT[] is stored as N64 big-endian halfwords in the host buffer; the
-      // renderer's tmem holds them in native order after LOAD_TLUT, so read
-      // directly. Index 0..15 (CI4); the demo's TLUT is 16 entries.
-      uint16_t const entry = tlut[idx & 0x0f];
-      s_stage[((size_t)y * TEX_TMEM_W) + x] = rgba5551_to_rgba8(entry);
-    }
-  }
+  tmem_decode_ci4_preview(tmem, s_stage);
   SDL_UpdateTexture(s_tex_tmem, NULL, s_stage,
                     TEX_TMEM_W * (int)sizeof(uint32_t));
 

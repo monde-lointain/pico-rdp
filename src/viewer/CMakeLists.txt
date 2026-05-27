@@ -8,6 +8,19 @@
 # panel/decode/playback bodies and their internal headers land in later streams
 # by editing these same sources, so the source list is the stable intended set.
 
+# Pure, SDL/ImGui-free TMEM decode for the Memory panel preview. Split out so the
+# decode mirrors the renderer's sample-tile addressing in one place and is
+# unit-testable headlessly (tests/demo/tmem_preview_test.cc links this).
+add_library(Rdp_viewer_decode STATIC tmem_preview.cc)
+add_library(Rdp::viewer_decode ALIAS Rdp_viewer_decode)
+target_link_libraries(Rdp_viewer_decode PUBLIC Rdp::rdp Rdp::demo PRIVATE project_warnings)
+target_include_directories(Rdp_viewer_decode PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# TLUT read type-puns uint8_t* -> uint16_t*; this project has no global aliasing
+# pin (cmake/Flags.cmake absent; core targets carry it PRIVATE only).
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_compile_options(Rdp_viewer_decode PRIVATE -fno-strict-aliasing)
+endif()
+
 add_executable(rdp_viewer
     main.cc
     headless.cc
@@ -36,6 +49,7 @@ target_compile_definitions(rdp_viewer PRIVATE RDPX_TESTING)
 target_link_libraries(rdp_viewer PRIVATE
     Rdp::rdp
     Rdp::demo
+    Rdp::viewer_decode
     SDL3::SDL3
     imgui
     project_warnings
