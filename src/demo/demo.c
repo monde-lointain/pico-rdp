@@ -17,7 +17,8 @@
 //   pyramid: G_CYC_1CYCLE, G_RM_AA_ZB_OPA_SURF, combine = default shade
 //            (G_CC_SHADE), G_ZBUFFER|G_SHADE|G_SHADING_SMOOTH|G_CULL_BACK
 //   cube:    same cycle/rendermode, our addition = arrows CI4 texture via TLUT,
-//            combine = texel * shade (G_CC_MODULATEIA), Z, CULL_BACK
+//            combine = G_CC_DECALRGBA (texel only, shade ignored), Z, CULL_BACK,
+//            G_TF_BILERP (render.c:108-110)
 // clang-format on
 // We disable AA (task: sharp opaque edges) so other-modes z/coverage stay
 // simple. Combine words are baked constants packed exactly as the bit-exact
@@ -28,17 +29,18 @@
 //     RGB  muladd=Zero(8) mulsub=Zero(8) mul=Zero(16) add=Shade(4)
 //     A    muladd=Zero(7) mulsub=Zero(7) mul=Zero(7)  add=ShadeAlpha(4)
 //     -> hi=0x00887f10  lo=0x88fe793c
-//   CUBE (G_CC_MODULATEIA = (TEXEL0,0,SHADE,0) RGB, (TEXEL0,0,SHADE,0) A):
-//     RGB  muladd=Texel0(1) mulsub=Zero(8) mul=Shade(4)      add=Zero(7)
-//     A    muladd=Tex0A(1)  mulsub=Zero(7) mul=ShadeAlpha(4) add=Zero(7)
-//     -> hi=0x00121824  lo=0x8833ffff
+//   CUBE (G_CC_DECALRGBA = (0,0,0,TEXEL0) RGB, (0,0,0,TEXEL0) A):
+//     RGB  muladd=Zero(8) mulsub=Zero(8) mul=Zero(16) add=Texel0(1)
+//     A    muladd=Zero(7) mulsub=Zero(7) mul=Zero(7)  add=Texel0Alpha(1)
+//     -> hi=0x00887f10  lo=0x88fcf279
 //
 // SET_OTHER_MODES bits (emit_set_other_modes packs these): cycle_type=1cycle,
 // z_compare=1, z_update=1, aa=0; perspective=1 only for the textured cube;
-// TLUT=1
-// + sample point (no bilerp) for the cube. Blender left at defaults (m1a=
-// PixelColor) with blend_en=0 -> the combined color is written straight to the
-// FB (opaque), matching G_RM_*_OPA_SURF without AA.
+// TLUT=1 + bilerp (G_TF_BILERP) for the cube (the bi_lerp bit must be set for
+// RGBA/CI textures; clear routes the texel through the YUV convert unit). The
+// viewport flips Y to match the N64 RSP (see demo_viewport). Blender left at
+// defaults (m1a=PixelColor) with blend_en=0 -> the combined color is written
+// straight to the FB (opaque), matching G_RM_*_OPA_SURF without AA.
 
 #include "demo.h"
 
@@ -56,8 +58,11 @@
 // enumerators).
 #define DEMO_COMBINE_SHADE_HI 0x00887f10u
 #define DEMO_COMBINE_SHADE_LO 0x88fe793cu
-#define DEMO_COMBINE_TEXEL_SHADE_HI 0x00121824u
-#define DEMO_COMBINE_TEXEL_SHADE_LO 0x8833ffffu
+// Cube uses gldemo's G_CC_DECALRGBA (render.c:108): out = TEXEL0 (shade
+// ignored), alpha = TEXEL0 alpha. Differs from SHADE only in the add fields
+// (lo word): RGB add Shade(4)->Texel0(1), A add ShadeAlpha(4)->Texel0Alpha(1).
+#define DEMO_COMBINE_DECAL_HI 0x00887f10u
+#define DEMO_COMBINE_DECAL_LO 0x88fcf279u
 
 // Fill values (mirror gldemo). Z fill: GPACK_ZDZ(G_MAXFBZ,0) = G_MAXFBZ<<2,
 // G_MAXFBZ=0x3fff -> 0xfffc, packed into both 16-bit halves. Color fill: opaque
@@ -68,9 +73,11 @@
 #define DEMO_COLOR_FILL_WORD \
   ((DEMO_COLOR_FILL_PIXEL << 16) | DEMO_COLOR_FILL_PIXEL)
 
-// Backface cull: gldemo G_CULL_BACK. Our screen-space signed_area sign (after a
-// no-Y-flip viewport) selects which winding is back; verified end-to-end.
-enum { DEMO_SCENE_CULL = DEMO_CULL_CW_ONLY };
+// Backface cull: gldemo G_CULL_BACK. The Y-flip in demo_viewport negates
+// screen-space signed_area, flipping which winding is back-facing; hence
+// CCW_ONLY here (culls signed_area > 0) where the un-flipped viewport used
+// CW_ONLY. Verified visually against gldemo across the animation.
+enum { DEMO_SCENE_CULL = DEMO_CULL_CCW_ONLY };
 
 // --- Command sink forwarder (declared in cmd_sink.h, defined here) -----------
 
@@ -103,13 +110,19 @@ void demo_init(uint8_t *rdram, uint32_t rdram_size) {
 
 // --- Per-frame state helpers -------------------------------------------------
 
-// Common viewport: full 240x240 screen, depth [0,1] (Q16.16). No Y-flip (the
-// baked PROJ + this transform already land the scene upright; verified e2e).
+// Common viewport: full 240x240 screen, depth [0,1] (Q16.16). Y is FLIPPED to
+// match the N64 RSP, whose viewport transform is screen_y = vtrans - vscale*ndc
+// (HLE ref: gSP.c vtrans[1] - vscale[1]*y). setup.c mirrors the oracle's
+// screen_y = vp.y + (0.5*ndc + 0.5)*height, so we encode the hardware's minus
+// by passing a negative height with vp.y = height: that yields
+// vp.y + (0.5*ndc+0.5)*(-H) = H/2 - (H/2)*ndc, the RSP's centered flip.
+// (gldemo uses a +vscale.y viewport; the RSP applies the sign. The earlier
+// "no Y-flip" claim was verified only against the oracle, never gldemo.)
 static void demo_viewport(struct DemoViewport *vp) {
   vp->x = 0;
-  vp->y = 0;
+  vp->y = (demo_fix)((int32_t)DEMO_FB_HEIGHT << DEMO_FIX_SHIFT);
   vp->width = (demo_fix)((int32_t)DEMO_FB_WIDTH << DEMO_FIX_SHIFT);
-  vp->height = (demo_fix)((int32_t)DEMO_FB_HEIGHT << DEMO_FIX_SHIFT);
+  vp->height = (demo_fix)(-((int32_t)DEMO_FB_HEIGHT << DEMO_FIX_SHIFT));
   vp->min_depth = 0;
   vp->max_depth = DEMO_FIX_ONE;
 }
@@ -127,12 +140,19 @@ static void demo_modes_shade(struct DemoOtherModes *m) {
   m->z_update = 1;
 }
 
-// Set other-modes for the textured pass (cube): as shade + perspective + TLUT,
-// point sampling (no bilerp).
+// Set other-modes for the textured pass (cube): as shade + perspective + TLUT +
+// bilinear filtering. gldemo uses G_TF_BILERP (render.c:110). The bi_lerp bit
+// is NOT "point vs bilinear" — when CLEAR it routes the texel through the YUV
+// color-convert unit (tex.c texture_pipeline_cycle), which collapses an RGBA
+// texel to (B,B,B,B) when no convert coeffs are set. RGBA/CI textures REQUIRE
+// bi_lerp=1; sample_type (2x2) then selects point vs bilinear within it.
 static void demo_modes_texture(struct DemoOtherModes *m) {
   demo_modes_shade(m);
   m->perspective = 1;
   m->TLUT = 1;
+  m->bilerp_0 = 1;
+  m->bilerp_1 = 1;
+  m->sample_quad = 1;  // G_TF_BILERP: 2x2 bilinear fetch
 }
 
 // Clear one image (Z or color) via the FILL-mode rectangle sequence.
@@ -174,8 +194,10 @@ static void demo_load_cube_texture(struct CmdSink *sink) {
     ((uint8_t *)&tlut_tile)[i] = 0;
   }
   tlut_tile.fmt = DEMO_TEXFMT_RGBA;
-  tlut_tile.size = DEMO_TEXSIZE_16BPP;
-  tlut_tile.offset = 0x800;  // tmem[0x800] = TLUT region (per tmem.c)
+  tlut_tile.size = DEMO_TEXSIZE_4BPP;  // libultra gsDPLoadTLUT_pal16: load tile
+                                       // is 4b; size drives the TMEM write
+                                       // stride (8 B/entry). 16b scatters them.
+  tlut_tile.offset = 0x800;            // tmem[0x800] = TLUT region (per tmem.c)
   emit_set_tile(sink, 1, &tlut_tile);
   struct DemoRect tlut_rect = {0, 0, DEMO_TLUT_ENTRIES, 1};
   emit_load_tlut(sink, 1, &tlut_rect);
@@ -194,7 +216,8 @@ static void demo_load_cube_texture(struct CmdSink *sink) {
   load_tile.stride = DEMO_CI4_TMEM_STRIDE;
   load_tile.offset = 0;
   emit_set_tile(sink, 7, &load_tile);
-  struct DemoRect ci_load_rect = {0, 0, DEMO_CI4_LOAD_WIDTH, DEMO_CI4_TEX_HEIGHT};
+  struct DemoRect ci_load_rect = {0, 0, DEMO_CI4_LOAD_WIDTH,
+                                  DEMO_CI4_TEX_HEIGHT};
   emit_load_tile(sink, 7, &ci_load_rect);
   emit_sync_load(sink);
 
@@ -212,7 +235,8 @@ static void demo_load_cube_texture(struct CmdSink *sink) {
   ci_tile.palette = 0;
   ci_tile.flags = DEMO_TILE_CLAMP_S_BIT | DEMO_TILE_CLAMP_T_BIT;
   emit_set_tile(sink, 0, &ci_tile);
-  struct DemoRect tile_size_rect = {0, 0, DEMO_CI4_TEX_WIDTH, DEMO_CI4_TEX_HEIGHT};
+  struct DemoRect tile_size_rect = {0, 0, DEMO_CI4_TEX_WIDTH,
+                                    DEMO_CI4_TEX_HEIGHT};
   emit_set_tile_size(sink, 0, &tile_size_rect);
 }
 
@@ -262,8 +286,7 @@ void demo_build_frame(uint32_t frame_index, struct CmdSink *sink) {
   struct DemoOtherModes tex_modes;
   demo_modes_texture(&tex_modes);
   emit_set_other_modes(sink, &tex_modes);
-  emit_set_combine(sink, DEMO_COMBINE_TEXEL_SHADE_HI,
-                   DEMO_COMBINE_TEXEL_SHADE_LO);
+  emit_set_combine(sink, DEMO_COMBINE_DECAL_HI, DEMO_COMBINE_DECAL_LO);
 
   struct DemoMat4 cube_mvp;
   scene_build_mvp(&cube_mvp, demo_cube_model[frame % DEMO_CUBE_PERIOD],

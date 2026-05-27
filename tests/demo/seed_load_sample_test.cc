@@ -48,7 +48,8 @@ namespace {
 // index 0x400. Each 16-bit entry is replicated across its 64-bit slot (4 u16),
 // so entry k is at TMEM16[0x400 + k*16].
 const uint32_t kTlutBaseU16 = 0x800u / 2u;  // 0x400
-const uint32_t kTlutStrideU16 = 16u;        // one 64-bit slot per entry, 4x rep
+const uint32_t kTlutStrideU16 = 4u;         // one 64-bit slot per entry, 4x rep
+                                            // of the 16-bit entry = 8 B = 4 u16
 
 }  // namespace
 
