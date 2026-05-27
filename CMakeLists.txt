@@ -20,7 +20,12 @@ endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+# C extensions left ON intentionally: the pico-sdk is GNU-C (typeof, inline asm,
+# attributes) and inherits this default; forcing -std=c11 would break the device
+# build. C++ is held to ISO mode (-std=c++20, not gnu++20).
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_TESTS "Build host unit tests" ON)

@@ -47,16 +47,17 @@ if(NOT DEFINED FETCHCONTENT_SOURCE_DIR_ANGRYLION_ORACLE)
   endif()
 endif()
 
+# Source only; this fork ships a plugin-style root CMakeLists we do not want to
+# run. SOURCE_SUBDIR points MakeAvailable at src/core (which has no CMakeLists),
+# so it populates the tree but skips add_subdirectory -- the modern replacement
+# for the deprecated single-arg FetchContent_Populate().
 FetchContent_Declare(
   angrylion_oracle
   GIT_REPOSITORY "${ORACLE_ANGRYLION_GIT_REPOSITORY}"
   GIT_TAG        "${ORACLE_ANGRYLION_GIT_TAG}"
+  SOURCE_SUBDIR  src/core
 )
-# Source only; this fork ships a plugin-style CMakeLists we do not want to run.
-FetchContent_GetProperties(angrylion_oracle)
-if(NOT angrylion_oracle_POPULATED)
-  FetchContent_Populate(angrylion_oracle)
-endif()
+FetchContent_MakeAvailable(angrylion_oracle)
 
 set(ORACLE_ALP_CORE "${angrylion_oracle_SOURCE_DIR}/src/core")
 

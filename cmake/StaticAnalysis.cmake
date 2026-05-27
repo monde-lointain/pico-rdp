@@ -5,9 +5,9 @@
 # Prefer the newest versioned binary available; fall back to the unversioned one.
 find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-22 clang-tidy)
 if(CLANG_TIDY_EXECUTABLE)
-  file(GLOB_RECURSE TIDY_SOURCE_FILES
-    ${CMAKE_SOURCE_DIR}/src/*.cc
-    ${CMAKE_SOURCE_DIR}/src/*.c)
+  file(GLOB_RECURSE TIDY_SOURCE_FILES CONFIGURE_DEPENDS
+    ${PROJECT_SOURCE_DIR}/src/*.cc
+    ${PROJECT_SOURCE_DIR}/src/*.c)
   # platform_pico.cc / main_pico.cc compile only for the device; assets_gen.cc is
   # generated. None appear in the host compile_commands.json.
   list(FILTER TIDY_SOURCE_FILES EXCLUDE REGEX "(_pico|assets_gen)\\.(c|cc)$")
@@ -21,10 +21,10 @@ if(CLANG_TIDY_EXECUTABLE)
 
   add_custom_target(tidy
     COMMAND ${CLANG_TIDY_EXECUTABLE}
-      -p ${CMAKE_BINARY_DIR}
+      -p ${PROJECT_BINARY_DIR}
       --warnings-as-errors=*
       ${TIDY_SOURCE_FILES}
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     COMMENT "Running clang-tidy (gated: findings fail the build)"
   )
 endif()
