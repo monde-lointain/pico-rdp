@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "shadow_state.h"  // pure shadow_decode_* (shared RDP bitfield specs)
+
 // Length table in WORDS, indexed by 6-bit opcode. Mirrors rdp_commands[].length
 // (bytes) / 4. 0 marks an opcode the renderer treats as invalid (8-byte /
 // 2-word stub) — we still return 2 so the stream advances. Triangles are the
@@ -167,12 +169,14 @@ static void decode_summary(uint8_t id, uint32_t w0, uint32_t w1, uint32_t avail,
   size_t const cap = sizeof out->summary;
   switch (id) {
     case RDPCMD_SET_COLOR_IMAGE:
-    case RDPCMD_SET_TEXTURE_IMAGE:
-      snprintf(b, cap, "%s %s w=%u addr=0x%06x",
-               fb_format_name((uint8_t)((w0 >> 21) & 7)),
-               px_size_name((uint8_t)((w0 >> 19) & 3)),
-               (unsigned)((w0 & 0x3ff) + 1), (unsigned)(w1 & 0x0ffffff));
+    case RDPCMD_SET_TEXTURE_IMAGE: {
+      struct ShadowImage img;
+      shadow_decode_image(w0, w1, &img);
+      snprintf(b, cap, "%s %s w=%u addr=0x%06x", fb_format_name(img.format),
+               px_size_name(img.size), (unsigned)img.width,
+               (unsigned)img.addr);
       break;
+    }
     case RDPCMD_SET_MASK_IMAGE:
       snprintf(b, cap, "z/depth addr=0x%06x", (unsigned)(w1 & 0x0ffffff));
       break;
@@ -181,73 +185,90 @@ static void decode_summary(uint8_t id, uint32_t w0, uint32_t w1, uint32_t avail,
       break;
     case RDPCMD_SET_FOG_COLOR:
     case RDPCMD_SET_BLEND_COLOR:
-    case RDPCMD_SET_ENV_COLOR:
-      snprintf(b, cap, "rgba=%u,%u,%u,%u", (unsigned)((w1 >> 24) & 0xff),
-               (unsigned)((w1 >> 16) & 0xff), (unsigned)((w1 >> 8) & 0xff),
-               (unsigned)(w1 & 0xff));
+    case RDPCMD_SET_ENV_COLOR: {
+      struct ShadowColor c;
+      shadow_decode_rgba(w1, &c);
+      snprintf(b, cap, "rgba=%u,%u,%u,%u", (unsigned)c.r, (unsigned)c.g,
+               (unsigned)c.b, (unsigned)c.a);
       break;
-    case RDPCMD_SET_PRIM_COLOR:
-      snprintf(b, cap, "rgba=%u,%u,%u,%u minlod=%u lodfrac=%u",
-               (unsigned)((w1 >> 24) & 0xff), (unsigned)((w1 >> 16) & 0xff),
-               (unsigned)((w1 >> 8) & 0xff), (unsigned)(w1 & 0xff),
-               (unsigned)((w0 >> 8) & 0x1f), (unsigned)(w0 & 0xff));
+    }
+    case RDPCMD_SET_PRIM_COLOR: {
+      struct ShadowColor c;
+      struct ShadowPrimMeta m;
+      shadow_decode_rgba(w1, &c);
+      shadow_decode_prim_meta(w0, &m);
+      snprintf(b, cap, "rgba=%u,%u,%u,%u minlod=%u lodfrac=%u", (unsigned)c.r,
+               (unsigned)c.g, (unsigned)c.b, (unsigned)c.a,
+               (unsigned)m.min_level, (unsigned)m.lod_frac);
       break;
-    case RDPCMD_SET_OTHER_MODES:
+    }
+    case RDPCMD_SET_OTHER_MODES: {
+      struct ShadowOtherModes o;
+      shadow_decode_other_modes(w0, w1, &o);
       snprintf(b, cap,
                "cyc=%s persp=%u TLUT=%u zcmp=%u zupd=%u zmode=%u aa=%u "
                "acmp=%u blend=%u",
-               cycle_type_name((uint8_t)((w0 >> 20) & 3)),
-               (unsigned)((w0 >> 19) & 1), (unsigned)((w0 >> 15) & 1),
-               (unsigned)((w1 >> 4) & 1), (unsigned)((w1 >> 5) & 1),
-               (unsigned)((w1 >> 10) & 3), (unsigned)((w1 >> 3) & 1),
-               (unsigned)(w1 & 1), (unsigned)((w1 >> 14) & 1));
+               cycle_type_name(o.cycle_type), (unsigned)o.persp_tex_en,
+               (unsigned)o.en_tlut, (unsigned)o.z_compare_en,
+               (unsigned)o.z_update_en, (unsigned)o.z_mode,
+               (unsigned)o.antialias_en, (unsigned)o.alpha_compare_en,
+               (unsigned)o.force_blend);
       break;
-    case RDPCMD_SET_COMBINE:
+    }
+    case RDPCMD_SET_COMBINE: {
+      struct ShadowCombine c;
+      shadow_decode_combine(w0, w1, &c);
       snprintf(b, cap,
                "c0 rgb(%u,%u,%u,%u) a(%u,%u,%u,%u) | c1 rgb(%u,%u,%u,%u)",
-               (unsigned)((w0 >> 20) & 0xf), (unsigned)((w1 >> 28) & 0xf),
-               (unsigned)((w0 >> 15) & 0x1f), (unsigned)((w1 >> 15) & 0x7),
-               (unsigned)((w0 >> 12) & 0x7), (unsigned)((w1 >> 12) & 0x7),
-               (unsigned)((w0 >> 9) & 0x7), (unsigned)((w1 >> 9) & 0x7),
-               (unsigned)((w0 >> 5) & 0xf), (unsigned)((w1 >> 24) & 0xf),
-               (unsigned)(w0 & 0x1f), (unsigned)((w1 >> 6) & 0x7));
+               (unsigned)c.sub_a_rgb0, (unsigned)c.sub_b_rgb0,
+               (unsigned)c.mul_rgb0, (unsigned)c.add_rgb0, (unsigned)c.sub_a_a0,
+               (unsigned)c.sub_b_a0, (unsigned)c.mul_a0, (unsigned)c.add_a0,
+               (unsigned)c.sub_a_rgb1, (unsigned)c.sub_b_rgb1,
+               (unsigned)c.mul_rgb1, (unsigned)c.add_rgb1);
       break;
-    case RDPCMD_SET_TILE:
+    }
+    case RDPCMD_SET_TILE: {
+      struct ShadowTile t;
+      shadow_decode_set_tile(w0, w1, &t);
       snprintf(b, cap,
                "tile=%u %s %s line=%u tmem=0x%03x pal=%u cs=%u ct=%u "
                "masks=%u maskt=%u",
-               (unsigned)((w1 >> 24) & 7),
-               fb_format_name((uint8_t)((w0 >> 21) & 7)),
-               px_size_name((uint8_t)((w0 >> 19) & 3)),
-               (unsigned)((w0 >> 9) & 0x1ff), (unsigned)(w0 & 0x1ff),
-               (unsigned)((w1 >> 20) & 0xf), (unsigned)((w1 >> 9) & 1),
-               (unsigned)((w1 >> 19) & 1), (unsigned)((w1 >> 4) & 0xf),
-               (unsigned)((w1 >> 14) & 0xf));
+               (unsigned)((w1 >> 24) & 7), fb_format_name(t.format),
+               px_size_name(t.size), (unsigned)t.line, (unsigned)t.tmem,
+               (unsigned)t.palette, (unsigned)t.cs, (unsigned)t.ct,
+               (unsigned)t.mask_s, (unsigned)t.mask_t);
       break;
+    }
     case RDPCMD_SET_TILE_SIZE:
     case RDPCMD_LOAD_TILE:
-    case RDPCMD_LOAD_TLUT:
+    case RDPCMD_LOAD_TLUT: {
+      struct ShadowTile t;
+      shadow_decode_tile_coords(w0, w1, &t);
       snprintf(b, cap, "tile=%u sl=%u tl=%u sh=%u th=%u",
-               (unsigned)((w1 >> 24) & 7), (unsigned)((w0 >> 12) & 0xfff),
-               (unsigned)(w0 & 0xfff), (unsigned)((w1 >> 12) & 0xfff),
-               (unsigned)(w1 & 0xfff));
+               (unsigned)((w1 >> 24) & 7), (unsigned)t.sl, (unsigned)t.tl,
+               (unsigned)t.sh, (unsigned)t.th);
       break;
+    }
     case RDPCMD_LOAD_BLOCK:
       snprintf(b, cap, "tile=%u sl=%u tl=%u sh=%u dxt=%u",
                (unsigned)((w1 >> 24) & 7), (unsigned)((w0 >> 12) & 0xfff),
                (unsigned)(w0 & 0xfff), (unsigned)((w1 >> 12) & 0xfff),
                (unsigned)(w1 & 0xfff));
       break;
-    case RDPCMD_SET_SCISSOR:
+    case RDPCMD_SET_SCISSOR: {
+      struct ShadowScissor sc;
+      shadow_decode_scissor(w0, w1, &sc);
       snprintf(b, cap, "xh=%u yh=%u xl=%u yl=%u field=%u odd=%u",
-               (unsigned)((w0 >> 12) & 0xfff), (unsigned)(w0 & 0xfff),
-               (unsigned)((w1 >> 12) & 0xfff), (unsigned)(w1 & 0xfff),
-               (unsigned)((w1 >> 25) & 1), (unsigned)((w1 >> 24) & 1));
+               (unsigned)sc.xh, (unsigned)sc.yh, (unsigned)sc.xl,
+               (unsigned)sc.yl, (unsigned)sc.field, (unsigned)sc.keep_odd);
       break;
-    case RDPCMD_SET_PRIM_DEPTH:
-      snprintf(b, cap, "z=%u dz=%u", (unsigned)((w1 >> 16) & 0x7fff),
-               (unsigned)(w1 & 0xffff));
+    }
+    case RDPCMD_SET_PRIM_DEPTH: {
+      struct ShadowPrimDepth pd;
+      shadow_decode_prim_depth(w1, &pd);
+      snprintf(b, cap, "z=%u dz=%u", (unsigned)pd.z, (unsigned)pd.delta_z);
       break;
+    }
     case RDPCMD_FILL_RECTANGLE:
     case RDPCMD_TEXTURE_RECTANGLE:
     case RDPCMD_TEXTURE_RECTANGLE_FLIP:

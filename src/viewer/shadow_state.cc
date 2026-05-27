@@ -26,16 +26,35 @@ void shadow_reset(struct ShadowState *s) {
 }
 
 // RGBA32 unpack — matches RGBA32_R/G/B/A in n64video.c.
-static void shadow_unpack_rgba(uint32_t w, struct ShadowColor *c) {
-  c->r = (uint8_t)((w >> 24) & 0xff);
-  c->g = (uint8_t)((w >> 16) & 0xff);
-  c->b = (uint8_t)((w >> 8) & 0xff);
-  c->a = (uint8_t)(w & 0xff);
+void shadow_decode_rgba(uint32_t w1, struct ShadowColor *c) {
+  c->r = (uint8_t)((w1 >> 24) & 0xff);
+  c->g = (uint8_t)((w1 >> 16) & 0xff);
+  c->b = (uint8_t)((w1 >> 8) & 0xff);
+  c->a = (uint8_t)(w1 & 0xff);
 }
 
-static void shadow_apply_other_modes(struct ShadowState *s, uint32_t w0,
-                                     uint32_t w1) {
-  struct ShadowOtherModes *o = &s->other_modes;
+// SET_COLOR_IMAGE / SET_TEXTURE_IMAGE — fbuffer.c / tex.c. width stores -1.
+void shadow_decode_image(uint32_t w0, uint32_t w1, struct ShadowImage *img) {
+  img->format = (uint8_t)((w0 >> 21) & 0x7);
+  img->size = (uint8_t)((w0 >> 19) & 0x3);
+  img->width = (uint16_t)((w0 & 0x3ff) + 1);
+  img->addr = w1 & 0x0ffffff;
+}
+
+// SET_PRIM_DEPTH — rasterizer.c.
+void shadow_decode_prim_depth(uint32_t w1, struct ShadowPrimDepth *pd) {
+  pd->z = (uint16_t)((w1 >> 16) & 0x7fff);
+  pd->delta_z = (uint16_t)w1;
+}
+
+// SET_PRIM_COLOR non-RGBA args (minlod / lodfrac) — combiner.c.
+void shadow_decode_prim_meta(uint32_t w0, struct ShadowPrimMeta *m) {
+  m->min_level = (uint8_t)((w0 >> 8) & 0x1f);
+  m->lod_frac = (uint8_t)(w0 & 0xff);
+}
+
+void shadow_decode_other_modes(uint32_t w0, uint32_t w1,
+                               struct ShadowOtherModes *o) {
   o->cycle_type = (uint8_t)((w0 >> 20) & 3);
   o->persp_tex_en = (uint8_t)((w0 >> 19) & 1);
   o->detail_tex_en = (uint8_t)((w0 >> 18) & 1);
@@ -74,9 +93,7 @@ static void shadow_apply_other_modes(struct ShadowState *s, uint32_t w0,
   o->alpha_compare_en = (uint8_t)(w1 & 1);
 }
 
-static void shadow_apply_combine(struct ShadowState *s, uint32_t w0,
-                                 uint32_t w1) {
-  struct ShadowCombine *c = &s->combine;
+void shadow_decode_combine(uint32_t w0, uint32_t w1, struct ShadowCombine *c) {
   c->sub_a_rgb0 = (uint8_t)((w0 >> 20) & 0xf);
   c->mul_rgb0 = (uint8_t)((w0 >> 15) & 0x1f);
   c->sub_a_a0 = (uint8_t)((w0 >> 12) & 0x7);
@@ -96,10 +113,9 @@ static void shadow_apply_combine(struct ShadowState *s, uint32_t w0,
   c->add_a1 = (uint8_t)(w1 & 0x7);
 }
 
-static void shadow_apply_set_tile(struct ShadowState *s, uint32_t w0,
-                                  uint32_t w1) {
-  uint32_t const n = (w1 >> 24) & 0x7;
-  struct ShadowTile *t = &s->tile[n];
+// SET_TILE descriptor fields (NOT sl/tl/sh/th — those come from the tile-coords
+// commands). Caller selects the tile slot via (w1>>24)&7.
+void shadow_decode_set_tile(uint32_t w0, uint32_t w1, struct ShadowTile *t) {
   t->format = (uint8_t)((w0 >> 21) & 0x7);
   t->size = (uint8_t)((w0 >> 19) & 0x3);
   t->line = (uint16_t)((w0 >> 9) & 0x1ff);
@@ -116,15 +132,23 @@ static void shadow_apply_set_tile(struct ShadowState *s, uint32_t w0,
 }
 
 // SET_TILE_SIZE / LOAD_TILE / LOAD_TLUT all write sl/tl/sh/th identically
-// (rdp_set_tile_size + tile_tlut_common_cs_decoder).
-static void shadow_apply_tile_coords(struct ShadowState *s, uint32_t w0,
-                                     uint32_t w1) {
-  uint32_t const n = (w1 >> 24) & 0x7;
-  struct ShadowTile *t = &s->tile[n];
+// (rdp_set_tile_size + tile_tlut_common_cs_decoder). Caller selects the tile
+// slot via (w1>>24)&7.
+void shadow_decode_tile_coords(uint32_t w0, uint32_t w1, struct ShadowTile *t) {
   t->sl = (uint16_t)((w0 >> 12) & 0xfff);
   t->tl = (uint16_t)(w0 & 0xfff);
   t->sh = (uint16_t)((w1 >> 12) & 0xfff);
   t->th = (uint16_t)(w1 & 0xfff);
+}
+
+// SET_SCISSOR — rasterizer.c.
+void shadow_decode_scissor(uint32_t w0, uint32_t w1, struct ShadowScissor *sc) {
+  sc->xh = (uint16_t)((w0 >> 12) & 0xfff);
+  sc->yh = (uint16_t)(w0 & 0xfff);
+  sc->xl = (uint16_t)((w1 >> 12) & 0xfff);
+  sc->yl = (uint16_t)(w1 & 0xfff);
+  sc->field = (uint8_t)((w1 >> 25) & 1);
+  sc->keep_odd = (uint8_t)((w1 >> 24) & 1);
 }
 
 void shadow_apply(struct ShadowState *s, const uint32_t *words, uint32_t n) {
@@ -139,63 +163,70 @@ void shadow_apply(struct ShadowState *s, const uint32_t *words, uint32_t n) {
   s->cmd_count++;
 
   switch (id) {
-    case RDPCMD_SET_COLOR_IMAGE:
-      s->color_format = (uint8_t)((w0 >> 21) & 0x7);
-      s->color_size = (uint8_t)((w0 >> 19) & 0x3);
-      s->color_width = (uint16_t)((w0 & 0x3ff) + 1);
-      s->color_addr = w1 & 0x0ffffff;
+    case RDPCMD_SET_COLOR_IMAGE: {
+      struct ShadowImage img;
+      shadow_decode_image(w0, w1, &img);
+      s->color_format = img.format;
+      s->color_size = img.size;
+      s->color_width = img.width;
+      s->color_addr = img.addr;
       break;
-    case RDPCMD_SET_TEXTURE_IMAGE:
-      s->tex_format = (uint8_t)((w0 >> 21) & 0x7);
-      s->tex_size = (uint8_t)((w0 >> 19) & 0x3);
-      s->tex_width = (uint16_t)((w0 & 0x3ff) + 1);
-      s->tex_addr = w1 & 0x0ffffff;
+    }
+    case RDPCMD_SET_TEXTURE_IMAGE: {
+      struct ShadowImage img;
+      shadow_decode_image(w0, w1, &img);
+      s->tex_format = img.format;
+      s->tex_size = img.size;
+      s->tex_width = img.width;
+      s->tex_addr = img.addr;
       break;
+    }
     case RDPCMD_SET_MASK_IMAGE:
       s->depth_addr = w1 & 0x0ffffff;
       break;
-    case RDPCMD_SET_PRIM_DEPTH:
-      s->prim_z = (uint16_t)((w1 >> 16) & 0x7fff);
-      s->prim_delta_z = (uint16_t)w1;
+    case RDPCMD_SET_PRIM_DEPTH: {
+      struct ShadowPrimDepth pd;
+      shadow_decode_prim_depth(w1, &pd);
+      s->prim_z = pd.z;
+      s->prim_delta_z = pd.delta_z;
       break;
+    }
     case RDPCMD_SET_OTHER_MODES:
-      shadow_apply_other_modes(s, w0, w1);
+      shadow_decode_other_modes(w0, w1, &s->other_modes);
       break;
     case RDPCMD_SET_COMBINE:
-      shadow_apply_combine(s, w0, w1);
+      shadow_decode_combine(w0, w1, &s->combine);
       break;
     case RDPCMD_SET_TILE:
-      shadow_apply_set_tile(s, w0, w1);
+      shadow_decode_set_tile(w0, w1, &s->tile[(w1 >> 24) & 0x7]);
       break;
     case RDPCMD_SET_TILE_SIZE:
     case RDPCMD_LOAD_TILE:
     case RDPCMD_LOAD_TLUT:
-      shadow_apply_tile_coords(s, w0, w1);
+      shadow_decode_tile_coords(w0, w1, &s->tile[(w1 >> 24) & 0x7]);
       break;
     case RDPCMD_SET_FILL_COLOR:
       s->fill_color_raw = w1;
       break;
     case RDPCMD_SET_FOG_COLOR:
-      shadow_unpack_rgba(w1, &s->fog_color);
+      shadow_decode_rgba(w1, &s->fog_color);
       break;
     case RDPCMD_SET_BLEND_COLOR:
-      shadow_unpack_rgba(w1, &s->blend_color);
+      shadow_decode_rgba(w1, &s->blend_color);
       break;
-    case RDPCMD_SET_PRIM_COLOR:
-      s->prim_min_level = (uint8_t)((w0 >> 8) & 0x1f);
-      s->prim_lod_frac = (uint8_t)(w0 & 0xff);
-      shadow_unpack_rgba(w1, &s->prim_color);
+    case RDPCMD_SET_PRIM_COLOR: {
+      struct ShadowPrimMeta m;
+      shadow_decode_prim_meta(w0, &m);
+      s->prim_min_level = m.min_level;
+      s->prim_lod_frac = m.lod_frac;
+      shadow_decode_rgba(w1, &s->prim_color);
       break;
+    }
     case RDPCMD_SET_ENV_COLOR:
-      shadow_unpack_rgba(w1, &s->env_color);
+      shadow_decode_rgba(w1, &s->env_color);
       break;
     case RDPCMD_SET_SCISSOR:
-      s->scissor.xh = (uint16_t)((w0 >> 12) & 0xfff);
-      s->scissor.yh = (uint16_t)(w0 & 0xfff);
-      s->scissor.xl = (uint16_t)((w1 >> 12) & 0xfff);
-      s->scissor.yl = (uint16_t)(w1 & 0xfff);
-      s->scissor.field = (uint8_t)((w1 >> 25) & 1);
-      s->scissor.keep_odd = (uint8_t)((w1 >> 24) & 1);
+      shadow_decode_scissor(w0, w1, &s->scissor);
       break;
     default:
       // No-op for NO_OP, syncs, draws, key/convert, load_block, and unknown

@@ -92,6 +92,26 @@ struct ShadowScissor {
   uint8_t keep_odd;         // sckeepodd
 };
 
+// SET_COLOR_IMAGE (0x3f) / SET_TEXTURE_IMAGE (0x3d) decoded fields.
+struct ShadowImage {
+  uint8_t format;
+  uint8_t size;
+  uint16_t width;  // +1 already applied
+  uint32_t addr;   // 24-bit
+};
+
+// SET_PRIM_DEPTH (0x2e) decoded fields.
+struct ShadowPrimDepth {
+  uint16_t z;  // top 15 bits
+  uint16_t delta_z;
+};
+
+// SET_PRIM_COLOR (0x3a) non-RGBA fields (the RGBA uses shadow_decode_rgba).
+struct ShadowPrimMeta {
+  uint8_t min_level;
+  uint8_t lod_frac;
+};
+
 struct ShadowState {
   // SET_COLOR_IMAGE (0x3f)
   uint8_t color_format;
@@ -133,6 +153,22 @@ struct ShadowState {
 
   uint32_t cmd_count;  // total commands applied
 };
+
+// --- Pure field decoders: one source of truth for the RDP bit layouts -------
+// Each decodes one command's raw words into a POD. shadow_apply() stores the
+// result into the ShadowState; the viewer's command decoder (cmd_decode.cc)
+// formats the same POD for display — so a bitfield spec lives in exactly one
+// place. Field layouts match the renderer's rdp_set_* handlers bit-for-bit.
+void shadow_decode_rgba(uint32_t w1, struct ShadowColor *c);
+void shadow_decode_image(uint32_t w0, uint32_t w1, struct ShadowImage *img);
+void shadow_decode_prim_depth(uint32_t w1, struct ShadowPrimDepth *pd);
+void shadow_decode_prim_meta(uint32_t w0, struct ShadowPrimMeta *m);
+void shadow_decode_other_modes(uint32_t w0, uint32_t w1,
+                               struct ShadowOtherModes *o);
+void shadow_decode_combine(uint32_t w0, uint32_t w1, struct ShadowCombine *c);
+void shadow_decode_set_tile(uint32_t w0, uint32_t w1, struct ShadowTile *t);
+void shadow_decode_tile_coords(uint32_t w0, uint32_t w1, struct ShadowTile *t);
+void shadow_decode_scissor(uint32_t w0, uint32_t w1, struct ShadowScissor *sc);
 
 // Reset all shadow fields to zero (matches a fresh renderer's pre-init state
 // for inspector purposes; the renderer's own defaults are not mirrored — only
