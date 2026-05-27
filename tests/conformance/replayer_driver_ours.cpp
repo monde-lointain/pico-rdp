@@ -18,6 +18,8 @@
 #include <string.h>
 #include <vector>
 
+#include "rdp_host_fixture.h"  // mi_intr_noop, rdp_host_config_init
+
 extern "C" {
 #include "n64video.h"
 
@@ -90,8 +92,6 @@ private:
 
 static OursReplayer *global_replayer;
 
-static void mi_intr_noop(void) {}
-
 // Free-function scanout callback installed on rdp_core. The VI calls it with the
 // finished frame; we route to the singleton's event interface, exactly like the
 // oracle's free-function vdac_write -> global_replayer->update_screen.
@@ -111,15 +111,8 @@ OursReplayer::OursReplayer(CommandInterface &player_, ReplayerEventInterface &if
 		p_dp_regs[i] = &dp_regs[i];
 
 	struct N64videoConfig config = {};
-	config.gfx.rdram = rdram.data();
-	config.gfx.rdram_size = uint32_t(rdram.size());
-	config.gfx.vi_reg = p_vi_regs;
-	config.gfx.dp_reg = p_dp_regs;
-	config.gfx.mi_intr_reg = &irq_reg;
-	config.gfx.mi_intr_cb = mi_intr_noop;
-	config.vi.mode = VI_MODE_NORMAL;
-	config.vi.interp = VI_INTERP_LINEAR;
-	config.dp.compat = DP_COMPAT_HIGH;
+	rdp_host_config_init(&config, rdram.data(), uint32_t(rdram.size()),
+	                     p_vi_regs, p_dp_regs, &irq_reg);
 	rdpx_video_init(&config);
 
 	// Route VI scanout to this driver's event interface (RGBA8888), as the

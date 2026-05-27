@@ -36,12 +36,11 @@
 
 #include <vector>
 
-extern "C" {
-#include "n64video.h"
+#include "rdp_host_fixture.h"  // mi_intr_noop, rdp_host_config_init, n64video.h
 
+extern "C" {
 uint8_t *rdpx_get_hidden_rdram(void);
 uint32_t rdpx_get_hidden_rdram_size(void);
-void rdpx_rdp_cmd(uint32_t wid, const uint32_t *args);
 }
 
 using namespace RDP;
@@ -75,8 +74,6 @@ struct ProbeListener : CommandListenerInterface {
     if (offset + size <= rdpx_get_hidden_rdram_size()) memcpy(h + offset, data, size);
   }
 };
-
-static void mi_intr_noop(void) {}
 
 // Two large triangles covering the full clip volume; with the viewport below
 // they tile the framebuffer. Vertices are clip-space (x,y already * w with w=1).
@@ -163,15 +160,8 @@ int main(int argc, char **argv) {
   for (unsigned i = 0; i < DP_NUM_REG; i++) p_dp[i] = &dp_regs[i];
 
   struct N64videoConfig config = {};
-  config.gfx.rdram = rdram.data();
-  config.gfx.rdram_size = uint32_t(rdram.size());
-  config.gfx.vi_reg = p_vi;
-  config.gfx.dp_reg = p_dp;
-  config.gfx.mi_intr_reg = &irq;
-  config.gfx.mi_intr_cb = mi_intr_noop;
-  config.vi.mode = VI_MODE_NORMAL;
-  config.vi.interp = VI_INTERP_LINEAR;
-  config.dp.compat = DP_COMPAT_HIGH;
+  rdp_host_config_init(&config, rdram.data(), uint32_t(rdram.size()), p_vi, p_dp,
+                       &irq);
   rdpx_video_init(&config);
 
   ProbeListener listener(rdram.data(), rdram.size());

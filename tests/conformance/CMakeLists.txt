@@ -21,6 +21,7 @@ add_executable(rdp_conformance
 # harness headers (via rdp::conformance_utils PUBLIC includes).
 target_link_libraries(rdp_conformance PRIVATE
     rdp::conformance_utils
+    rdp::test_support
     angrylion_oracle
     rdp_core
 )
@@ -44,6 +45,7 @@ add_executable(rdp_suite_runner
 )
 target_link_libraries(rdp_suite_runner PRIVATE
     rdp::conformance_utils
+    rdp::test_support
     angrylion_oracle
     rdp_core
 )
@@ -69,6 +71,7 @@ add_executable(vi_suite_runner
 )
 target_link_libraries(vi_suite_runner PRIVATE
     rdp::conformance_utils
+    rdp::test_support
     angrylion_oracle
     rdp_core
 )
@@ -390,6 +393,7 @@ if(TARGET gtest_main)
   )
   target_link_libraries(rdp_post_init_hidden_oracle_test PRIVATE
       rdp::conformance_utils
+      rdp::test_support
       angrylion_oracle
       rdp_core
       gtest_main

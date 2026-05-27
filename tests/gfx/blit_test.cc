@@ -7,21 +7,9 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "fb_test_util.h"
 #include "gfx/framebuffer.h"
 #include "gfx/sprite.h"
-
-/* ---- helpers ------------------------------------------------------------- */
-
-static void fb_clear(Framebuffer *fb, color_t fill) {
-  int i;
-  for (i = 0; i < SCREEN_PIXELS; ++i) {
-    fb->px[i] = fill;
-  }
-}
-
-static color_t fb_get(const Framebuffer *fb, int x, int y) {
-  return fb->px[y * SCREEN_W + x];
-}
 
 /* ---- rgb565 pack --------------------------------------------------------- */
 

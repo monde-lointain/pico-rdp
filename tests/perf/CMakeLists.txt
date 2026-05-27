@@ -13,6 +13,7 @@
 add_executable(rdp_throughput_probe throughput_probe.cpp)
 target_link_libraries(rdp_throughput_probe PRIVATE
     rdp::conformance_utils
+    rdp::test_support
     rdp_core
 )
 

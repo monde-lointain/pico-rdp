@@ -34,13 +34,11 @@
 #include "cmd_sink.h"
 #include "demo.h"
 #include "generated/arrows_ci4.h"  // arrows_ci4[], arrows_tlut[]
+#include "rdp_host_fixture.h"      // RdpHostFixture, feed_emit, n64video.h
 #include "rdram_io.h"
 
 extern "C" {
-#include "n64video.h"
-
-// Harness hooks compiled into rdp_core but not in the public header.
-void rdpx_rdp_cmd(uint32_t wid, const uint32_t *args);
+// Harness hook compiled into rdp_core but not in the public header.
 uint8_t *rdpx_get_tmem(void);
 }
 
@@ -51,15 +49,6 @@ namespace {
 // so entry k is at TMEM16[0x400 + k*16].
 const uint32_t kTlutBaseU16 = 0x800u / 2u;  // 0x400
 const uint32_t kTlutStrideU16 = 16u;        // one 64-bit slot per entry, 4x rep
-
-void feed_emit(void *ctx, const uint32_t *words, uint32_t n) {
-  (void)ctx;
-  (void)n;
-  rdpx_rdp_cmd(0, words);
-}
-
-// SYNC_FULL calls mi_intr_cb() unconditionally (rdp.c) — must be non-null.
-void mi_intr_noop(void) {}
 
 }  // namespace
 
@@ -89,32 +78,10 @@ TEST(DemoSeedLoadSample, SeedingRoundTripsThroughByteXor) {
 // Layer 2: the demo's texture-load command sequence (run through OUR renderer)
 // lands the arrows palette in TMEM at the TLUT base.
 TEST(DemoSeedLoadSample, Frame0LoadsArrowsPaletteIntoTmem) {
-  std::vector<uint8_t> rdram(RDRAM_MAX_SIZE, 0);
+  RdpHostFixture fx;
+  rdp_host_fixture_init(&fx, RDRAM_MAX_SIZE);
 
-  uint32_t vi_regs[VI_NUM_REG];
-  uint32_t dp_regs[DP_NUM_REG];
-  memset(vi_regs, 0, sizeof(vi_regs));
-  memset(dp_regs, 0, sizeof(dp_regs));
-  uint32_t irq = 0;
-  uint32_t *p_vi[VI_NUM_REG];
-  uint32_t *p_dp[DP_NUM_REG];
-  for (uint32_t i = 0; i < VI_NUM_REG; ++i) p_vi[i] = &vi_regs[i];
-  for (uint32_t i = 0; i < DP_NUM_REG; ++i) p_dp[i] = &dp_regs[i];
-
-  struct N64videoConfig config;
-  memset(&config, 0, sizeof(config));
-  config.gfx.rdram = rdram.data();
-  config.gfx.rdram_size = (uint32_t)rdram.size();
-  config.gfx.vi_reg = p_vi;
-  config.gfx.dp_reg = p_dp;
-  config.gfx.mi_intr_reg = &irq;
-  config.gfx.mi_intr_cb = mi_intr_noop;
-  config.vi.mode = VI_MODE_NORMAL;
-  config.vi.interp = VI_INTERP_LINEAR;
-  config.dp.compat = DP_COMPAT_HIGH;
-  rdpx_video_init(&config);
-
-  demo_init(rdram.data(), (uint32_t)rdram.size());
+  demo_init(fx.rdram.data(), (uint32_t)fx.rdram.size());
 
   CmdSink sink;
   sink.emit = feed_emit;
@@ -128,5 +95,5 @@ TEST(DemoSeedLoadSample, Frame0LoadsArrowsPaletteIntoTmem) {
         << "TLUT entry " << k << " not in TMEM after LOAD_TLUT";
   }
 
-  rdpx_video_close();
+  rdp_host_fixture_close(&fx);
 }

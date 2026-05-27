@@ -58,7 +58,7 @@ add_test(NAME demo_snapshot_stream_test COMMAND demo_snapshot_stream_test)
 
 # snapshot_output_test: demo frame 0 driven through rdp_core, color FB vs golden.
 add_executable(demo_snapshot_output_test snapshot_output_test.cc)
-target_link_libraries(demo_snapshot_output_test PRIVATE demo_core Rdp::rdp gtest_main)
+target_link_libraries(demo_snapshot_output_test PRIVATE demo_core Rdp::rdp rdp::test_support gtest_main)
 target_compile_definitions(demo_snapshot_output_test PRIVATE
   DEMO_GOLDEN_OUTPUT_PATH="${DEMO_GOLDEN_DIR}/demo_frame0_color.rgba5551")
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -70,7 +70,7 @@ add_test(NAME demo_snapshot_output_test COMMAND demo_snapshot_output_test)
 # path driven through OUR renderer (rdp_core, RDPX_TESTING on host). The expected
 # palette IS the checked-in generated arrows table, so no separate golden file.
 add_executable(demo_seed_load_sample_test seed_load_sample_test.cc)
-target_link_libraries(demo_seed_load_sample_test PRIVATE demo_core Rdp::rdp gtest_main)
+target_link_libraries(demo_seed_load_sample_test PRIVATE demo_core Rdp::rdp rdp::test_support gtest_main)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(demo_seed_load_sample_test PRIVATE -fno-strict-aliasing)
 endif()
